@@ -1,0 +1,9 @@
+
+DepTester(
+    'fe',
+    requires=[
+        'yapi/server:users',
+        '../common:base',
+        ':flask',
+    ]
+)

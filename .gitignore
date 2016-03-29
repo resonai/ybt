@@ -1,0 +1,26 @@
+## Sublime metadata files to ignore
+*.sublime-project
+*.sublime-workspace
+
+## generic files to ignore
+*~
+*.lock
+*.DS_Store
+*.swp
+*.out
+*.pyc
+*.pyo
+*.egg-info
+.Python
+.cache
+.eggs
+#.*
+
+# YABT stuff
+build
+dist
+yabtwork
+
+# Python Testing
+.tox
+.coverage

@@ -1,0 +1,11 @@
+argcomplete>=1.1
+colorama>=0.3
+ConfigArgParse>=0.10
+networkx>=1.11
+ostrichlib>=0.0
+
+# For testing
+pytest>=2.9
+pytest-cov>=2.2
+pytest-pep8>=1.0
+tox>=2.3

@@ -1,0 +1,2 @@
+[FORMAT]
+dummy-variables-rgx=_$|dummy|unused

@@ -1,0 +1,45 @@
+from __future__ import division
+import math
+
+PipPackage(
+    'flask@0.10.1',
+    package='flask',
+    version='0.10.1'
+)
+
+DockerHub(
+    'python@3.5',
+    image='python',
+    tag='3.5'
+)
+
+# these variables are two very simple examples that demonstrate why it is
+# much easier to take the `exec` route over playing with raw Python AST's
+my_hello = 'hello'
+docker_img = DockerImage
+
+PyLib(
+    'flask-{}-app'.format(my_hello),
+    sources='app.py',
+    requires=[
+        ':flask@0.10.1',
+    ]
+)
+
+docker_img(
+    'flask-' + my_hello,
+    start_from='.:python@{}'.format(7/2),
+    requires=[
+        'flask-hello-app'
+    ],
+    # this silly exercise just demonstrates that although the ybuild file runs
+    # in a weird context (like it's inside a class definition), regular Python
+    # works as expected
+    docker_cmd=list(map(str.lower,
+                        ['PYTHON{}'.format(math.floor(7/2)), 'app.py']))
+)
+
+# check collision
+#PythonLib('flask-hello')
+
+Alias('@default', requires=':flask-hello')

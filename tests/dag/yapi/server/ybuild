@@ -1,0 +1,19 @@
+
+DepTester('users')
+
+DepTester(
+    'yapi',
+    requires=[
+        'common:base',
+        ':flask',
+    ]
+)
+
+DepTester(
+    'yapi-gunicorn',
+    requires=[
+        'common:base',
+        'yapi',
+        ':gunicorn',
+    ]
+)

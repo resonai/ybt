@@ -1,0 +1,11 @@
+
+# DepTester('flask')
+
+DepTester('logging')
+
+DepTester(
+    'base',
+    requires=[
+        '.:logging'
+    ]
+)
