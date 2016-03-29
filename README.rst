@@ -18,7 +18,7 @@ Initial virtualenv setup with virtualenvwrapper
 .. code-block:: shell
 
     mkvirtualenv --python="$(type -P python3)" yabt
-    cd $($WORKON_HOME)/yabt
+    cd $WORKON_HOME/yabt
     git clone git@bitbucket.org:yowza3d/yabt.git
     cd yabt
     # install development requirements
@@ -34,7 +34,7 @@ Try by running unit tests or manual test cases:
 .. code-block:: shell
 
     workon yabt
-    cd $($WORKON_HOME)/yabt/yabt
+    cd $WORKON_HOME/yabt/yabt
     # Run unit tests:
     make test
     # Some manual tests:
