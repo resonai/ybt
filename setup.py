@@ -45,7 +45,7 @@ setup(
         'test': ['pytest', 'pytest-cov', 'pytest-pep8'],
     },
     zip_safe=True,
-    license='MIT',
+    license='Apache License, Version 2.0',
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
@@ -53,7 +53,7 @@ setup(
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
         'Environment :: Console',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: Apache Software License',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: POSIX :: Linux',
         'Topic :: Software Development :: Build Tools',
