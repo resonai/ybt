@@ -30,6 +30,7 @@ YCONFIG_FILE = 'yconfig'
 
 
 class Config:
+    """Runtime Config info class"""
 
     attrs_from_args = frozenset((
         'build_file_name', 'default_target_name', 'cmd', 'targets',
@@ -46,17 +47,20 @@ class Config:
         self.project_root = project_root_dir
         self.work_dir = work_dir
 
-    def get_rel_work_dir(self):
+    def in_yabt_project(self) -> bool:
+        return self.project_root is not None
+
+    def get_rel_work_dir(self) -> str:
         return os.path.relpath(self.work_dir, self.project_root)
 
-    def get_project_build_file(self):
+    def get_project_build_file(self) -> str:
         return os.path.join(self.project_root, BUILD_PROJ_FILE)
 
-    def get_build_file_path(self, build_module):
+    def get_build_file_path(self, build_module) -> str:
         is_root_module = os.path.abspath(build_module) == self.project_root
         return os.path.join(
             self.project_root, build_module,
             BUILD_PROJ_FILE if is_root_module else self.build_file_name)
 
-    def get_workspace_path(self):
+    def get_workspace_path(self) -> str:
         return os.path.join(self.project_root, self.builders_workspace_dir)

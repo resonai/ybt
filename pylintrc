@@ -1,2 +1,7 @@
 [FORMAT]
 dummy-variables-rgx=_$|dummy|unused
+docstring-min-length=4
+
+[TYPECHECK]
+generated-members=
+    build_file_name,default_target_name,cmd,targets,builders_workspace_dir
