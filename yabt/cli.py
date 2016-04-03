@@ -34,8 +34,30 @@ from .config import BUILD_PROJ_FILE, Config, YCONFIG_FILE
 PARSER = None
 
 
-def make_parser(project_config_file: str):
-    global PARSER
+def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
+    """Return the argument parser.
+
+    :param project_config_file: Absolute path to project-specific config file.
+
+    If cached parser already exists - return it immediately.
+    Otherwise, initialize a new `ConfigArgParser` that is able to take default
+    values from a hierarchy of config files and environment variables, as well
+    as standard ArgParse command-line parsing behavior.
+
+    We take default values from configuration files:
+
+    - System-wide (see code for location)
+    - User-level overrides (see code for location, hopefully under home dir)
+    - If a project-specific config file is available, it will override both
+      of the above.
+
+    Environment variables will override all configuration files.
+    For an option `--foo-bar`, if an environment variable named `YBT_FOO_VAR`
+    exists, the option value will be taken from there.
+
+    Of course, options specified directly on the command-line always win.
+    """
+    global PARSER  # pylint: disable=global-statement
     if PARSER is None:
         config_files = ['/etc/yabt.conf', '~/.yconfig']
         if project_config_file:
@@ -59,7 +81,7 @@ def make_parser(project_config_file: str):
     return PARSER
 
 
-def find_project_base_dir(start_at: str=None):
+def find_project_base_dir(start_at: str=None) -> str:
     """Return absolute path of first parent directory of `start_at` that
        contains a file named `BUILD_PROJ_FILE` (including `start_at`).
 
@@ -67,7 +89,7 @@ def find_project_base_dir(start_at: str=None):
 
     :param start_at: Initial path for searching for the project build file.
 
-    Raises OSError upon reaching FS root without finding anything.
+    Returns `None` upon reaching FS root without finding a project buildfile.
     """
     if not start_at:
         start_at = os.path.abspath(os.curdir)
@@ -79,16 +101,37 @@ def find_project_base_dir(start_at: str=None):
         start_at = os.path.split(cur_level)[0]
         if os.path.realpath(cur_level) == os.path.realpath(start_at):
             # looped on root once
-            raise IOError('Not a YABT project (or any of the parent '
-                          'directories): {}'.format(BUILD_PROJ_FILE))
+            break
 
 
-def init_and_get_conf(argv=None):
+def find_project_config_file(project_root: str) -> str:
+    """Return absolute path to project-specific config file, if it exists.
+
+    :param project_root: Absolute path to project root directory.
+
+    A project config file is a file named `YCONFIG_FILE` found at the top
+    level of the project root dir.
+
+    Return `None` if project root dir is not specified,
+    or if no such file is found.
+    """
+    if project_root:
+        project_config_file = os.path.join(project_root, YCONFIG_FILE)
+        if os.path.isfile(project_config_file):
+            return project_config_file
+
+
+def init_and_get_conf(argv: list=None) -> Config:
+    """Initialize a YABT CLI environment and return a Config instance.
+
+    :param argv: Manual override of command-line params to parse (for tests).
+    """
     colorama.init()
     work_dir = os.path.abspath(os.curdir)
     project_root = find_project_base_dir(work_dir)
-    project_config_file = os.path.join(project_root, YCONFIG_FILE)
-    parser = make_parser(
-        project_config_file if os.path.isfile(project_config_file) else None)
+    # if project_root:
+    #     project_config_file = os.path.join(project_root, YCONFIG_FILE)
+    #     if os.path.isfile(project_config_file):
+    parser = make_parser(find_project_config_file(project_root))
     argcomplete.autocomplete(parser)
     return Config(parser.parse(argv), project_root, work_dir)
