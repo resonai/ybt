@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# pylint: disable=invalid-name, unused-argument
+
 """
 yabt Alias Builder
 ~~~~~~~~~~~~~~~~~~
@@ -22,23 +24,13 @@ yabt Alias Builder
 """
 
 
-from ..builder import BaseBuilder
-from ..target import BaseTarget as Target
+from ..extend import (
+    PropType as PT, register_builder_sig, register_manipulate_target_hook)
 
 
-class AliasBuilder(BaseBuilder):
+register_builder_sig('Alias', [('deps', PT.TargetList, None)])
 
-    @staticmethod
-    def get_builder_aliases():
-        return frozenset(('Alias',))
 
-    def extract_target(self, name, requires=None):
-        # force alias target names to conform to "phony target" name pattern
-        # so they are pruned from targets graph after ti is populated.
-        if not name.startswith('@'):
-            name = '@{}'.format(name)
-        target_inst = Target(self._context, name, deps=requires)
-        self._context.register_target(target_inst, self)
-
-    def build(self, target_inst):
-        raise RuntimeError(target_inst)
+@register_manipulate_target_hook('Alias')
+def manipulate_alias_target(build_context, target):
+    target.tags.add('prune-me')

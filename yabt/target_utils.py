@@ -15,8 +15,8 @@
 # limitations under the License.
 
 """
-yabt target module
-~~~~~~~~~~~~~~~~~~
+yabt target utils module
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 :author: Itamar Ostricher
 """
@@ -24,8 +24,9 @@ yabt target module
 
 from os import walk
 from os.path import join, normpath, relpath
+import types
 
-from ostrich.utils.collections import listify
+from neobunch import Bunch
 
 from .config import Config
 
@@ -42,14 +43,14 @@ def split_name(target_name):
     return split(target_name)[1]
 
 
-def norm_name(build_context, target_name):
+def norm_name(build_module: str, target_name: str):
     if ':' not in target_name:
-        return '{}:{}'.format(build_context.get_build_module(), target_name)
+        return '{}:{}'.format(build_module, target_name)
 
     mod, target_name = target_name.split(':', 1)
     if mod.startswith('.'):
-        mod = normpath(join(build_context.get_build_module(), mod))
-        # TODO(itamar): assert that staying within project scope
+        mod = normpath(join(build_module, mod))
+        # TODO(itamar): assert that staying in project scope
     # elif mod.startswith('#'):
     #   mod = mod[1:]
     return '{}:{}'.format('' if mod == '.' else mod, target_name)
@@ -111,46 +112,13 @@ def generate_build_modules(top: str, conf: Config):
             yield expand_target_selector(root, conf)
 
 
-class BaseTarget:
+class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
 
-    def __init__(self, build_context, name, sources=None, deps=None):
-        super().__init__()
-        self.build_context = build_context
-        self.name = '{}:{}'.format(build_context.get_build_module(), name)
-        self.sources = []
-        if sources:
-            self.add_sources(sources)
-        self.deps = []
-        if deps:
-            self.add_deps(deps)
-
-    def __str__(self):
-        return self.name
+    def __init__(self, builder_name):
+        super().__init__(name=None, builder_name=builder_name, props=Bunch(),
+                         deps=None, tags=set())
 
     def __repr__(self):
-        return "'YTarget:{}'".format(self)
-
-    def get_sources(self):  # pylint: disable=no-self-use
-        yield from ()
-
-    def get_pip_requirements(self):  # pylint: disable=no-self-use
-        yield from ()
-
-    def add_sources(self, sources):
-        self.sources.extend(listify(sources))
-
-    def normdep(self, dep):
-        return norm_name(self.build_context, dep)
-
-    def add_deps(self, deps):
-        self.deps.extend(self.normdep(dep) for dep in listify(deps))
-
-
-# class TargetWithExternalDeps(BaseTarget):
-
-#     def __init__(self, build_context, name):
-#         super().__init__(build_context, name)
-#         self.external_deps = []
-
-#     def add_external_deps(self, deps):
-#         self.external_deps.extend(listify(deps))
+        keys = ['name', 'builder_name', 'props', 'deps', 'tags']
+        items = ('{}={!r}'.format(k, self.__dict__[k]) for k in keys)
+        return '{}({})'.format(type(self).__name__, ", ".join(items))

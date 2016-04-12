@@ -24,54 +24,61 @@ yabt Build context module
 
 from collections import defaultdict
 import os
-import pkg_resources as pkgr
 
 from ostrich.utils.text import get_safe_path
 
-from . import target
+from .config import Config
+from .extend import Plugin
+from .logging import make_logger
+from .target_extraction import extractor
+from .target_utils import split_build_module, Target
 
 
-class TargetContext:  # pylint: disable=too-few-public-methods
-    def __init__(self, target_inst, builder_inst, builder_context):
-        self.target = target_inst
-        self.builder = builder_inst
-        self.context = builder_context
+logger = make_logger(__name__)
 
 
 class BuildContext:
+    """Build Context class.
 
-    _builders = {}
-    targets = {}
-    targets_by_module = defaultdict(set)
-    target_graph = None
-    # processed_build_files = set()
-    active_builders = None
+    The framework is designed to operate with a single instance of the
+    BuildContext alive, but this is not enforced using a singleton pattern,
+    because there's no particular reason to do so...
 
-    @classmethod
-    def get_active_builders(cls, unused_conf):
-        # TODO(itamar): Support config semantics for explicitly enabling /
-        # disabling builders, and not just picking up everything that's
-        # installed.
-        if cls.active_builders is None:
-            cls.active_builders = [
-                ep.load()
-                for ep in pkgr.iter_entry_points(group='yabt.builders')]
-            print('Loaded {} builders'.format(len(cls.active_builders)))
-        return cls.active_builders
+    While not yet implemented, it is designed to supported concurrent parsing
+    of multiple build files using the same build context.
+    The design principle to enable this:
+    - The "driver" (e.g. main thread in main process) is responsible for
+      dispatching build file parsers with copies or references of the build
+      context (e.g. on other threads / processes / machines?).
+    - Parsers, with their own build context, populate partial target maps.
+    - The driver collects the partial results, and is responsible to merge
+      them consistently and safely.
+    - This will worth it, of course, only if serializing the state to a parser
+      and serializing the partial result and merging it back is MUCH cheaper
+      than actually doing the parsing, because if it's not, it would be better
+      to do it all in the driver (much simpler...) - which is the reason this
+      is not yet implemented.
+    """
 
-    def __init__(self, conf, build_file_path):
+    def __init__(self, conf: Config):
         self.conf = conf
-        self.build_file_path = build_file_path
-        for builder_class in self.get_active_builders(self.conf):
-            builder_inst = builder_class(self)
-            for alias in builder_class.get_builder_aliases():
-                self._builders[alias] = builder_inst
+        # A *thread-safe* targets map
+        self.targets = {}
+        # A *thread-safe* map from build module to set of target names
+        # that were extracted from that build module
+        self.targets_by_module = defaultdict(set)
+        # Target graph is *not necessarily thread-safe*!
+        self.target_graph = None
 
-    def get_build_module(self):
-        relpath = os.path.relpath(self.build_file_path, self.conf.project_root)
-        return os.path.split(os.path.normpath(relpath))[0]
+    def get_workspace(self, *parts) -> str:
+        """Return a path to a private workspace dir.
+           Create sub-tree of dirs using strings from `parts` inside workspace,
+           and return full path to innermost directory.
 
-    def get_workspace(self, *parts):
+        Upon returning successfully, the directory will exist (potentially
+        changed to a safe FS name), even if it didn't exist before, including
+        any intermediate parent directories.
+        """
         workspace_dir = os.path.join(self.conf.get_workspace_path(),
                                      *(get_safe_path(part)
                                        for part in parts))
@@ -81,36 +88,71 @@ class BuildContext:
             os.makedirs(workspace_dir, exist_ok=True)
         return workspace_dir
 
-    @classmethod
-    def walk_target_graph(cls, target_names):
+    def walk_target_graph(self, target_names: iter):
+        """Generate entire target sub-tree for given `target_names` in order.
+
+        Yields target *instances* in the sub-tree, including the nodes given.
+        """
         for target_name in target_names:
-            yield cls.targets[target_name].target
-            yield from cls.walk_target_graph(
-                cls.target_graph.neighbors_iter(target_name))
+            yield self.targets[target_name]
+            yield from self.walk_target_graph(
+                self.target_graph.neighbors_iter(target_name))
 
-    def register_target(self, target_inst, builder_inst):
-        if target_inst.name in self.targets:
-            first = self.targets[target_inst.name]
+    def register_target(self, target: Target):
+        """Register a `target` instance in this build context.
+
+        A registered target is saved in the `targets` map and in the
+        `targets_by_module` map, but is not added to the target graph until
+        target extraction is completed (thread safety considerations).
+        """
+        if target.name in self.targets:
+            first = self.targets[target.name]
             raise NameError(
-                'Target with name "{}" ({} from "{}") already exists - '
-                'defined first as {} from "{}"'.format(
-                    target_inst.name, builder_inst.__class__.__name__,
-                    self.build_file_path, first.builder.__class__.__name__,
-                    first.context.build_file_path))
-        target_context = TargetContext(target_inst, builder_inst, self)
-        self.targets[target_inst.name] = target_context
-        self.targets_by_module[target.split_build_module(target_inst.name)] \
-            .add(target_inst.name)
+                'Target with name "{0.name}" ({0.builder_name} from module '
+                '"{1}") already exists - defined first as '
+                '{2.builder_name} in module "{3}"'.format(
+                    target, split_build_module(target.name),
+                    first, split_build_module(first.name)))
+        self.targets[target.name] = target
+        self.targets_by_module[split_build_module(target.name)].add(
+            target.name)
 
-    @classmethod
-    def remove_target(cls, target_name):
-        if target_name in cls.targets:
-            del cls.targets[target_name]
-        if target.split_build_module(target_name) in cls.targets_by_module:
-            cls.targets_by_module[target.split_build_module(target_name)] \
-                .remove(target_name)
+    def remove_target(self, target_name: str):
+        """Remove (unregister) a `target` from this build context.
 
-    @classmethod
-    def get_target_extraction_context(cls):
-        return {builder_alias: builder_inst.extract_target
-                for builder_alias, builder_inst in cls._builders.items()}
+        Removes the target instance with the given name, if it exists,
+        from both the `targets` map and the `targets_by_module` map.
+
+        Doesn't do anything if no target with that name is found.
+
+        Doesn't touch the target graph, if it exists.
+        """
+        if target_name in self.targets:
+            del self.targets[target_name]
+        if split_build_module(target_name) in self.targets_by_module:
+            self.targets_by_module[split_build_module(target_name)].remove(
+                target_name)
+
+    def get_target_extraction_context(self, build_file_path: str) -> dict:
+        """Return a build file parser target extraction context.
+
+        The target extraction context is a build-file-specific mapping from
+        builder-name to target extraction function,
+        for every registered builder.
+        """
+        extraction_context = {}
+        for name, builder in Plugin.builders.items():
+            extraction_context[name] = extractor(name, builder,
+                                                 build_file_path, self)
+        return extraction_context
+
+    def build_target(self, target: Target):
+        """Invoke the builder function for a target."""
+        builder = Plugin.builders[target.builder_name]
+        if builder.func:
+            logger.info('About to invoke the {} builder function for {}',
+                        target.builder_name, target)
+            builder.func(self, target)
+        else:
+            logger.warning('Skipping {} builder function for target {} (no '
+                           'function registered)', target.builder_name, target)

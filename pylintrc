@@ -1,6 +1,7 @@
 [FORMAT]
 dummy-variables-rgx=_$|dummy|unused
 docstring-min-length=4
+good-names=i,j,k,ex,Run,_,logger
 
 [TYPECHECK]
 generated-members=

@@ -32,6 +32,9 @@ from .config import BUILD_PROJ_FILE, Config, YCONFIG_FILE
 
 
 PARSER = None
+KNOWN_LOG_LEVELS = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+LOG_LEVELS_CHOICES = KNOWN_LOG_LEVELS + [level.lower()
+                                         for level in KNOWN_LOG_LEVELS]
 
 
 def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
@@ -72,10 +75,17 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
             args_for_setting_config_path=['--config'],
             args_for_writing_out_config_file=['--write-out-config-file'])
         # PARSER.add('--config', is_config_file=True, help='Config file path')
-        PARSER.add('--build-file-name', default='ybuild')
+        PARSER.add('--build-file-name', default='YBuild')
         PARSER.add('--default-target-name', default='@default')
         PARSER.add('--builders-workspace-dir', default='yabtwork')
-        PARSER.add('cmd', choices=['build', 'tree', 'version'],
+        PARSER.add('--logtostderr', action='store_true',
+                   help='Whether to log to STDERR')
+        PARSER.add('--logtostdout', action='store_true',
+                   help='Whether to log to STDOUT')
+        PARSER.add('--loglevel', default='INFO', choices=LOG_LEVELS_CHOICES,
+                   help='Log level threshold')
+        PARSER.add('cmd',
+                   choices=['build', 'tree', 'version', 'list-builders'],
                    nargs='?', default='build')
         PARSER.add('targets', nargs='*')
     return PARSER
@@ -129,9 +139,6 @@ def init_and_get_conf(argv: list=None) -> Config:
     colorama.init()
     work_dir = os.path.abspath(os.curdir)
     project_root = find_project_base_dir(work_dir)
-    # if project_root:
-    #     project_config_file = os.path.join(project_root, YCONFIG_FILE)
-    #     if os.path.isfile(project_config_file):
     parser = make_parser(find_project_config_file(project_root))
     argcomplete.autocomplete(parser)
     return Config(parser.parse(argv), project_root, work_dir)
