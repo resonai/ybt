@@ -32,11 +32,15 @@ setup(
 
             'DepTester = yabt.builders.fortests',
         ],
+        'yabt.scm': [
+            'git = yabt.scm_providers.git',
+        ]
     },
     install_requires=[
         'argcomplete',
         'colorama',
         'ConfigArgParse',
+        'GitPython',
         'neobunch',
         'networkx',
         'ostrichlib',

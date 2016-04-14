@@ -22,6 +22,8 @@ yabt Build File parser
 """
 
 
+import glob
+import os
 import sys
 import traceback
 
@@ -30,6 +32,7 @@ import colorama
 from .buildcontext import BuildContext
 from .config import Config
 from .logging import make_logger
+from .scm import SourceControl
 
 
 logger = make_logger(__name__)
@@ -72,20 +75,24 @@ def process_build_file(buildfile_path: str, build_context: BuildContext,
     # resolve this). (test also `@` variants etc.)
 
     # abs_path = os.path.abspath(buildfile_path)
-    # if abs_path in BuildContext.processed_build_files:
+    # if abs_path in build_context.processed_build_files:
     #   print('Skipping processed build file {}'.format(buildfile_path))
     #   return
-    # BuildContext.processed_build_files.add(abs_path)
+    # build_context.processed_build_files.add(abs_path)
     logger.info('Processing build file {}', buildfile_path)
 
     with open(buildfile_path, 'r') as buildfile:
-        # yglbl = globals()
-        # ylcls = locals()
         global_context = globals()
-        # global_context['workdir'] = buildfile_path
+        global_context['conf'] = conf
+        global_context['SCM'] = conf.scm
+        global_context['Glob'] = glob.glob
+        curdir = os.getcwd()
         try:
+            os.chdir(os.path.dirname(buildfile_path))
             # pylint: disable=exec-used
             exec(buildfile.read(), global_context,
                  build_context.get_target_extraction_context(buildfile_path))
         except:
             report_buildfile_error(buildfile_path, conf)
+        finally:
+            os.chdir(curdir)

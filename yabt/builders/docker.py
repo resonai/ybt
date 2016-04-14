@@ -25,7 +25,8 @@ yabt Docker Builder
 
 
 import os
-from os.path import join, split, isdir, isfile, samefile
+from os.path import commonpath, isdir, isfile, join, relpath, samefile, split
+import shutil
 import subprocess
 
 from ostrich.utils.collections import listify
@@ -54,26 +55,34 @@ register_builder_sig(
     [('start_from', PT.Target),
      ('deps', PT.TargetList, None),
      ('docker_cmd', PT.StrList, None),
+     ('image_name', PT.str, None),
+     ('image_tag', PT.str, 'latest'),
+     ('always_keep_parent_dirs_in_image', PT.bool, False)
      ])
 
 
 @register_manipulate_target_hook('DockerImage')
 def docker_image_manipulate_target(build_context, target):
-    build_module = target_utils.split_build_module(target.name)
-    norm_start_from = target_utils.norm_name(build_module,
-                                             target.props.start_from)
-    target.props.start_from = norm_start_from
-    logger.debug('Injecting "{}" to deps of {}', norm_start_from, target)
-    target.deps.append(norm_start_from)
+    logger.debug('Injecting "{}" to deps of {}',
+                 target.props.start_from, target)
+    target.deps.append(target.props.start_from)
 
 
 def make_pip_requirements(pip_requirements, pip_req_file_path):
     if pip_requirements:
-        # TODO(itamar): compare `pip_requirements` with those in the
-        # existing file, and don't rewrite if it's the same - it appears
-        # to be triggering rebuilds even if rewriting identical content!
+        try:
+            with open(pip_req_file_path, 'r') as pip_req_file:
+                if (set(line.strip() for line in pip_req_file) ==
+                        set(pip_requirements)):
+                    # no change in requirements file - don't rewrite it
+                    # (it appears that rewriting may trigger spurious rebuilds)
+                    logger.debug(
+                        'Short circuiting requirements file generation')
+                    return True
+        except FileNotFoundError:
+            pass
         with open(pip_req_file_path, 'w') as pip_req_file:
-            pip_req_file.write('\n'.join(pip_requirements) + '\n')
+            pip_req_file.write('\n'.join(sorted(pip_requirements)) + '\n')
         return True
     elif isfile(pip_req_file_path):
         # delete remnant requirements file
@@ -81,26 +90,27 @@ def make_pip_requirements(pip_requirements, pip_req_file_path):
         return False
 
 
-def sync_copy_sources(copy_sources, workspace_src_dir, conf):
-    num_copied = 0
+def sync_copy_sources(copy_sources, workspace_src_dir, common_parent, conf):
+    # start with removing the workspace src dir, to avoid any spurious and
+    # leftover files in there - I think this is better than walking it and
+    # looking for files to remove - doesn't seem this would scale well
+    try:
+        shutil.rmtree(workspace_src_dir)
+    except FileNotFoundError:
+        pass
+    common_dir = commonpath(copy_sources + [common_parent])
+    num_linked = 0
     for src in copy_sources:
         abs_src = join(conf.project_root, src)
-        abs_dest = join(workspace_src_dir, src)
-        if isfile(abs_dest):
-            if not samefile(abs_src, abs_dest):
-                print('existing {} in workspace not identical to source - '
-                      'replacing'.format(src))
-                os.remove(abs_dest)
-                os.link(abs_src, abs_dest)
-        else:
-            dest_parent_dir = split(abs_dest)[0]
-            if not isdir(dest_parent_dir):
-                # exist_ok=True in case of concurrent creation of the same
-                # parent dir
-                os.makedirs(dest_parent_dir, exist_ok=True)
-            os.link(abs_src, abs_dest)
-        num_copied += 1
-    return num_copied
+        abs_dest = join(workspace_src_dir, relpath(src, common_dir))
+        dest_parent_dir = split(abs_dest)[0]
+        if not isdir(dest_parent_dir):
+            # exist_ok=True in case of concurrent creation of the same
+            # parent dir
+            os.makedirs(dest_parent_dir, exist_ok=True)
+        os.link(abs_src, abs_dest)
+        num_linked += 1
+    return num_linked
 
 
 @register_build_func('DockerImage')
@@ -109,7 +119,6 @@ def docker_image_builder(build_context, target):
     workspace_dir = build_context.get_workspace('DockerBuilder', target.name)
     # generate Dockerfile and build it
     dockerfile_path = join(workspace_dir, 'Dockerfile')
-    # start_from name should be normalized by the extraction hook
     start_from = build_context.targets[target.props.start_from]
     if start_from.props.tag:
         dockerfile = ['FROM {}:{}\n'.format(
@@ -119,7 +128,6 @@ def docker_image_builder(build_context, target):
     copy_sources = []
     pip_requirements = []
     for dep_target in build_context.walk_target_graph(target.deps[:-1]):
-        print(dep_target)
         if 'pip-installable' in dep_target.tags:
             if dep_target.props.version:
                 pip_req = '{0.package}=={0.version}'.format(dep_target.props)
@@ -128,6 +136,8 @@ def docker_image_builder(build_context, target):
             pip_requirements.append(pip_req)
         if 'sources' in dep_target.props:
             copy_sources.extend(dep_target.props.sources)
+        if 'data' in dep_target.props:
+            copy_sources.extend(dep_target.props.data)
     pip_req_file = join(workspace_dir, 'requirements.txt')
     if make_pip_requirements(pip_requirements, pip_req_file):
         dockerfile.extend([
@@ -137,13 +147,14 @@ def docker_image_builder(build_context, target):
     workspace_src_dir = join(workspace_dir, 'src')
     # sync `sources` files between project and `workspace_src_dir`
     if sync_copy_sources(copy_sources, workspace_src_dir,
+                         '' if target.props.always_keep_parent_dirs_in_image
+                         else target_utils.split_build_module(target.name),
                          build_context.conf) > 0:
         dockerfile.extend([
             'RUN mkdir -p /usr/src/app\n',
             'WORKDIR /usr/src/app\n',
             'COPY src /usr/src/app\n',
         ])
-    # TODO(itamar): also remove files that shouldn't be there!
 
     def format_docker_cmd(docker_cmd):
         return ('"{}"'.format(cmd) for cmd in docker_cmd)
@@ -155,9 +166,10 @@ def docker_image_builder(build_context, target):
     # TODO(itamar): write only if changed?
     with open(dockerfile_path, 'w') as dockerfile_f:
         dockerfile_f.writelines(dockerfile)
-    # TODO(itamar): how to determine tag? (between "latest" / git hash /
-    # from flag / other)
-    docker_image = '{}:bar'.format(target_utils.split_name(target.name))
+    docker_image = '{}:{}'.format(
+        target.props.image_name if target.props.image_name
+        else target_utils.split_name(target.name),
+        target.props.image_tag)
     docker_build_cmd = [
         'docker', 'build', '-t', docker_image, workspace_dir]
     logger.info('Building docker image "{}" from target "{}" using command {}',
