@@ -51,6 +51,5 @@ def in_dag_project():
 @yield_fixture
 def basic_conf():
     conf = yabt.cli.init_and_get_conf([])
-    yabt.logging.configure_logging(conf)
     yabt.extend.Plugin.load_plugins(conf)
     yield conf

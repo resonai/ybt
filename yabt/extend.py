@@ -27,7 +27,6 @@ from enum import Enum
 from functools import partial, wraps
 import pkg_resources
 
-from .config import Config
 from .logging import make_logger
 
 
@@ -118,7 +117,7 @@ class Plugin:
     }
 
     @classmethod
-    def load_plugins(cls, unused_conf: Config):
+    def load_plugins(cls, unused_conf):
         # TODO(itamar): Support config semantics for explicitly enabling /
         # disabling builders, and not just picking up everything that's
         # installed.
@@ -158,13 +157,12 @@ def register_builder_sig(builder_name, sig, docstring=None):
     logger.debug('Registered {} builder signature'.format(builder_name))
 
 
-def register_build_func(builder_name=None):
+def register_build_func(builder_name):
     def register_decorator(build_func):
-        name = builder_name if builder_name else build_func.__name__
-        if Plugin.builders[name].func:
+        if Plugin.builders[builder_name].func:
             raise KeyError('{} already registered a build function!'
                            .format(builder_name))
-        Plugin.builders[name].func = build_func
+        Plugin.builders[builder_name].func = build_func
         logger.debug('Registered {0} builder signature from '
                      '{1.__module__}.{1.__name__}()', builder_name, build_func)
 

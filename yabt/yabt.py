@@ -31,7 +31,6 @@ from .cli import init_and_get_conf
 from .config import Config, BUILD_PROJ_FILE
 from .extend import Plugin
 from .graph import populate_targets_graph, topological_sort
-from .logging import configure_logging
 
 
 YabtCommand = namedtuple('YabtCommand', ['func', 'requires_project'])
@@ -91,8 +90,6 @@ def cmd_tree(conf: Config):
 def main():
     """Main `ybt` console script entry point - run YABT from command-line."""
     conf = init_and_get_conf()
-    configure_logging(conf)
-    Plugin.load_plugins(conf)
     handlers = {
         'build': YabtCommand(func=cmd_build, requires_project=True),
         'tree': YabtCommand(func=cmd_tree, requires_project=True),
