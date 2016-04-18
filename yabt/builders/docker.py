@@ -35,6 +35,7 @@ from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
 from ..logging import make_logger
+from .python import format_req_specifier
 from .. import target_utils
 
 
@@ -129,11 +130,7 @@ def docker_image_builder(build_context, target):
     pip_requirements = []
     for dep_target in build_context.walk_target_graph(target.deps[:-1]):
         if 'pip-installable' in dep_target.tags:
-            if dep_target.props.version:
-                pip_req = '{0.package}=={0.version}'.format(dep_target.props)
-            else:
-                pip_req = '{0.package}'.format(dep_target.props)
-            pip_requirements.append(pip_req)
+            pip_requirements.append(format_req_specifier(dep_target))
         if 'sources' in dep_target.props:
             copy_sources.extend(dep_target.props.sources)
         if 'data' in dep_target.props:
@@ -142,7 +139,8 @@ def docker_image_builder(build_context, target):
     if make_pip_requirements(pip_requirements, pip_req_file):
         dockerfile.extend([
             'COPY requirements.txt /usr/src/\n',
-            'RUN pip install --no-cache-dir -r /usr/src/requirements.txt\n'
+            'RUN pip install --no-cache-dir --upgrade pip && \\\n'
+            '    pip install --no-cache-dir -r /usr/src/requirements.txt\n'
         ])
     workspace_src_dir = join(workspace_dir, 'src')
     # sync `sources` files between project and `workspace_src_dir`

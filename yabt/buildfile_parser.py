@@ -83,9 +83,11 @@ def process_build_file(buildfile_path: str, build_context: BuildContext,
 
     with open(buildfile_path, 'r') as buildfile:
         global_context = globals()
-        global_context['conf'] = conf
-        global_context['SCM'] = conf.scm
-        global_context['Glob'] = glob.glob
+        global_context.update({
+            'conf': conf,
+            'SCM': conf.scm,
+            'Glob': glob.glob,
+        })
         curdir = os.getcwd()
         try:
             os.chdir(os.path.dirname(buildfile_path))

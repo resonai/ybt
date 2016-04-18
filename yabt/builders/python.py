@@ -37,6 +37,12 @@ register_builder_sig(
      ])
 
 
+def format_req_specifier(target):
+    if target.props.version:
+        return '{0.package}=={0.version}'.format(target.props)
+    return '{0.package}'.format(target.props)
+
+
 @register_build_func('PythonPackage')
 def python_package_builder(build_context, target):
     print('Fetch and cache PyPI package', target)
