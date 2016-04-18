@@ -22,6 +22,7 @@ yabt source control subsystem
 """
 
 
+from abc import abstractmethod, ABCMeta
 import pkg_resources
 
 from .logging import make_logger
@@ -30,16 +31,37 @@ from .logging import make_logger
 logger = make_logger(__name__)
 
 
-class SourceControl:
-    """Source Control subsystem"""
+class SourceControl(metaclass=ABCMeta):
+    """Source Control interface Abstract Base Class"""
+
+    @abstractmethod
+    def __init__(self, conf):
+        """Initialize SourceControl instance with config instance.
+
+        :param conf: A yabt.config.Config object.
+        """
+
+    @abstractmethod
+    def get_revision(self) -> str:
+        """Return revision string of active repo tip / head."""
+
+
+class ScmManager:
+    """Source Control subsystem manager.
+
+    Holds a dictionary of registered concrete SCM providers.
+    """
 
     providers = {}
 
     @classmethod
-    def load_provider(cls, scm_name: str):
-        """Load and return named SCM provider class.
+    def get_provider(cls, scm_name: str, conf) -> SourceControl:
+        """Load and return named SCM provider instance.
 
-        :raises KeyError: If no SCM provider which name `scm_name` registered.
+        :param conf: A yabt.config.Config object used to initialize the SCM
+                        provider instance.
+
+        :raises KeyError: If no SCM provider with name `scm_name` registered.
         """
         for entry_point in pkg_resources.iter_entry_points('yabt.scm',
                                                            scm_name):
@@ -49,7 +71,7 @@ class SourceControl:
         logger.debug('Loaded {} SCM providers', len(cls.providers))
         if scm_name not in cls.providers:
             raise KeyError('Unknown SCM identifier {}'.format(scm_name))
-        return cls.providers[scm_name]
+        return cls.providers[scm_name](conf)
 
     def __init__(self, conf):
         """
@@ -57,19 +79,16 @@ class SourceControl:
         """
         self.conf = conf
 
-    def get_revision(self) -> str:
-        """Return revision string of active repo tip / head."""
-        raise NotImplementedError('Implement in concrete SCM provider')
-
 
 def register_scm_provider(scm_name: str):
-    """Return a decorator for registering a SCM provider named `scn_name`."""
+    """Return a decorator for registering a SCM provider named `scm_name`."""
 
     def register_decorator(scm_class: SourceControl):
         """Decorator for registering SCM provider."""
-        if scm_name in SourceControl.providers:
+        if scm_name in ScmManager.providers:
             raise KeyError('{} already registered!'.format(scm_name))
-        SourceControl.providers[scm_name] = scm_class
+        ScmManager.providers[scm_name] = scm_class
+        SourceControl.register(scm_class)
         logger.debug('Registered {0} SCM from {1.__module__}.{1.__name__}',
                      scm_name, scm_class)
         return scm_class
@@ -77,8 +96,11 @@ def register_scm_provider(scm_name: str):
 
 
 @register_scm_provider('none')
-class NoSCM(SourceControl):
+class NoSCM:
     """Default trivial (AKA non-existent) concrete SCM implementation."""
+
+    def __init__(self, unused_conf):
+        pass
 
     def get_revision(self):
         raise NotImplementedError('NoSCM')

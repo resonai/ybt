@@ -26,7 +26,7 @@ import os
 
 from .extend import Plugin
 from .logging import configure_logging
-from .scm import SourceControl
+from .scm import ScmManager
 from .utils import search_for_parent_dir
 
 
@@ -53,7 +53,7 @@ class Config:
         self.project_root = project_root_dir
         self.work_dir = work_dir
         self.scm_provider = str(args.scm_provider).lower()
-        self.scm = SourceControl.load_provider(self.scm_provider)(self)
+        self.scm = ScmManager.get_provider(self.scm_provider, self)
         Plugin.load_plugins(self)
 
     def in_yabt_project(self) -> bool:

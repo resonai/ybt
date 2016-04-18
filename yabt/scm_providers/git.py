@@ -29,7 +29,7 @@ import git
 
 from ..config import Config
 from ..logging import make_logger
-from ..scm import register_scm_provider, SourceControl
+from ..scm import register_scm_provider
 from ..utils import search_for_parent_dir
 
 
@@ -37,14 +37,10 @@ logger = make_logger(__name__)
 
 
 @register_scm_provider('git')
-class GitSCM(SourceControl):
-    """Concrete Git SCM implementation."""
+class GitSCM:
+    """Git SCM implementation."""
 
     def __init__(self, conf: Config):
-        """
-        :param conf: A config object.
-        """
-        super().__init__(conf)
         self.repo_dir = search_for_parent_dir(conf.project_root,
                                               with_dirs=set(['.git']))
         if not self.repo_dir:
