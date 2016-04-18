@@ -1,0 +1,12 @@
+Python(
+    'flask-hello-app',
+    sources='app.py',
+    deps='3rdparty:flask'
+)
+
+DockerImage(
+    'flask-hello',
+    start_from='3rdparty:python@3.5',
+    deps='flask-hello-app',
+    docker_cmd=['python3', 'app.py']
+)

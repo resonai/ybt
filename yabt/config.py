@@ -24,9 +24,12 @@ yabt config
 
 import os
 
+from .extend import Plugin
+from .logging import configure_logging
 
-BUILD_PROJ_FILE = 'yroot'
-YCONFIG_FILE = 'yconfig'
+
+BUILD_PROJ_FILE = 'YRoot'
+YCONFIG_FILE = 'YConfig'
 
 
 class Config:
@@ -34,7 +37,7 @@ class Config:
 
     attrs_from_args = frozenset((
         'build_file_name', 'default_target_name', 'cmd', 'targets',
-        'builders_workspace_dir',
+        'builders_workspace_dir', 'loglevel', 'logtostderr', 'logtostdout',
     ))
 
     def __init__(self, args, project_root_dir: str, work_dir: str):
@@ -44,8 +47,10 @@ class Config:
         """
         for slot in self.attrs_from_args:
             setattr(self, slot, getattr(args, slot))
+        configure_logging(self)
         self.project_root = project_root_dir
         self.work_dir = work_dir
+        Plugin.load_plugins(self)
 
     def in_yabt_project(self) -> bool:
         return self.project_root is not None

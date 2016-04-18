@@ -15,21 +15,18 @@
 # limitations under the License.
 
 """
-yabt Build context tests
-~~~~~~~~~~~~~~~~~~~~~~~~
+yabt Build File utils
+~~~~~~~~~~~~~~~~~~~~~
 
 :author: Itamar Ostricher
 """
 
 
-import pytest
+from os.path import normpath, relpath, split
 
-from .buildcontext import BuildContext
-from .builders.alias import AliasBuilder
+from .config import Config
 
 
-@pytest.mark.usefixtures('in_simple_project')
-def test_load_builders(basic_conf):
-    builders = BuildContext.get_active_builders(basic_conf)
-    assert len(builders) > 0
-    assert AliasBuilder in builders
+def to_build_module(build_file_path: str, conf: Config) -> str:
+    """Return a normalized build module name for `build_file_path`."""
+    return split(normpath(relpath(build_file_path, conf.project_root)))[0]

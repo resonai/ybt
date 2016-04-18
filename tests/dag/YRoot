@@ -1,4 +1,4 @@
 DepTester('flask')
 DepTester('gunicorn')
 
-Alias('@default', requires='**:*')
+Alias('@default', '**:*')

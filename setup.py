@@ -24,19 +24,20 @@ setup(
             'ybt = yabt.yabt:main'
         ],
         'yabt.builders': [
-            'AliasBuilder = yabt.builders.alias:AliasBuilder',
-            'DockerImageBuilder = yabt.builders.docker:DockerImageBuilder',
-            'DockerRegistryBuilder = yabt.builders.docker:DockerRegistryBuilder',
-            'PipBuilder = yabt.builders.pip:PipBuilder',
-            'PyLibBuilder = yabt.builders.pylib:PyLibBuilder',
+            'Alias = yabt.builders.alias',
+            'DockerImage = yabt.builders.docker',
+            'ExtDockerImage = yabt.builders.docker',
+            'PythonPackage = yabt.builders.python',
+            'Python = yabt.builders.python',
 
-            'DepTesterBuilder = yabt.builders.fortests:DepTesterBuilder',
+            'DepTester = yabt.builders.fortests',
         ],
     },
     install_requires=[
         'argcomplete',
         'colorama',
         'ConfigArgParse',
+        'neobunch',
         'networkx',
         'ostrichlib',
     ],

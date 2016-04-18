@@ -29,6 +29,7 @@ import sys
 from .buildcontext import BuildContext
 from .cli import init_and_get_conf
 from .config import Config, BUILD_PROJ_FILE
+from .extend import Plugin
 from .graph import populate_targets_graph, topological_sort
 
 
@@ -41,11 +42,9 @@ def cmd_version(unused_conf):
     from . import __oneliner__, __version__
     print('This is {} version {}, imported from {}'
           .format(__oneliner__, __version__, __file__))
-    printed_title = False
-    for entry_point in pkg_resources.iter_entry_points(group='yabt.builders'):
-        if not printed_title:
-            print('setuptools registered builders:')
-            printed_title = True
+    if len(Plugin.builders) > 0:
+        print('setuptools registered builders:')
+    for entry_point in pkg_resources.iter_entry_points('yabt.builders'):
         print('  {0.module_name}.{0.name} (dist {0.dist})'.format(entry_point))
 
 
@@ -54,26 +53,41 @@ def cmd_version(unused_conf):
 #   sys.exit(0)
 
 
+def cmd_list(unused_conf: Config):
+    """Print out information on loaded builders and hooks."""
+    for name, builder in sorted(Plugin.builders.items()):
+        if builder.func:
+            print('+- {0:16s} implemented in {1.__module__}.{1.__name__}()'
+                  .format(name, builder.func))
+        else:
+            print('+- {0:16s} loaded with no builder function'.format(name))
+        for hook_name, hook_func in sorted(Plugin.get_hooks_for_builder(name)):
+            print('  +- {0} hook implemented in '
+                  '{1.__module__}.{1.__name__}()'
+                  .format(hook_name, hook_func))
+
+
 def cmd_build(conf: Config):
     """Build requested targets, and their dependencies."""
-    populate_targets_graph(conf)
-    for target_name in topological_sort(BuildContext.target_graph):
-        target_context = BuildContext.targets[target_name]
-        target_context.builder.build(target_context.target)
+    build_context = BuildContext(conf)
+    populate_targets_graph(build_context, conf)
+    for target_name in topological_sort(build_context.target_graph):
+        target = build_context.targets[target_name]
+        build_context.build_target(target)
 
 
 def cmd_tree(conf: Config):
     """Print out a neat targets dependency tree based on requested targets."""
-    populate_targets_graph(conf)
+    build_context = BuildContext(conf)
+    populate_targets_graph(build_context, conf)
 
-    def print_target_with_deps(target_context, depth=2):
-        print('{: >{}}{}'.format('+-', depth, target_context.target.name))
+    def print_target_with_deps(target, depth=2):
+        print('{: >{}}{}'.format('+-', depth, target.name))
         for dep in sorted(
-                BuildContext.target_graph.neighbors_iter(
-                    target_context.target.name)):
-            print_target_with_deps(BuildContext.targets[dep], depth + 2)
-    for _, target_context in sorted(BuildContext.targets.items()):
-        print_target_with_deps(target_context)
+                build_context.target_graph.neighbors_iter(target.name)):
+            print_target_with_deps(build_context.targets[dep], depth + 2)
+    for _, target in sorted(build_context.targets.items()):
+        print_target_with_deps(target)
 
 
 def main():
@@ -83,6 +97,7 @@ def main():
         'build': YabtCommand(func=cmd_build, requires_project=True),
         'tree': YabtCommand(func=cmd_tree, requires_project=True),
         'version': YabtCommand(func=cmd_version, requires_project=False),
+        'list-builders': YabtCommand(func=cmd_list, requires_project=False),
     }
     command = handlers[conf.cmd]
     if command.requires_project and not conf.in_yabt_project():
@@ -90,7 +105,6 @@ def main():
               '{}'.format(BUILD_PROJ_FILE))
         sys.exit(1)
     command.func(conf)
-    return 0
 
 
 if __name__ == '__main__':

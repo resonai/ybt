@@ -15,8 +15,8 @@
 # limitations under the License.
 
 """
-yabt Buildfile processing
-~~~~~~~~~~~~~~~~~~~~~~~~~
+yabt Build File parser
+~~~~~~~~~~~~~~~~~~~~~~
 
 :author: Itamar Ostricher
 """
@@ -29,6 +29,10 @@ import colorama
 
 from .buildcontext import BuildContext
 from .config import Config
+from .logging import make_logger
+
+
+logger = make_logger(__name__)
 
 
 def err(msg, *args, **kwargs):
@@ -50,14 +54,18 @@ def report_buildfile_error(buildfile_path, unused_conf: Config):
     print(colorama.Fore.RED, file=sys.stderr, end='')
     if exc_type == SyntaxError:
         err('Syntax Error in build file {}, line {}:\n  {}\n  {: >{}}',
-            buildfile_path, exc.lineno, exc.text.strip('\n'), '^', exc.offset)
+            buildfile_path, exc.lineno,
+            # TODO(itamar): Fix issue with empty exc.text
+            # (occurs when keyword arg repeats in call to build func)
+            exc.text.strip('\n') if exc.text else '', '^', exc.offset)
     else:
         err('YABT Error: {}', exc)
     print(colorama.Style.RESET_ALL, file=sys.stderr, end='')
     sys.exit(1)
 
 
-def process_build_file(buildfile_path: str, conf: Config):
+def process_build_file(buildfile_path: str, build_context: BuildContext,
+                       conf: Config):
     # TODO(itamar): Write tests that verify that this is really not needed in
     # any scenario... (caused issue when referring to target in yroot using
     # `.:foo` syntax from yroot, but normalizing the target name seemed to
@@ -68,16 +76,16 @@ def process_build_file(buildfile_path: str, conf: Config):
     #   print('Skipping processed build file {}'.format(buildfile_path))
     #   return
     # BuildContext.processed_build_files.add(abs_path)
+    logger.info('Processing build file {}', buildfile_path)
 
     with open(buildfile_path, 'r') as buildfile:
         # yglbl = globals()
         # ylcls = locals()
-        build_context = BuildContext(conf, buildfile_path)
         global_context = globals()
         # global_context['workdir'] = buildfile_path
         try:
             # pylint: disable=exec-used
             exec(buildfile.read(), global_context,
-                 build_context.get_target_extraction_context())
+                 build_context.get_target_extraction_context(buildfile_path))
         except:
             report_buildfile_error(buildfile_path, conf)

@@ -5,7 +5,7 @@ DepTester('logging')
 
 DepTester(
     'base',
-    requires=[
+    deps=[
         '.:logging'
     ]
 )

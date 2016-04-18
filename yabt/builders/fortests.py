@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# pylint: disable=invalid-name, unused-argument
+
 """
 yabt Builders for tests
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,19 +24,7 @@ yabt Builders for tests
 """
 
 
-from ..builder import BaseBuilder
-from ..target import BaseTarget as Target
+from ..extend import PropType as PT, register_builder_sig
 
 
-class DepTesterBuilder(BaseBuilder):
-
-    @staticmethod
-    def get_builder_aliases():
-        return frozenset(('DepTester',))
-
-    def extract_target(self, name, requires=None):
-        target_inst = Target(self._context, name, deps=requires)
-        self._context.register_target(target_inst, self)
-
-    def build(self, target_inst):
-        print('Build DepTest', target_inst)
+register_builder_sig('DepTester', [('deps', PT.TargetList, None)])
