@@ -104,12 +104,19 @@ def sync_copy_sources(copy_sources, workspace_src_dir, common_parent, conf):
     for src in copy_sources:
         abs_src = join(conf.project_root, src)
         abs_dest = join(workspace_src_dir, relpath(src, common_dir))
-        dest_parent_dir = split(abs_dest)[0]
-        if not isdir(dest_parent_dir):
-            # exist_ok=True in case of concurrent creation of the same
-            # parent dir
-            os.makedirs(dest_parent_dir, exist_ok=True)
-        os.link(abs_src, abs_dest)
+        if isfile(abs_src):
+            # sync file by linking it to dest
+            dest_parent_dir = split(abs_dest)[0]
+            if not isdir(dest_parent_dir):
+                # exist_ok=True in case of concurrent creation of the same
+                # parent dir
+                os.makedirs(dest_parent_dir, exist_ok=True)
+            os.link(abs_src, abs_dest)
+        elif isdir(abs_src):
+            # sync dir by recursively linking files under it to dest
+            shutil.copytree(abs_src, abs_dest, copy_function=os.link)
+        else:
+            raise FileNotFoundError(abs_src)
         num_linked += 1
     return num_linked
 
