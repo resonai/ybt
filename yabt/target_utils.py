@@ -121,4 +121,4 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
     def __repr__(self):
         keys = ['name', 'builder_name', 'props', 'deps', 'tags']
         items = ('{}={!r}'.format(k, self.__dict__[k]) for k in keys)
-        return '{}({})'.format(type(self).__name__, ", ".join(items))
+        return '{}({})'.format(type(self).__name__, ', '.join(items))
