@@ -58,7 +58,9 @@ register_builder_sig(
      ('docker_cmd', PT.StrList, None),
      ('image_name', PT.str, None),
      ('image_tag', PT.str, 'latest'),
-     ('always_keep_parent_dirs_in_image', PT.bool, False)
+     ('work_dir', PT.str, '/usr/src/app'),
+     ('env', None),
+     ('always_keep_parent_dirs_in_image', PT.bool, True)
      ])
 
 
@@ -142,13 +144,21 @@ def docker_image_builder(build_context, target):
             copy_sources.extend(dep_target.props.sources)
         if 'data' in dep_target.props:
             copy_sources.extend(dep_target.props.data)
+    # Handle pip packages (2 layers)
     pip_req_file = join(workspace_dir, 'requirements.txt')
     if make_pip_requirements(pip_requirements, pip_req_file):
         dockerfile.extend([
             'COPY requirements.txt /usr/src/\n',
-            'RUN pip install --no-cache-dir --upgrade pip && \\\n'
-            '    pip install --no-cache-dir -r /usr/src/requirements.txt\n'
+            'RUN pip install --no-cache-dir --upgrade pip && '
+            'pip install --no-cache-dir -r /usr/src/requirements.txt\n'
         ])
+    # Add environment variables (one layer)
+    if target.props.env:
+        dockerfile.append(
+            'ENV {}\n'.format(
+                ' '.join('{}="{}"'.format(key, value)
+                         for key, value in target.props.env.items())))
+    # Handle copying data to the image
     workspace_src_dir = join(workspace_dir, 'src')
     # sync `sources` files between project and `workspace_src_dir`
     if sync_copy_sources(copy_sources, workspace_src_dir,
@@ -157,7 +167,7 @@ def docker_image_builder(build_context, target):
                          build_context.conf) > 0:
         dockerfile.extend([
             'RUN mkdir -p /usr/src/app\n',
-            'WORKDIR /usr/src/app\n',
+            'WORKDIR {}\n'.format(target.props.work_dir),
             'COPY src /usr/src/app\n',
         ])
 
