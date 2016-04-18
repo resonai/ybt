@@ -41,6 +41,7 @@ PropType = Enum('PropType', """str
                                numeric
                                list
                                StrList
+                               TargetName
                                Target
                                TargetList
                                File
@@ -86,7 +87,7 @@ class Builder:
         if self.sig is not None:
             raise KeyError('{} already registered a signature!'
                            .format(builder_name))
-        self.sig = OrderedDict(name=ArgSpec(PropType.Target, Empty))
+        self.sig = OrderedDict(name=ArgSpec(PropType.TargetName, Empty))
         self.docstring = docstring
         kwargs_section = False
         for arg_spec in sig:

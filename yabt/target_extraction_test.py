@@ -146,16 +146,15 @@ def test_build_sig_args_to_props_too_many_pos_args_singular():
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')
-@pytest.mark.usefixtures('in_dag_project')
-def test_target_extraction_name_traversal(basic_conf):
-    build_context = BuildContext(basic_conf)
-    extract_spam = extractor(
-        'Spam', Plugin.builders['Spam'],
-        basic_conf.get_build_file_path('spams'), build_context)
-    with pytest.raises(NameError) as excinfo:
-        extract_spam('../hams:my-ham', 'foo', 'bar')
-    assert ('Target "../hams:my-ham" in build module "spams" looks like it '
-            'came from another build module ("hams")' in str(excinfo.value))
+def test_target_extraction_bad_target_names(basic_conf):
+    for bad_name in ['.', 'bad:name', ':', 'bad@name', '@', '**', 'foo/bar']:
+        target = Target(builder_name='Spam')
+        args_to_props(target, Plugin.builders['Spam'],
+                      args=[bad_name, 'foo', 'bar'], kwargs={})
+        with pytest.raises(ValueError) as excinfo:
+            handle_typed_args(target, Plugin.builders['Spam'], 'spams')
+        assert ("Invalid target name: `{}'".format(bad_name)
+                in str(excinfo.value))
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')

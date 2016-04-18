@@ -27,8 +27,22 @@ from os.path import join, normpath, relpath
 import types
 
 from neobunch import Bunch
+from ostrich.utils.text import get_safe_path
 
 from .config import Config
+
+
+_TARGET_NAMES_WHITELIST = frozenset(('*', '@default'))
+
+
+def validate_name(target_name):
+    try:
+        if (target_name in _TARGET_NAMES_WHITELIST or
+                target_name == get_safe_path(target_name)):
+            return target_name
+    except ValueError:
+        pass
+    raise ValueError('Invalid target name: `{}\''.format(target_name))
 
 
 def split(target_name):
@@ -45,7 +59,7 @@ def split_name(target_name):
 
 def norm_name(build_module: str, target_name: str):
     if ':' not in target_name:
-        return '{}:{}'.format(build_module, target_name)
+        return '{}:{}'.format(build_module, validate_name(target_name))
 
     mod, target_name = target_name.split(':', 1)
     if mod.startswith('.'):
@@ -53,7 +67,8 @@ def norm_name(build_module: str, target_name: str):
         # TODO(itamar): assert that staying in project scope
     # elif mod.startswith('#'):
     #   mod = mod[1:]
-    return '{}:{}'.format('' if mod == '.' else mod, target_name)
+    return '{}:{}'.format('' if mod == '.' else mod,
+                          validate_name(target_name))
 
 
 def expand_target_selector(target_selector: str, conf: Config):
@@ -97,7 +112,7 @@ def expand_target_selector(target_selector: str, conf: Config):
     else:
         build_module = normpath(join(conf.get_rel_work_dir(), build_module))
     return '{}:{}'.format('' if build_module == '.' else build_module,
-                          target_name)
+                          validate_name(target_name))
 
 
 def parse_target_selectors(target_selectors: list, conf: Config):

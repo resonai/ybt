@@ -31,7 +31,7 @@ from ostrich.utils.collections import listify
 from .buildfile_utils import to_build_module
 from .extend import Builder, Empty, Plugin, PropType as PT
 from .logging import make_logger
-from .target_utils import norm_name, split_build_module, Target
+from .target_utils import norm_name, split_build_module, Target, validate_name
 
 
 logger = make_logger(__name__)
@@ -115,6 +115,11 @@ def handle_typed_args(target, builder, build_module):
         raise TypeError('{}: got `{}`, expected {} value'
                         .format(arg_name, value, type_name))
 
+    def handle_target_name(arg_name, value):
+        return '{}:{}'.format(
+            build_module,
+            validate_name(assert_type(arg_name, value, str, 'string')))
+
     def handle_target(arg_name, value):
         return norm_name(build_module,
                          assert_type(arg_name, value, str, 'string'))
@@ -135,6 +140,8 @@ def handle_typed_args(target, builder, build_module):
             target.props[arg_name] = [
                 assert_type(arg_name, val, str, 'string')
                 for val in listify(value)]
+        elif arg_type == PT.TargetName:
+            target.props[arg_name] = handle_target_name(arg_name, value)
         elif arg_type == PT.Target:
             target.props[arg_name] = handle_target(arg_name, value)
         elif arg_type == PT.TargetList:
@@ -166,15 +173,6 @@ def extractor(
         # promote the `name` and `deps` from props to the target instance
         target.name = target.props.pop('name')
         target.deps = target.props.pop('deps', [])
-        # make sure no funny business in definition of target name
-        if split_build_module(target.name) != build_module:
-            other_module = split_build_module(target.name)
-            logger.error('While parsing build file of module "{}", extracted '
-                         'target that looks like it came from module "{}"',
-                         build_module, other_module)
-            raise NameError('Target "{}" in build module "{}" looks like it '
-                            'came from another build module ("{}")'
-                            .format(raw_name, build_module, other_module))
         if target.deps:
             logger.debug('Got deps for target "{0.name}": {0.deps}', target)
         # invoke builder hooks on extracted target
