@@ -136,14 +136,25 @@ def docker_image_builder(build_context, target):
     else:
         dockerfile = ['FROM {}\n'.format(start_from.props.image)]
     copy_sources = []
+    apt_packages = []
     pip_requirements = []
     for dep_target in build_context.walk_target_graph(target.deps[:-1]):
+        if 'apt-installable' in dep_target.tags:
+            apt_packages.append(dep_target.props.package)
         if 'pip-installable' in dep_target.tags:
             pip_requirements.append(format_req_specifier(dep_target))
         if 'sources' in dep_target.props:
             copy_sources.extend(dep_target.props.sources)
         if 'data' in dep_target.props:
             copy_sources.extend(dep_target.props.data)
+    # Handle apt packages (one layer)
+    if apt_packages:
+        apt_get_cmd = (
+            'RUN apt-get update && apt-get install -y {} '
+            '--no-install-recommends'.format(' '.join(sorted(apt_packages))))
+        if False:
+            apt_get_cmd += ' && rm -rf /var/lib/apt/lists/*'
+        dockerfile.append(apt_get_cmd + '\n')
     # Handle pip packages (2 layers)
     pip_req_file = join(workspace_dir, 'requirements.txt')
     if make_pip_requirements(pip_requirements, pip_req_file):
