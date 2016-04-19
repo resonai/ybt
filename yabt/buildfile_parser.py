@@ -29,7 +29,6 @@ import traceback
 
 import colorama
 
-from .buildcontext import BuildContext
 from .config import Config
 from .logging import make_logger
 from .scm import SourceControl
@@ -67,18 +66,17 @@ def report_buildfile_error(buildfile_path, unused_conf: Config):
     sys.exit(1)
 
 
-def process_build_file(buildfile_path: str, build_context: BuildContext,
-                       conf: Config):
+def process_build_file(buildfile_path: str, build_context, conf: Config):
     # TODO(itamar): Write tests that verify that this is really not needed in
     # any scenario... (caused issue when referring to target in yroot using
     # `.:foo` syntax from yroot, but normalizing the target name seemed to
     # resolve this). (test also `@` variants etc.)
 
     # abs_path = os.path.abspath(buildfile_path)
-    # if abs_path in build_context.processed_build_files:
-    #   print('Skipping processed build file {}'.format(buildfile_path))
-    #   return
-    # build_context.processed_build_files.add(abs_path)
+    if buildfile_path in build_context.processed_build_files:
+        logger.debug('Skipping processed build file {}', buildfile_path)
+        return
+    build_context.processed_build_files.add(buildfile_path)
     logger.info('Processing build file {}', buildfile_path)
 
     with open(buildfile_path, 'r') as buildfile:

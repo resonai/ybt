@@ -26,6 +26,7 @@ setup(
         'yabt.builders': [
             'Alias = yabt.builders.alias',
             'AptPackage = yabt.builders.apt',
+            'CustomInstaller = yabt.builders.custom_installer',
             'DockerImage = yabt.builders.docker',
             'ExtDockerImage = yabt.builders.docker',
             'PythonPackage = yabt.builders.python',

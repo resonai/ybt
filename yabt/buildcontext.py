@@ -29,6 +29,7 @@ from ostrich.utils.text import get_safe_path
 
 from .config import Config
 from .extend import Plugin
+from .graph import get_descendants, topological_sort
 from .logging import make_logger
 from .target_extraction import extractor
 from .target_utils import split_build_module, Target
@@ -67,6 +68,8 @@ class BuildContext:
         # A *thread-safe* map from build module to set of target names
         # that were extracted from that build module
         self.targets_by_module = defaultdict(set)
+        # A *thread-safe* set of processed build-files
+        self.processed_build_files = set()
         # Target graph is *not necessarily thread-safe*!
         self.target_graph = None
 
@@ -97,6 +100,12 @@ class BuildContext:
             yield self.targets[target_name]
             yield from self.walk_target_graph(
                 self.target_graph.neighbors_iter(target_name))
+
+    def walk_target_deps_topological_order(self, target: Target):
+        all_deps = get_descendants(self.target_graph, target.name)
+        for dep_name in topological_sort(self.target_graph):
+            if dep_name in all_deps:
+                yield self.targets[dep_name]
 
     def register_target(self, target: Target):
         """Register a `target` instance in this build context.
