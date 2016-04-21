@@ -22,7 +22,6 @@ yabt Build File parser
 """
 
 
-import glob
 import os
 import sys
 import traceback
@@ -30,6 +29,7 @@ import traceback
 import colorama
 
 from .config import Config
+from .glob import glob
 from .logging import make_logger
 from .scm import SourceControl
 
@@ -84,7 +84,7 @@ def process_build_file(buildfile_path: str, build_context, conf: Config):
         global_context.update({
             'conf': conf,
             'SCM': conf.scm,
-            'Glob': glob.glob,
+            'Glob': glob,
         })
         curdir = os.getcwd()
         try:

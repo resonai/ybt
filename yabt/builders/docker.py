@@ -26,11 +26,11 @@ yabt Docker Builder
 
 import os
 from os.path import (
-    basename, commonpath, isdir, isfile, join,
-    normpath, relpath, samefile, split)
+    basename, isdir, isfile, join, normpath, relpath, samefile, split)
 import shutil
-import subprocess
 
+from ostrich.utils.path import commonpath
+from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
 from ostrich.utils.collections import listify
 
@@ -258,4 +258,4 @@ def docker_image_builder(build_context, target):
         'docker', 'build', '-t', docker_image, workspace_dir]
     logger.info('Building docker image "{}" from target "{}" using command {}',
                 docker_image, target.name, docker_build_cmd)
-    subprocess.run(docker_build_cmd)
+    run(docker_build_cmd)

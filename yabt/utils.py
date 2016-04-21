@@ -24,6 +24,8 @@ yabt utils
 
 import os
 
+from .compat import scandir
+
 
 def search_for_parent_dir(start_at: str=None, with_files: set=None,
                           with_dirs: set=None) -> str:
@@ -45,7 +47,7 @@ def search_for_parent_dir(start_at: str=None, with_files: set=None,
     exp_hits = len(with_files) + len(with_dirs)
     while start_at:
         num_hits = 0
-        for entry in os.scandir(start_at):
+        for entry in scandir(start_at):
             if ((entry.is_file() and entry.name in with_files) or
                     (entry.is_dir() and entry.name in with_dirs)):
                 num_hits += 1

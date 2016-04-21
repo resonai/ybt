@@ -22,13 +22,13 @@ yabt target utils module
 """
 
 
-from os import walk
 from os.path import join, normpath, relpath
 import types
 
 from neobunch import Bunch
 from ostrich.utils.text import get_safe_path
 
+from .compat import walk
 from .config import Config
 
 
