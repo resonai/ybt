@@ -18,7 +18,7 @@ setup(
     author_email='yabt@ostricher.com',
     url='https://yabt.ostrich.io/',
     description=yabt.__oneliner__,
-    packages=['yabt'],
+    packages=find_packages(),
     entry_points={
         'console_scripts': [
             'ybt = yabt.yabt:main'
