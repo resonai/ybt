@@ -16,7 +16,7 @@ Initial virtualenv setup with virtualenvwrapper
 (when no virtualenv is active, run ``deactivate`` to make sure):
 
 .. code-block:: shell
-
+    sudo apt-get install python3-dev
     mkvirtualenv --python="$(type -P python3)" yabt
     cd $WORKON_HOME/yabt
     git clone git@bitbucket.org:yowza3d/yabt.git
