@@ -45,7 +45,7 @@ setup(
         'GitPython',
         'neobunch',
         'networkx',
-        'ostrichlib',
+        'ostrichlib>=0.1rc1',
         'scandir',
     ],
     setup_requires=['pytest-runner'],
