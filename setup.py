@@ -25,6 +25,8 @@ setup(
         ],
         'yabt.builders': [
             'Alias = yabt.builders.alias',
+            'AptPackage = yabt.builders.apt',
+            'CustomInstaller = yabt.builders.custom_installer',
             'DockerImage = yabt.builders.docker',
             'ExtDockerImage = yabt.builders.docker',
             'PythonPackage = yabt.builders.python',
@@ -32,14 +34,19 @@ setup(
 
             'DepTester = yabt.builders.fortests',
         ],
+        'yabt.scm': [
+            'git = yabt.scm_providers.git',
+        ]
     },
     install_requires=[
         'argcomplete',
         'colorama',
         'ConfigArgParse',
+        'GitPython',
         'neobunch',
         'networkx',
         'ostrichlib',
+        'scandir',
     ],
     setup_requires=['pytest-runner'],
     extras_require={

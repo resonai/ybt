@@ -25,7 +25,6 @@ yabt target graph
 import networkx
 from networkx.algorithms import dag
 
-from .buildcontext import BuildContext
 from .buildfile_parser import process_build_file
 from .config import Config
 from .logging import make_logger
@@ -36,7 +35,7 @@ from .target_utils import parse_target_selectors
 logger = make_logger(__name__)
 
 
-def build_target_dep_graph(build_context: BuildContext, unused_conf: Config):
+def build_target_dep_graph(build_context, unused_conf: Config):
     build_context.target_graph = networkx.DiGraph()
     for target_name, target in build_context.targets.items():
         build_context.target_graph.add_node(target_name)
@@ -44,7 +43,7 @@ def build_target_dep_graph(build_context: BuildContext, unused_conf: Config):
             build_context.target_graph.add_edge(target_name, dep)
 
 
-def populate_targets_graph(build_context: BuildContext, conf: Config):
+def populate_targets_graph(build_context, conf: Config):
     # Process project root build file
     process_build_file(conf.get_project_build_file(), build_context, conf)
     targets_to_prune = set(build_context.targets.keys())
@@ -64,13 +63,16 @@ def populate_targets_graph(build_context: BuildContext, conf: Config):
         seeds = [default_target]
 
     # Crawl rest of project from seeds
+    seeds_used_for_extending = set()
     for seed in seeds:
-        # print('SEED', seed)
         if seed in build_context.targets:
             #
             if seed in targets_to_prune:
                 targets_to_prune.remove(seed)
-            seeds.extend(build_context.targets[seed].deps)
+            if seed not in seeds_used_for_extending:
+                # Avoid infinite loop in case of cyclic dependencies
+                seeds.extend(build_context.targets[seed].deps)
+                seeds_used_for_extending.add(seed)
         else:
             if seed == '**:*':
                 # Adding all build modules under current working directory as
@@ -78,7 +80,6 @@ def populate_targets_graph(build_context: BuildContext, conf: Config):
                 seeds.extend(generate_build_modules('.', conf))
                 continue
             build_module, target_name = seed.split(':', 1)
-            # print(build_module, target_name)
             process_build_file(conf.get_build_file_path(build_module),
                                build_context, conf)
             # Parsed build file with this seed target - add its dependencies as
@@ -100,7 +101,6 @@ def populate_targets_graph(build_context: BuildContext, conf: Config):
                     targets_to_prune.add(module_target)
                 targets_to_prune.remove(seed)
                 seeds.extend(build_context.targets[seed].deps)
-        # print('PRUNE', targets_to_prune)
         # TODO(itamar): Write tests that pruning is *ALWAYS* correct!
         # e.g., not pruning things it shouldn't (like when targets are in prune
         # list when loaded initially, but should be removed later because a
@@ -121,3 +121,8 @@ def populate_targets_graph(build_context: BuildContext, conf: Config):
 
 def topological_sort(graph: networkx.DiGraph, reverse: bool=True):
     yield from dag.topological_sort(graph, reverse=reverse)
+
+
+def get_descendants(graph: networkx.DiGraph, source):
+    """Return all nodes reachable from `source` in `graph`."""
+    return dag.descendants(graph, source)

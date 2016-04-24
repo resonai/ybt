@@ -31,6 +31,7 @@ from .cli import init_and_get_conf
 from .config import Config, BUILD_PROJ_FILE
 from .extend import Plugin
 from .graph import populate_targets_graph, topological_sort
+from .target_utils import parse_target_selectors
 
 
 YabtCommand = namedtuple('YabtCommand', ['func', 'requires_project'])
@@ -86,8 +87,14 @@ def cmd_tree(conf: Config):
         for dep in sorted(
                 build_context.target_graph.neighbors_iter(target.name)):
             print_target_with_deps(build_context.targets[dep], depth + 2)
-    for _, target in sorted(build_context.targets.items()):
-        print_target_with_deps(target)
+
+    if conf.targets:
+        for target in sorted(parse_target_selectors(conf.targets, conf)):
+            # TODO(itamar): Handle wildcards (here or in the expander)
+            print_target_with_deps(build_context.targets[target])
+    else:
+        for _, target in sorted(build_context.targets.items()):
+            print_target_with_deps(target)
 
 
 def main():

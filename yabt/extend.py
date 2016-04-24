@@ -39,6 +39,7 @@ class Empty(type):
 
 PropType = Enum('PropType', """str
                                numeric
+                               bool
                                list
                                StrList
                                TargetName

@@ -17,8 +17,8 @@
 # pylint: disable=invalid-name, unused-argument
 
 """
-yabt Python Builders
-~~~~~~~~~~~~~~~~~~~~
+yabt Apt Builders
+~~~~~~~~~~~~~~~~~
 
 :author: Itamar Ostricher
 """
@@ -30,37 +30,24 @@ from ..extend import (
 
 
 register_builder_sig(
-    'PythonPackage',
+    'AptPackage',
     [('package', PT.str),
      ('version', PT.str, None),
      ('deps', PT.TargetList, None)
      ])
 
 
-def format_req_specifier(target):
-    if target.props.version:
-        return '{0.package}=={0.version}'.format(target.props)
-    return '{0.package}'.format(target.props)
+# def format_req_specifier(target):
+#     if target.props.version:
+#         return '{0.package}=={0.version}'.format(target.props)
+#     return '{0.package}'.format(target.props)
 
 
-@register_build_func('PythonPackage')
-def python_package_builder(build_context, target):
-    print('Fetch and cache PyPI package', target)
+@register_build_func('AptPackage')
+def apt_package_builder(build_context, target):
+    print('Fetch and cache Apt package', target)
 
 
-@register_manipulate_target_hook('PythonPackage')
-def python_package_manipulate_target(build_context, target):
-    target.tags.add('pip-installable')
-
-
-register_builder_sig(
-    'Python',
-    [('deps', PT.TargetList, None),
-     ('sources', PT.FileList, None),
-     ('data', PT.FileList, None)
-     ])
-
-
-@register_build_func('Python')
-def python_builder(build_context, target):
-    print('Build Python', target)
+@register_manipulate_target_hook('AptPackage')
+def apt_package_manipulate_target(build_context, target):
+    target.tags.add('apt-installable')

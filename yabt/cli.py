@@ -29,6 +29,7 @@ import colorama
 import configargparse
 
 from .config import BUILD_PROJ_FILE, Config, YCONFIG_FILE
+from .utils import search_for_parent_dir
 
 
 PARSER = None
@@ -78,6 +79,7 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         PARSER.add('--build-file-name', default='YBuild')
         PARSER.add('--default-target-name', default='@default')
         PARSER.add('--builders-workspace-dir', default='yabtwork')
+        PARSER.add('--scm-provider')
         PARSER.add('--logtostderr', action='store_true',
                    help='Whether to log to STDERR')
         PARSER.add('--logtostdout', action='store_true',
@@ -89,29 +91,6 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    nargs='?', default='build')
         PARSER.add('targets', nargs='*')
     return PARSER
-
-
-def find_project_base_dir(start_at: str=None) -> str:
-    """Return absolute path of first parent directory of `start_at` that
-       contains a file named `BUILD_PROJ_FILE` (including `start_at`).
-
-    If `start_at` not specified, start at current working directory.
-
-    :param start_at: Initial path for searching for the project build file.
-
-    Returns `None` upon reaching FS root without finding a project buildfile.
-    """
-    if not start_at:
-        start_at = os.path.abspath(os.curdir)
-    while start_at:
-        for entry in os.scandir(start_at):
-            if entry.is_file() and entry.name == BUILD_PROJ_FILE:
-                return start_at
-        cur_level = start_at
-        start_at = os.path.split(cur_level)[0]
-        if os.path.realpath(cur_level) == os.path.realpath(start_at):
-            # looped on root once
-            break
 
 
 def find_project_config_file(project_root: str) -> str:
@@ -138,7 +117,8 @@ def init_and_get_conf(argv: list=None) -> Config:
     """
     colorama.init()
     work_dir = os.path.abspath(os.curdir)
-    project_root = find_project_base_dir(work_dir)
+    project_root = search_for_parent_dir(work_dir,
+                                         with_files=set([BUILD_PROJ_FILE]))
     parser = make_parser(find_project_config_file(project_root))
     argcomplete.autocomplete(parser)
     return Config(parser.parse(argv), project_root, work_dir)
