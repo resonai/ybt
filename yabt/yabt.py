@@ -31,7 +31,7 @@ from .cli import init_and_get_conf
 from .config import Config, BUILD_PROJ_FILE
 from .extend import Plugin
 from .graph import populate_targets_graph, topological_sort
-from .target_utils import parse_target_selectors
+from .target_utils import parse_target_selectors, split
 
 
 YabtCommand = namedtuple('YabtCommand', ['func', 'requires_project'])
@@ -89,9 +89,13 @@ def cmd_tree(conf: Config):
             print_target_with_deps(build_context.targets[dep], depth + 2)
 
     if conf.targets:
-        for target in sorted(parse_target_selectors(conf.targets, conf)):
-            # TODO(itamar): Handle wildcards (here or in the expander)
-            print_target_with_deps(build_context.targets[target])
+        for target_name in sorted(parse_target_selectors(conf.targets, conf)):
+            mod, name = split(target_name)
+            if name == '*':
+                for target_name in build_context.targets_by_module[mod]:
+                    print_target_with_deps(build_context.targets[target_name])
+            else:
+                print_target_with_deps(build_context.targets[target_name])
     else:
         for _, target in sorted(build_context.targets.items()):
             print_target_with_deps(target)
