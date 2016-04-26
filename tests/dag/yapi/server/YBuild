@@ -4,16 +4,16 @@ DepTester('users')
 DepTester(
     'yapi',
     deps=[
-        'common:base',
-        ':flask',
+        '//common:base',
+        '//:flask',
     ]
 )
 
 DepTester(
     'yapi-gunicorn',
     deps=[
-        'common:base',
-        'yapi',
-        ':gunicorn',
+        '.:yapi',
+        '//common:base',
+        '//:gunicorn',
     ]
 )

@@ -64,3 +64,6 @@ register_builder_sig(
 @register_build_func('Python')
 def python_builder(build_context, target):
     print('Build Python', target)
+    # TODO(itamar): auto-add __init__.py in dirs of sources if they exist
+    target.artifacts.extend(target.props.sources)
+    target.artifacts.extend(target.props.data)

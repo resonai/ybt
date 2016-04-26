@@ -30,6 +30,7 @@ from ostrich.utils.text import get_safe_path
 
 from .compat import walk
 from .config import Config
+from .utils import norm_proj_path
 
 
 _TARGET_NAMES_WHITELIST = frozenset(('*', '@default'))
@@ -42,33 +43,46 @@ def validate_name(target_name):
             return target_name
     except ValueError:
         pass
-    raise ValueError('Invalid target name: `{}\''.format(target_name))
+    raise ValueError("Invalid target name: `{}'".format(target_name))
 
 
 def split(target_name):
+    """Split a target name. Returns a tuple "(build_module, name)".
+
+    The split is on the first `:`.
+    Extra `:` are considered part of the name.
+    """
     return target_name.split(':', 1)
 
 
 def split_build_module(target_name):
+    """Return the build module component of a target name."""
     return split(target_name)[0]
 
 
 def split_name(target_name):
+    """Return the name component of a target name."""
     return split(target_name)[1]
 
 
 def norm_name(build_module: str, target_name: str):
-    if ':' not in target_name:
-        return '{}:{}'.format(build_module, validate_name(target_name))
+    """Return a normalized canonical target name for the `target_name`
+       observed in build module `build_module`.
 
-    mod, target_name = target_name.split(':', 1)
-    if mod.startswith('.'):
-        mod = normpath(join(build_module, mod))
-        # TODO(itamar): assert that staying in project scope
-    # elif mod.startswith('#'):
-    #   mod = mod[1:]
-    return '{}:{}'.format('' if mod == '.' else mod,
-                          validate_name(target_name))
+    A normalized canonical target name is of the form "<build module>:<name>",
+    where <build module> is the relative normalized path from the project root
+    to the target build module, and <name> is a valid target name
+    (see `validate_name()`).
+    """
+    if ':' not in target_name:
+        raise ValueError(
+            "Must provide fully-qualified target name (with `:') to avoid "
+            "possible ambiguity - `{}' not valid".format(target_name))
+        # return '{}:{}'.format(build_module, validate_name(target_name))
+
+    mod, name = split(target_name)
+    return '{}:{}'.format(norm_proj_path(mod, build_module),
+                          validate_name(name))
 
 
 def expand_target_selector(target_selector: str, conf: Config):
@@ -131,9 +145,9 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
 
     def __init__(self, builder_name):
         super().__init__(name=None, builder_name=builder_name, props=Bunch(),
-                         deps=None, tags=set())
+                         deps=None, tags=set(), artifacts=list())
 
     def __repr__(self):
-        keys = ['name', 'builder_name', 'props', 'deps', 'tags']
+        keys = ['name', 'builder_name', 'props', 'deps', 'tags', 'artifacts']
         items = ('{}={!r}'.format(k, self.__dict__[k]) for k in keys)
         return '{}({})'.format(type(self).__name__, ', '.join(items))

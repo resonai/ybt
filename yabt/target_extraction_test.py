@@ -190,3 +190,15 @@ def test_typed_args_valid_non_default():
                             'bar': 'bar', 'deps': ['hams:my-ham'],
                             'cats': ['my cat', 'other cat'],
                             'cat_list': 'lists/from-vet-4'}
+
+
+@pytest.mark.usefixtures('with_spam_builder_sig')
+def test_file_arg_from_project_root():
+    target = Target(builder_name='Spam')
+    args_to_props(target, Plugin.builders['Spam'],
+                  args=['my-spam', 'foo', 'bar'],
+                  kwargs={'cat_list': '//lists/from-vet-4'})
+    handle_typed_args(target, Plugin.builders['Spam'], 'spams')
+    assert target.props == {'name': 'spams:my-spam', 'foo': 'foo',
+                            'bar': 'bar', 'deps': [], 'cats': [],
+                            'cat_list': 'lists/from-vet-4'}

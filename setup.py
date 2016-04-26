@@ -29,6 +29,7 @@ setup(
             'CustomInstaller = yabt.builders.custom_installer',
             'DockerImage = yabt.builders.docker',
             'ExtDockerImage = yabt.builders.docker',
+            'FileGroup = yabt.builders.filegroup',
             'PythonPackage = yabt.builders.python',
             'Python = yabt.builders.python',
 
