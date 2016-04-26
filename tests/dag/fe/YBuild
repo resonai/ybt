@@ -2,8 +2,8 @@
 DepTester(
     'fe',
     deps=[
-        'yapi/server:users',
+        '//yapi/server:users',
         '../common:base',
-        ':flask',
+        '//:flask',
     ]
 )

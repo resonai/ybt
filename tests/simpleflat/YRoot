@@ -2,13 +2,13 @@ from __future__ import division
 import math
 
 PythonPackage(
-    'flask@0.10.1',
+    'flask-0.10.1',
     package='flask',
     version='0.10.1'
 )
 
 ExtDockerImage(
-    'python@3.5',
+    'python-3.5',
     image='python',
     tag='3.5'
 )
@@ -22,15 +22,15 @@ Python(
     'flask-{}-app'.format(my_hello),
     sources='app.py',
     deps=[
-        ':flask@0.10.1',
+        ':flask-0.10.1',
     ]
 )
 
 docker_img(
     'flask-' + my_hello,
-    start_from='.:python@{}'.format(7/2),
+    start_from='.:python-{}'.format(7/2),
     deps=[
-        'flask-hello-app'
+        '//:flask-hello-app'
     ],
     # this silly exercise just demonstrates that although the ybuild file runs
     # in a weird context (like it's inside a class definition), regular Python

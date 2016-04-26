@@ -32,6 +32,7 @@ from .buildfile_utils import to_build_module
 from .extend import Builder, Empty, Plugin, PropType as PT
 from .logging import make_logger
 from .target_utils import norm_name, split_build_module, Target, validate_name
+from .utils import norm_proj_path
 
 
 logger = make_logger(__name__)
@@ -120,13 +121,13 @@ def handle_typed_args(target, builder, build_module):
             build_module,
             validate_name(assert_type(arg_name, value, str, 'string')))
 
-    def handle_target(arg_name, value):
+    def handle_target_ref(arg_name, value):
         return norm_name(build_module,
                          assert_type(arg_name, value, str, 'string'))
 
     def handle_file(arg_name, value):
         if assert_type(arg_name, value, str, 'filename') is not None:
-            return normpath(join(build_module, value))
+            return norm_proj_path(value, build_module)
 
     for arg_name, value in target.props.items():
         arg_type = builder.sig[arg_name].type
@@ -143,10 +144,10 @@ def handle_typed_args(target, builder, build_module):
         elif arg_type == PT.TargetName:
             target.props[arg_name] = handle_target_name(arg_name, value)
         elif arg_type == PT.Target:
-            target.props[arg_name] = handle_target(arg_name, value)
+            target.props[arg_name] = handle_target_ref(arg_name, value)
         elif arg_type == PT.TargetList:
             target.props[arg_name] = [
-                handle_target(arg_name, val) for val in listify(value)]
+                handle_target_ref(arg_name, val) for val in listify(value)]
         elif arg_type == PT.File:
             target.props[arg_name] = handle_file(arg_name, value)
         elif arg_type == PT.FileList:
