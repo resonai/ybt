@@ -145,9 +145,9 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
 
     def __init__(self, builder_name):
         super().__init__(name=None, builder_name=builder_name, props=Bunch(),
-                         deps=None, tags=set())
+                         deps=None, tags=set(), artifacts=list())
 
     def __repr__(self):
-        keys = ['name', 'builder_name', 'props', 'deps', 'tags']
+        keys = ['name', 'builder_name', 'props', 'deps', 'tags', 'artifacts']
         items = ('{}={!r}'.format(k, self.__dict__[k]) for k in keys)
         return '{}({})'.format(type(self).__name__, ', '.join(items))

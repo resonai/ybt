@@ -191,10 +191,7 @@ def docker_image_builder(build_context, target):
         if 'custom-installer' in dep_target.tags:
             custom_packages.add(dep_target.props.workspace)
             custom_installers.append(dep_target.props.rel_dir_script)
-        if 'sources' in dep_target.props:
-            copy_sources.update(dep_target.props.sources)
-        if 'data' in dep_target.props:
-            copy_sources.update(dep_target.props.data)
+        copy_sources.update(dep_target.artifacts)
     # Handle apt packages (one layer)
     if apt_packages:
         apt_get_cmd = (
