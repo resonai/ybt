@@ -48,11 +48,11 @@ def test_target_graph(basic_conf):
     result = build_context.run_in_buildenv(
         'ybt-buildenv', 'pip', 'freeze', stdout=PIPE, stderr=PIPE)
     assert 0 == result.returncode
-    exp_pip_freeze = b'\n'.join([
-        b'Flask==0.10.1',
-        b'itsdangerous==0.24',
-        b'Jinja2==2.8',
-        b'MarkupSafe==0.23',
-        b'Werkzeug==0.11.8',
-    ]) + b'\n'
-    assert exp_pip_freeze == result.stdout
+    for package in [
+            b'Flask',
+            b'itsdangerous',
+            b'Jinja2',
+            b'MarkupSafe',
+            b'Werkzeug',
+            ]:
+        assert package in result.stdout
