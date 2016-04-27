@@ -24,6 +24,7 @@ yabt Build context module
 
 from collections import defaultdict
 import os
+import platform
 
 from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
@@ -179,10 +180,15 @@ class BuildContext:
         docker_run = [
             'docker', 'run', '-i' if redirection else '-it', '--rm',
             '-v', self.conf.project_root + ':/project', '-w', '/project',
-            # TODO(itamar): Fix permissions too
-            # -u UID -g GID ? # not needed on OS X?
-            self.buildenv_images[buildenv],
-        ] + list(cmd)
+        ]
+        if platform.system() == 'Linux':
+            # Fix permissions for bind-mounted project dir
+            # The fix is not needed when using Docker machine on OS X with
+            # VirtualBox, because it is somehow taken care of by the shared
+            # folder thingie...
+            docker_run.extend(['-u', '{}:{}'.format(os.getuid(), os.getgid())])
+        docker_run.append(self.buildenv_images[buildenv])
+        docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
                     buildenv, docker_run)
         return run(docker_run, **kwargs)
