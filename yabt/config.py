@@ -39,7 +39,8 @@ class Config:
 
     attrs_from_args = frozenset((
         'build_file_name', 'default_target_name', 'cmd', 'targets',
-        'builders_workspace_dir', 'loglevel', 'logtostderr', 'logtostdout',
+        'builders_workspace_dir', 'default_buildenv_base_image',
+        'loglevel', 'logtostderr', 'logtostdout',
     ))
 
     def __init__(self, args, project_root_dir: str, work_dir: str):

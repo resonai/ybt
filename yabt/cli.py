@@ -79,7 +79,9 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         PARSER.add('--build-file-name', default='YBuild')
         PARSER.add('--default-target-name', default='@default')
         PARSER.add('--builders-workspace-dir', default='yabtwork')
+        PARSER.add('--default-buildenv-base-image')
         PARSER.add('--scm-provider')
+        # Logging flags
         PARSER.add('--logtostderr', action='store_true',
                    help='Whether to log to STDERR')
         PARSER.add('--logtostdout', action='store_true',

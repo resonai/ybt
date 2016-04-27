@@ -29,6 +29,7 @@ import sys
 from .buildcontext import BuildContext
 from .cli import init_and_get_conf
 from .config import Config, BUILD_PROJ_FILE
+from .docker import build_docker_image
 from .extend import Plugin
 from .graph import populate_targets_graph, topological_sort
 from .target_utils import parse_target_selectors, split
@@ -72,6 +73,21 @@ def cmd_build(conf: Config):
     """Build requested targets, and their dependencies."""
     build_context = BuildContext(conf)
     populate_targets_graph(build_context, conf)
+    # pass 1: prepare BuildEnv images
+    if conf.default_buildenv_base_image:
+        # TODO(itamar): generate random tag to avoid conflicts if running
+        # multiple instances concurrently
+        build_docker_image(
+            build_context,
+            name='ybt-buildenv',
+            tag='latest',
+            base_image=conf.default_buildenv_base_image,
+            deps=[build_context.targets[target_name] for target_name in
+                  topological_sort(build_context.target_graph)],
+            no_artifacts=True)
+        build_context.register_buildenv_image('ybt-buildenv',
+                                              'ybt-buildenv:latest')
+    # pass 2: build
     for target_name in topological_sort(build_context.target_graph):
         target = build_context.targets[target_name]
         build_context.build_target(target)
@@ -92,7 +108,8 @@ def cmd_tree(conf: Config):
         for target_name in sorted(parse_target_selectors(conf.targets, conf)):
             mod, name = split(target_name)
             if name == '*':
-                for target_name in build_context.targets_by_module[mod]:
+                for target_name in sorted(
+                        build_context.targets_by_module[mod]):
                     print_target_with_deps(build_context.targets[target_name])
             else:
                 print_target_with_deps(build_context.targets[target_name])
