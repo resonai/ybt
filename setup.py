@@ -32,6 +32,7 @@ setup(
             'FileGroup = yabt.builders.filegroup',
             'PythonPackage = yabt.builders.python',
             'Python = yabt.builders.python',
+            'TargetGroup = yabt.builders.targetgroup',
 
             'DepTester = yabt.builders.fortests',
         ],
