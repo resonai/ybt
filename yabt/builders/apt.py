@@ -33,14 +33,17 @@ register_builder_sig(
     'AptPackage',
     [('package', PT.str),
      ('version', PT.str, None),
+     ('repository', PT.str, None),
+     ('repo_key', PT.str, None),
+     ('repo_keyserver', PT.str, 'hkp://keyserver.ubuntu.com:80'),
      ('deps', PT.TargetList, None)
      ])
 
 
-# def format_req_specifier(target):
-#     if target.props.version:
-#         return '{0.package}=={0.version}'.format(target.props)
-#     return '{0.package}'.format(target.props)
+def format_package_specifier(target):
+    if target.props.version:
+        return '{0.package}={0.version}'.format(target.props)
+    return '{0.package}'.format(target.props)
 
 
 @register_build_func('AptPackage')

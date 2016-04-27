@@ -39,6 +39,7 @@ from ostrich.utils.collections import listify
 
 from .config import Config
 from .logging import make_logger
+from .builders.apt import format_package_specifier
 from .builders.python import format_req_specifier
 from . import target_utils
 
@@ -142,8 +143,13 @@ def build_docker_image(
     workspace_dir = build_context.get_workspace('DockerBuilder', docker_image)
     # generate Dockerfile and build it
     dockerfile_path = join(workspace_dir, 'Dockerfile')
-    dockerfile = ['FROM {}\n'.format(base_image)]
+    dockerfile = [
+        'FROM {}\n'.format(base_image),
+        'ARG DEBIAN_FRONTEND=noninteractive\n',
+    ]
     all_artifacts = defaultdict(set)
+    apt_keys = set()
+    apt_repositories = set()
     apt_packages = list()
     pip_requirements = list()
     custom_install_scripts = list()
@@ -156,21 +162,37 @@ def build_docker_image(
             for kind, artifacts in dep.artifacts.items():
                 all_artifacts[kind].update(artifacts)
         if 'apt-installable' in dep.tags:
-            apt_packages.append(dep.props.package)
+            apt_packages.append(format_package_specifier(dep))
+            if dep.props.repository:
+                apt_repositories.add(dep.props.repository)
+            if dep.props.repo_key:
+                apt_keys.add((dep.props.repo_key, dep.props.repo_keyserver))
         if 'pip-installable' in dep.tags:
             pip_requirements.append(format_req_specifier(dep))
         if 'custom-installer' in dep.tags:
             custom_packages.add(dep.props.workspace)
             custom_install_scripts.append(dep.props.rel_dir_script)
 
-    # Handle apt packages (one layer)
+    # Handle apt keys, repositories, and packages (one layer for all)
+    apt_cmd = ''
+    if apt_keys:
+        apt_cmd += ' && '.join(
+            'apt-key adv --keyserver {} --recv {}'.format(keyserver, repo_key)
+            for repo_key, keyserver in sorted(apt_keys)) + ' && '
+    if apt_repositories:
+        apt_cmd += (
+            'apt-get update -y && apt-get install -y '
+            'software-properties-common --no-install-recommends && ' +
+            ' && '.join('add-apt-repository -y "{}"'.format(repo)
+                        for repo in sorted(apt_repositories))) + ' && '
     if apt_packages:
-        apt_get_cmd = (
-            'RUN apt-get update && apt-get install -y {} '
+        apt_cmd += (
+            'apt-get update -y && apt-get install -y {} '
             '--no-install-recommends'.format(' '.join(sorted(apt_packages))))
         if False:
-            apt_get_cmd += ' && rm -rf /var/lib/apt/lists/*'
-        dockerfile.append(apt_get_cmd + '\n')
+            apt_cmd += ' && rm -rf /var/lib/apt/lists/*'
+    if apt_cmd:
+        dockerfile.append('RUN {}\n'.format(apt_cmd))
 
     # Sync custom installer packages
     workspace_packages_dir = join(workspace_dir, 'packages')
