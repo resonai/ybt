@@ -181,8 +181,8 @@ class BuildContext:
             '-v', self.conf.project_root + ':/project', '-w', '/project',
             # TODO(itamar): Fix permissions too
             # -u UID -g GID ? # not needed on OS X?
-            self.buildenv_images[buildenv], *cmd,
-        ]
+            self.buildenv_images[buildenv],
+        ] + list(cmd)
         logger.info('Running command in build env "{}" using command {}',
                     buildenv, docker_run)
         return run(docker_run, **kwargs)
