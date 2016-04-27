@@ -5,4 +5,5 @@ good-names=i,j,k,ex,Run,_,logger
 
 [TYPECHECK]
 generated-members=
-    build_file_name,default_target_name,cmd,targets,builders_workspace_dir
+    build_file_name,default_target_name,cmd,targets,builders_workspace_dir,
+    default_buildenv_base_image

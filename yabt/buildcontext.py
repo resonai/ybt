@@ -24,7 +24,9 @@ yabt Build context module
 
 from collections import defaultdict
 import os
+import platform
 
+from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
 
 from .config import Config
@@ -72,6 +74,9 @@ class BuildContext:
         self.processed_build_files = set()
         # Target graph is *not necessarily thread-safe*!
         self.target_graph = None
+        # A *thread-safe* map from BuildEnv name to qualified Docker image
+        #  name for that BuildEnv
+        self.buildenv_images = {}
 
     def get_workspace(self, *parts) -> str:
         """Return a path to a private workspace dir.
@@ -154,6 +159,39 @@ class BuildContext:
             extraction_context[name] = extractor(name, builder,
                                                  build_file_path, self)
         return extraction_context
+
+    def register_buildenv_image(self, name: str, docker_image: str):
+        """Register a named BuildEnv Docker image in this build context."""
+        self.buildenv_images[name] = docker_image
+
+    def run_in_buildenv(self, buildenv: str, *cmd, **kwargs):
+        """Run a command in a named BuildEnv Docker image.
+
+        :param cmd: The command to run, as you'd pass to subprocess.run()
+        :param kwargs: Extra keyword arguments that are passed to the
+                        subprocess.run() call that runs the BuildEnv container
+                        (for, e.g. timeout arg, stdout/err redirection, etc.)
+
+        :raises KeyError: If named BuildEnv is not a registered BuildEnv image
+        """
+        redirection = any(
+            stream_key in kwargs
+            for stream_key in ('stdin', 'stdout', 'stderr', 'input'))
+        docker_run = [
+            'docker', 'run', '-i' if redirection else '-it', '--rm',
+            '-v', self.conf.project_root + ':/project', '-w', '/project',
+        ]
+        if platform.system() == 'Linux':
+            # Fix permissions for bind-mounted project dir
+            # The fix is not needed when using Docker machine on OS X with
+            # VirtualBox, because it is somehow taken care of by the shared
+            # folder thingie...
+            docker_run.extend(['-u', '{}:{}'.format(os.getuid(), os.getgid())])
+        docker_run.append(self.buildenv_images[buildenv])
+        docker_run.extend(cmd)
+        logger.info('Running command in build env "{}" using command {}',
+                    buildenv, docker_run)
+        return run(docker_run, **kwargs)
 
     def build_target(self, target: Target):
         """Invoke the builder function for a target."""

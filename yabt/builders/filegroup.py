@@ -32,11 +32,12 @@ from ..extend import (
 register_builder_sig(
     'FileGroup',
     [('files', PT.FileList, None),
-     ('deps', PT.TargetList, None)
+     ('deps', PT.TargetList, None),
+     ('kind', PT.str, 'app'),
      ])
 
 
 @register_build_func('FileGroup')
 def file_group_builder(build_context, target):
     print('Build FileGroup', target)
-    target.artifacts.extend(target.props.files)
+    target.artifacts[target.props.kind].extend(target.props.files)
