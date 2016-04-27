@@ -183,7 +183,8 @@ def build_docker_image(
                 ' && '.join(
                     'cd /tmp/install/{} && ./{}'
                     .format(package_dir, script_name)
-                    for package_dir, script_name in custom_install_scripts))
+                    for package_dir, script_name in sorted(
+                        custom_install_scripts)))
             ])
 
     # Handle pip packages (2 layers)
@@ -200,7 +201,7 @@ def build_docker_image(
         dockerfile.append(
             'ENV {}\n'.format(
                 ' '.join('{}="{}"'.format(key, value)
-                         for key, value in env.items())))
+                         for key, value in sorted(env.items()))))
 
     if work_dir:
         dockerfile.append('WORKDIR {}\n'.format(work_dir))
