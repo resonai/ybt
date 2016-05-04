@@ -60,6 +60,13 @@ CustomInstaller = namedtuple('CustomInstaller',
 
 
 def guess_uri_type(uri: str, hint: str=None):
+    """Return a guess for the URI type based on the URI string `uri`.
+
+    If `hint` is given, it is assumed to be the correct type.
+    Otherwise, the URI is inspected using urlparse, and we try to guess
+    whether it's a remote Git repository, a remote downloadable archive,
+    or a local-only data.
+    """
     # TODO(itamar): do this better
     if hint:
         return hint
@@ -73,12 +80,29 @@ def guess_uri_type(uri: str, hint: str=None):
 
 
 def gitfilter(tarinfo):
+    """Filter function for tar.add, to filter out git internal stuff."""
     if basename(tarinfo.name) in ['.git', '.gitignore']:
         return None
     return tarinfo
 
 
+def make_tar(target):
+    """Return an open tar object, for writing compressed gz archive."""
+    return tarfile.open(target.props.installer_desc.package, 'w:gz',
+                        dereference=True)
+
+
 def git_handler(unused_build_context, target, package_dir):
+    """Handle remote Git repository URI.
+
+    Clone the repository under the private builder workspace (unless already
+    cloned), and add it to the package tar (filtering out git internals).
+
+    TODO(itamar): Support branches / tags / specific commit hashes
+    TODO(itamar): Support updating a cloned repository
+    TODO(itamar): Handle submodules?
+    TODO(itamar): Handle force pulls?
+    """
     target_name = split_name(target.name)
     # clone the repository under a private builder workspace
     try:
@@ -87,13 +111,21 @@ def git_handler(unused_build_context, target, package_dir):
         repo = git.Repo.clone_from(target.props.uri, package_dir)
     assert repo.working_tree_dir == package_dir
 
-    tar = tarfile.open(target.props.installer_desc.package, 'w:gz',
-                       dereference=True)
+    tar = make_tar(target)
     tar.add(package_dir, arcname=target_name, filter=gitfilter)
     return tar
 
 
 def archive_handler(unused_build_context, target, package_dir):
+    """Handle remote downloadable archive URI.
+
+    Download the archive and cache it under the private builer workspace
+    (unless already downloaded), extract it, and add the content to the
+    package tar.
+
+    TODO(itamar): Support re-downloading if remote changed compared to local.
+    TODO(itamar): Support more archive formats (currently only tarballs).
+    """
     target_name = split_name(target.name)
     package_dest = join(package_dir, basename(urlparse(target.props.uri).path))
     package_content_dir = join(package_dir, 'content')
@@ -115,20 +147,13 @@ def archive_handler(unused_build_context, target, package_dir):
     with tarfile.open(package_dest, 'r:*') as tar:
         tar.extractall(package_content_dir)
 
-    tar = tarfile.open(target.props.installer_desc.package, 'w:gz',
-                       dereference=True)
+    tar = make_tar(target)
     tar.add(package_content_dir, arcname=target_name)
     return tar
 
 
 def local_handler(build_context, target, package_dir):
-    target_name = split_name(target.name)
-    tar = tarfile.open(target.props.installer_desc.package, 'w:gz',
-                       dereference=True)
-    for local_file in target.props.local_data:
-        tar.add(join(build_context.conf.project_root, local_file),
-                arcname=join(target_name, local_file))
-    return tar
+    return make_tar(target)
 
 
 @register_build_func('CustomInstaller')
@@ -154,9 +179,13 @@ def custom_installer_builder(build_context, target):
     uri_type = guess_uri_type(target.props.uri, target.props.uri_type)
     logger.debug('CustomInstaller URI {} typed guessed to be {}',
                  target.props.uri, uri_type)
-    # TODO(itamar): consider supporting local data in addition to URI
     tar = handlers[uri_type](build_context, target,
                              join(workspace_dir, target_name))
+    # Add local data to installer package, if specified
+    for local_node in target.props.local_data:
+        tar.add(join(build_context.conf.project_root, local_node),
+                arcname=join(target_name, local_node))
+    # Add the install script to the installer package
     tar.add(join(build_context.conf.project_root, target.props.script),
             arcname=join(target_name,
                          target.props.installer_desc.install_script))
