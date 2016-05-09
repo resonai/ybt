@@ -5,6 +5,7 @@ GitPython>=1.0
 neobunch>=2.0
 networkx>=1.11
 ostrichlib>=0.1rc1
+requests>=2.9
 
 # For pre-Python-3.5 compatability
 scandir>=1.2

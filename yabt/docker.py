@@ -152,8 +152,7 @@ def build_docker_image(
     apt_repositories = set()
     apt_packages = list()
     pip_requirements = list()
-    custom_install_scripts = list()
-    custom_packages = set()
+    custom_installers = list()
 
     if deps is None:
         deps = []
@@ -170,8 +169,7 @@ def build_docker_image(
         if 'pip-installable' in dep.tags:
             pip_requirements.append(format_req_specifier(dep))
         if 'custom-installer' in dep.tags:
-            custom_packages.add(dep.props.workspace)
-            custom_install_scripts.append(dep.props.rel_dir_script)
+            custom_installers.append(dep.props.installer_desc)
 
     # Handle apt keys, repositories, and packages (one layer for all)
     apt_cmd = ''
@@ -194,20 +192,29 @@ def build_docker_image(
     if apt_cmd:
         dockerfile.append('RUN {}\n'.format(apt_cmd))
 
-    # Sync custom installer packages
-    workspace_packages_dir = join(workspace_dir, 'packages')
-    if link_artifacts(custom_packages, workspace_packages_dir,
-                      build_context.get_workspace('CustomInstaller'),
-                      build_context.conf) > 0:
+    # Handle custom installers (2 layers)
+    if custom_installers:
+        workspace_packages_dir = join(workspace_dir, 'packages')
+        try:
+            shutil.rmtree(workspace_packages_dir)
+        except FileNotFoundError:
+            pass
+        os.makedirs(workspace_packages_dir)
+        run_installers = []
+        for custom_installer in custom_installers:
+            package_tar = basename(custom_installer.package)
+            os.link(custom_installer.package,
+                    join(workspace_packages_dir, package_tar))
+            run_installers.extend([
+                'tar -xf /tmp/install/{} -C /tmp/install'.format(package_tar),
+                'cd /tmp/install/{}'.format(custom_installer.name),
+                './{}'.format(custom_installer.install_script),
+            ])
         dockerfile.extend([
             'COPY packages /tmp/install\n',
-            'RUN {}\n'.format(
-                ' && '.join(
-                    'cd /tmp/install/{} && ./{}'
-                    .format(package_dir, script_name)
-                    for package_dir, script_name in sorted(
-                        custom_install_scripts)))
-            ])
+            'RUN {} && cd / && rm -rf /tmp/install\n'.format(
+                ' && '.join(run_installers)),
+        ])
 
     # Handle pip packages (2 layers)
     pip_req_file = join(workspace_dir, 'requirements.txt')

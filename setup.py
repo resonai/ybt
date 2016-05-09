@@ -48,6 +48,7 @@ setup(
         'neobunch',
         'networkx',
         'ostrichlib>=0.1rc1',
+        'requests',
         'scandir',
     ],
     setup_requires=['pytest-runner'],
