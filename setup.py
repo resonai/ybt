@@ -47,7 +47,7 @@ setup(
         'GitPython',
         'neobunch',
         'networkx',
-        'ostrichlib>=0.1rc1',
+        'ostrichlib',
         'requests',
         'scandir',
     ],
