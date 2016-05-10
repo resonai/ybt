@@ -27,6 +27,7 @@ import os
 from pytest import yield_fixture
 
 import yabt
+from yabt.cli import init_and_get_conf
 
 
 def yabt_project_fixture(project):
@@ -50,6 +51,6 @@ def in_dag_project():
 
 @yield_fixture
 def basic_conf():
-    conf = yabt.cli.init_and_get_conf([])
+    conf = init_and_get_conf([])
     yabt.extend.Plugin.load_plugins(conf)
     yield conf
