@@ -81,7 +81,7 @@ def cmd_build(conf: Config):
             build_context,
             name='ybt-buildenv',
             tag='latest',
-            base_image=conf.default_buildenv_base_image,
+            base_image=build_context.targets[conf.default_buildenv_base_image],
             deps=[build_context.targets[target_name] for target_name in
                   topological_sort(build_context.target_graph)],
             no_artifacts=True)

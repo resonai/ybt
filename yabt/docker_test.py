@@ -39,7 +39,7 @@ def test_target_graph(basic_conf):
             build_context,
             name='ybt-buildenv',
             tag='latest',
-            base_image='python:3.5',
+            base_image=build_context.targets['3rdparty:python3'],
             deps=[build_context.targets[target_name] for target_name in
                   topological_sort(build_context.target_graph)],
             no_artifacts=True)
