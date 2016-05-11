@@ -202,8 +202,11 @@ def build_docker_image(
             for repo_key, keyserver in sorted(apt_keys)) + ' && '
     if apt_repositories:
         apt_cmd += (
-            'apt-get update -y && apt-get install -y '
-            'software-properties-common --no-install-recommends && ' +
+            # TODO(itamar): I'm assuming software-properties-common exists in
+            # the base image, because it's much faster this way, but need a
+            # better solution for when it's not true...
+            # 'apt-get update -y && apt-get install -y '
+            # 'software-properties-common --no-install-recommends && ' +
             ' && '.join('add-apt-repository -y "{}"'.format(repo)
                         for repo in sorted(apt_repositories))) + ' && '
     if apt_packages:
