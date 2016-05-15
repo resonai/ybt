@@ -134,8 +134,24 @@ def link_artifacts(artifacts: set, workspace_src_dir: str,
     return num_linked
 
 
+def get_image_name(target):
+    return (target.props.image_name if target.props.image_name
+            else target_utils.split_name(target.name))
+
+
+def format_qualified_image_name(target):
+    if target.builder_name == 'ExtDockerImage':
+        if target.props.tag:
+            return '{}:{}'.format(target.props.image, target.props.tag)
+        return target.props.image
+    elif target.builder_name == 'DockerImage':
+        return '{}:{}'.format(get_image_name(target), target.props.image_tag)
+    else:
+        raise TypeError(target)
+
+
 def build_docker_image(
-        build_context, name: str, tag: str, base_image: str, deps: list=None,
+        build_context, name: str, tag: str, base_image, deps: list=None,
         env: dict=None, work_dir: str=None, truncate_common_parent: str=None,
         cmd: list=None, no_artifacts: bool=False):
     # create directory for this target under a private builder workspace
@@ -144,7 +160,7 @@ def build_docker_image(
     # generate Dockerfile and build it
     dockerfile_path = join(workspace_dir, 'Dockerfile')
     dockerfile = [
-        'FROM {}\n'.format(base_image),
+        'FROM {}\n'.format(format_qualified_image_name(base_image)),
         'ARG DEBIAN_FRONTEND=noninteractive\n',
     ]
     all_artifacts = defaultdict(set)
@@ -156,7 +172,14 @@ def build_docker_image(
 
     if deps is None:
         deps = []
+    # Get all base image deps, so when building this image we can skip adding
+    # deps that already exist in the base image.
+    base_image_deps = set(dep.name for dep in
+                          build_context.walk_target_graph([base_image.name]))
     for dep in deps:
+        if dep.name in base_image_deps:
+            logger.debug('Skipping base image dep {}', dep.name)
+            continue
         if not no_artifacts:
             for kind, artifacts in dep.artifacts.items():
                 all_artifacts[kind].update(artifacts)
@@ -179,8 +202,11 @@ def build_docker_image(
             for repo_key, keyserver in sorted(apt_keys)) + ' && '
     if apt_repositories:
         apt_cmd += (
-            'apt-get update -y && apt-get install -y '
-            'software-properties-common --no-install-recommends && ' +
+            # TODO(itamar): I'm assuming software-properties-common exists in
+            # the base image, because it's much faster this way, but need a
+            # better solution for when it's not true...
+            # 'apt-get update -y && apt-get install -y '
+            # 'software-properties-common --no-install-recommends && ' +
             ' && '.join('add-apt-repository -y "{}"'.format(repo)
                         for repo in sorted(apt_repositories))) + ' && '
     if apt_packages:

@@ -39,21 +39,25 @@ from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
 from ..logging import make_logger
-from ..docker import build_docker_image
+from ..docker import build_docker_image, get_image_name
 from .. import target_utils
 
 
 logger = make_logger(__name__)
 
 
+# `deps` on ExtDockerImage is a way to tell YABT that this external image
+# comes preinstalled with a bunch of deps, so when using a specific external
+# image as a base image for a new Docker image target that has common deps
+# with those of the extenral image, there's no need to re-add those deps
+# during the build of the new image.
+# Beyond that, it doesn't mean anything to have "deps" on an external image.
 register_builder_sig(
-    'ExtDockerImage', [('image', PT.str), ('tag', PT.str, None)])
-
-
-def format_qualified_image_name(target):
-    if target.props.tag:
-        return '{}:{}'.format(target.props.image, target.props.tag)
-    return target.props.image
+    'ExtDockerImage',
+    [('image', PT.str),
+     ('tag', PT.str, None),
+     ('deps', PT.TargetList, None),
+     ])
 
 
 @register_build_func('ExtDockerImage')
@@ -85,11 +89,9 @@ def docker_image_manipulate_target(build_context, target):
 def docker_image_builder(build_context, target):
     build_docker_image(
         build_context,
-        name=(target.props.image_name if target.props.image_name
-              else target_utils.split_name(target.name)),
+        name=get_image_name(target),
         tag=target.props.image_tag,
-        base_image=format_qualified_image_name(
-            build_context.targets[target.props.start_from]),
+        base_image=build_context.targets[target.props.start_from],
         deps=build_context.walk_target_deps_topological_order(target),
         env=target.props.env,
         work_dir=target.props.work_dir,
