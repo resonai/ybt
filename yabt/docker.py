@@ -33,7 +33,7 @@ from os.path import (
 import shutil
 
 from ostrich.utils.path import commonpath
-from ostrich.utils.proc import run
+from ostrich.utils.proc import run, PIPE
 from ostrich.utils.text import get_safe_path
 from ostrich.utils.collections import listify
 
@@ -139,6 +139,12 @@ def get_image_name(target):
             else target_utils.split_name(target.name))
 
 
+def get_remote_image_name(name: str, tag: str, image_caching_behavior: dict):
+    remote_image_name = image_caching_behavior.get('remote_image_name', name)
+    remote_image_tag = image_caching_behavior.get('remote_image_tag', tag)
+    return '{}:{}'.format(remote_image_name, remote_image_tag)
+
+
 def format_qualified_image_name(target):
     if target.builder_name == 'ExtDockerImage':
         if target.props.tag:
@@ -150,12 +156,88 @@ def format_qualified_image_name(target):
         raise TypeError(target)
 
 
+def get_cached_image_id(qualified_image_name):
+    docker_cmd = ['docker', 'images', '-q', qualified_image_name]
+    result = run(docker_cmd, stdout=PIPE)
+    if result.stdout:
+        return result.stdout.decode('utf8').strip()
+    return None
+
+
+def pull_docker_image(qualified_image_name):
+    docker_pull_cmd = ['docker', 'pull', qualified_image_name]
+    logger.debug('Pulling Docker image {} using command {}',
+                 qualified_image_name, docker_pull_cmd)
+    run(docker_pull_cmd, check=True)
+
+
+def push_docker_image(qualified_image_name):
+    docker_push_cmd = ['docker', 'push', qualified_image_name]
+    logger.debug('Pushing Docker image {} using command {}',
+                 qualified_image_name, docker_push_cmd)
+    run(docker_push_cmd, check=True)
+
+
+def tag_docker_image(src_image, tag_as_image):
+    if src_image == tag_as_image:
+        logger.debug('Skipping Docker tag for identical src and dest {}',
+                     src_image)
+        return
+    docker_tag_cmd = ['docker', 'tag', src_image, tag_as_image]
+    logger.debug('Tagging Docker image {} as {} using command {}',
+                 src_image, tag_as_image, docker_tag_cmd)
+    run(docker_tag_cmd, check=True)
+
+
+def handle_build_cache(name: str, tag: str, image_caching_behavior: dict):
+    """Handle Docker image build cache.
+
+    Return True if image is cached, and there's no need to redo the build.
+    Return False if need to build the image (whether cahced locally or not).
+    Raise RuntimeError if not allowed to build the image because of state of
+    local cache.
+
+    TODO(itamar): figure out a better name for this function, that reflects
+    the fact that it returns a boolean value (e.g. `should_build` or
+    `is_cached`), without "surprising" the caller with the potential of long
+    and non-trivial operations that are not usually expected from functions
+    with such names.
+    """
+    local_image = '{}:{}'.format(name, tag)
+    remote_image = get_remote_image_name(name, tag, image_caching_behavior)
+    pull_if_not_cached = image_caching_behavior.get(
+        'pull_if_not_cached', False)
+    pull_if_cached = image_caching_behavior.get(
+        'pull_if_cached', False)
+    allow_build_if_not_cached = image_caching_behavior.get(
+        'allow_build_if_not_cached', True)
+    skip_build_if_cached = image_caching_behavior.get(
+        'skip_build_if_cached', False)
+    if pull_if_cached or (pull_if_not_cached and
+                          get_cached_image_id(remote_image) is None):
+        pull_docker_image(remote_image)
+    local_image = '{}:{}'.format(name, tag)
+    if skip_build_if_cached and get_cached_image_id(remote_image) is not None:
+        tag_docker_image(remote_image, local_image)
+        return True
+    if ((not allow_build_if_not_cached) and
+            get_cached_image_id(remote_image) is None):
+        raise RuntimeError('No cached image for {}'.format(local_image))
+    return False
+
+
 def build_docker_image(
         build_context, name: str, tag: str, base_image, deps: list=None,
         env: dict=None, work_dir: str=None, truncate_common_parent: str=None,
-        cmd: list=None, no_artifacts: bool=False):
-    # create directory for this target under a private builder workspace
+        cmd: list=None, image_caching_behavior: dict=None,
+        no_artifacts: bool=False):
     docker_image = '{}:{}'.format(name, tag)
+    if image_caching_behavior is None:
+        image_caching_behavior = {}
+    if handle_build_cache(name, tag, image_caching_behavior):
+        print('Skipping build of cached Docker image', docker_image)
+        return
+    # create directory for this target under a private builder workspace
     workspace_dir = build_context.get_workspace('DockerBuilder', docker_image)
     # generate Dockerfile and build it
     dockerfile_path = join(workspace_dir, 'Dockerfile')
@@ -296,3 +378,7 @@ def build_docker_image(
     logger.info('Building docker image "{}" using command {}',
                 docker_image, docker_build_cmd)
     run(docker_build_cmd)
+    if image_caching_behavior.get('push_image_after_build', False):
+        remote_image = get_remote_image_name(name, tag, image_caching_behavior)
+        tag_docker_image(docker_image, remote_image)
+        push_docker_image(remote_image)
