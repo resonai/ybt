@@ -74,6 +74,7 @@ register_builder_sig(
      ('image_tag', PT.str, 'latest'),
      ('work_dir', PT.str, '/usr/src/app'),
      ('env', None),
+     ('image_caching_behavior', None),
      ('truncate_common_parent', PT.str, None)
      ])
 
@@ -96,4 +97,5 @@ def docker_image_builder(build_context, target):
         env=target.props.env,
         work_dir=target.props.work_dir,
         truncate_common_parent=target.props.truncate_common_parent,
-        cmd=target.props.docker_cmd)
+        cmd=target.props.docker_cmd,
+        image_caching_behavior=target.props.image_caching_behavior)

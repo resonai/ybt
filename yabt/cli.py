@@ -77,9 +77,12 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
             args_for_writing_out_config_file=['--write-out-config-file'])
         # PARSER.add('--config', is_config_file=True, help='Config file path')
         PARSER.add('--build-file-name', default='YBuild')
-        PARSER.add('--default-target-name', default='@default')
+        PARSER.add('--build-base-images', action='store_true')
         PARSER.add('--builders-workspace-dir', default='yabtwork')
         PARSER.add('--default-buildenv-base-image')
+        PARSER.add('--default-target-name', default='@default')
+        PARSER.add('--force-pull', action='store_true')
+        PARSER.add('--offline', action='store_true')
         PARSER.add('--scm-provider')
         # Logging flags
         PARSER.add('--logtostderr', action='store_true',

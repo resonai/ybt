@@ -39,7 +39,8 @@ class Config:
 
     attrs_from_args = frozenset((
         'build_file_name', 'default_target_name', 'cmd', 'targets',
-        'builders_workspace_dir', 'default_buildenv_base_image',
+        'build_base_images', 'builders_workspace_dir',
+        'default_buildenv_base_image', 'force_pull', 'offline',
         'loglevel', 'logtostderr', 'logtostdout',
     ))
 
