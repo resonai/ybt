@@ -33,7 +33,7 @@ from os.path import (
 import shutil
 
 from ostrich.utils.path import commonpath
-from ostrich.utils.proc import run, PIPE
+from ostrich.utils.proc import run, PIPE, CalledProcessError
 from ostrich.utils.text import get_safe_path
 from ostrich.utils.collections import listify
 
@@ -215,7 +215,10 @@ def handle_build_cache(name: str, tag: str, image_caching_behavior: dict):
         'skip_build_if_cached', False)
     if pull_if_cached or (pull_if_not_cached and
                           get_cached_image_id(remote_image) is None):
-        pull_docker_image(remote_image)
+        try:
+            pull_docker_image(remote_image)
+        except CalledProcessError:
+            pass
     local_image = '{}:{}'.format(name, tag)
     if skip_build_if_cached and get_cached_image_id(remote_image) is not None:
         tag_docker_image(remote_image, local_image)
@@ -382,3 +385,24 @@ def build_docker_image(
         remote_image = get_remote_image_name(name, tag, image_caching_behavior)
         tag_docker_image(docker_image, remote_image)
         push_docker_image(remote_image)
+
+
+def base_image_caching_behavior(conf: Config, **kwargs):
+    base_dict = {
+        'skip_build_if_cached': not conf.build_base_images,
+        'pull_if_not_cached': not conf.offline,
+        'pull_if_cached': conf.force_pull and not conf.offline,
+        'fail_build_if_pull_failed': not conf.offline,
+        'allow_build_if_not_cached': conf.build_base_images,
+        'push_image_after_build': conf.push and not conf.offline,
+    }
+    base_dict.update(kwargs)
+    return base_dict
+
+
+def deployable_caching_behavior(conf: Config, **kwargs):
+    base_dict = {
+        'push_image_after_build': conf.push and not conf.offline,
+    }
+    base_dict.update(kwargs)
+    return base_dict
