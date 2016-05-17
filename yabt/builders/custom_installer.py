@@ -26,7 +26,7 @@ yabt Custom Installer Builder
 
 from collections import namedtuple
 import os
-from os.path import basename, isfile, join, relpath
+from os.path import basename, isfile, join, relpath, splitext
 import shutil
 import tarfile
 from urllib.parse import urlparse
@@ -59,6 +59,9 @@ CustomInstaller = namedtuple('CustomInstaller',
                              ['name', 'package', 'install_script'])
 
 
+KNOWN_ARCHIVES = frozenset(('.gz', '.bz2', '.zip'))
+
+
 def guess_uri_type(uri: str, hint: str=None):
     """Return a guess for the URI type based on the URI string `uri`.
 
@@ -75,7 +78,10 @@ def guess_uri_type(uri: str, hint: str=None):
     if parsed_uri.path.endswith('.git'):
         return 'git'
     if parsed_uri.scheme in ('http', 'https'):
-        return 'archive'
+        ext = splitext(parsed_uri.path)[-1]
+        if ext in KNOWN_ARCHIVES:
+            return 'archive'
+        return 'single'
     return 'local'
 
 
@@ -116,6 +122,23 @@ def git_handler(unused_build_context, target, package_dir):
     return tar
 
 
+def fetch_url(url, dest, parent_to_remove_before_fetch):
+    """Helper function to fetch a file from a URL."""
+    if isfile(dest):
+        logger.debug('File {} is cached', dest)
+    else:
+        logger.debug('Downloading file {} from {}', dest, url)
+        try:
+            shutil.rmtree(parent_to_remove_before_fetch)
+        except FileNotFoundError:
+            pass
+        os.makedirs(parent_to_remove_before_fetch)
+        resp = requests.get(url, stream=True)
+        with open(dest, 'wb') as fetch_file:
+            for chunk in resp.iter_content():
+                fetch_file.write(chunk)
+
+
 def archive_handler(unused_build_context, target, package_dir):
     """Handle remote downloadable archive URI.
 
@@ -126,29 +149,33 @@ def archive_handler(unused_build_context, target, package_dir):
     TODO(itamar): Support re-downloading if remote changed compared to local.
     TODO(itamar): Support more archive formats (currently only tarballs).
     """
-    target_name = split_name(target.name)
     package_dest = join(package_dir, basename(urlparse(target.props.uri).path))
     package_content_dir = join(package_dir, 'content')
-    if isfile(package_dest):
-        logger.debug('Archive {} is cached', package_dest)
-    else:
-        logger.debug('Downloading archive {} from {}',
-                     package_dest, target.props.uri)
-        try:
-            shutil.rmtree(package_dir)
-        except FileNotFoundError:
-            pass
-        os.makedirs(package_dir)
-        resp = requests.get(target.props.uri, stream=True)
-        with open(package_dest, 'wb') as archive_file:
-            for chunk in resp.iter_content():
-                archive_file.write(chunk)
+    fetch_url(target.props.uri, package_dest, package_dir)
 
     with tarfile.open(package_dest, 'r:*') as tar:
         tar.extractall(package_content_dir)
 
     tar = make_tar(target)
-    tar.add(package_content_dir, arcname=target_name)
+    tar.add(package_content_dir, arcname=split_name(target.name))
+    return tar
+
+
+def fetch_file_handler(unused_build_context, target, package_dir):
+    """Handle remote downloadable file URI.
+
+    Download the file and cache it under the private builer workspace
+    (unless already downloaded), and add it to the package tar.
+
+    TODO(itamar): Support re-downloading if remote changed compared to local.
+    """
+    fetch_url(
+        target.props.uri,
+        join(package_dir, basename(urlparse(target.props.uri).path)),
+        package_dir)
+
+    tar = make_tar(target)
+    tar.add(package_dir, arcname=split_name(target.name))
     return tar
 
 
@@ -174,6 +201,7 @@ def custom_installer_builder(build_context, target):
     handlers = {
         'git': git_handler,
         'archive': archive_handler,
+        'single': fetch_file_handler,
         'local': local_handler,
     }
     uri_type = guess_uri_type(target.props.uri, target.props.uri_type)
