@@ -380,7 +380,7 @@ def build_docker_image(
         'docker', 'build', '-t', docker_image, workspace_dir]
     logger.info('Building docker image "{}" using command {}',
                 docker_image, docker_build_cmd)
-    run(docker_build_cmd)
+    run(docker_build_cmd, check=True)
     if image_caching_behavior.get('push_image_after_build', False):
         remote_image = get_remote_image_name(name, tag, image_caching_behavior)
         tag_docker_image(docker_image, remote_image)
