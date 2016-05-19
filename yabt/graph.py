@@ -35,6 +35,80 @@ from .target_utils import parse_target_selectors
 logger = make_logger(__name__)
 
 
+def stable_reverse_topological_sort(graph):
+    """Return a list of nodes in topological sort order.
+
+    This topological sort is a **unique** permutation of the nodes
+    such that an edge from u to v implies that u appears before v in the
+    topological sort order.
+
+    Parameters
+    ----------
+    graph : NetworkX digraph
+            A directed graph
+
+    Raises
+    ------
+    NetworkXError
+        Topological sort is defined for directed graphs only. If the
+        graph G is undirected, a NetworkXError is raised.
+    NetworkXUnfeasible
+        If G is not a directed acyclic graph (DAG) no topological sort
+        exists and a NetworkXUnfeasible exception is raised.
+
+    Notes
+    -----
+    - This algorithm is based on a description and proof in
+      The Algorithm Design Manual [1]_ .
+    - This implementation is modified from networkx 1.11 implementation [2]_
+      to achieve stability, support only reverse (allows yielding instead of
+      returning a list), and remove the `nbunch` argument (had no use for it).
+
+    See also
+    --------
+    is_directed_acyclic_graph
+
+    References
+    ----------
+    .. [1] Skiena, S. S. The Algorithm Design Manual  (Springer-Verlag, 1998).
+        http://www.amazon.com/exec/obidos/ASIN/0387948600/ref=ase_thealgorithmrepo/
+    .. [2] networkx on GitHub
+        https://github.com/networkx/networkx/blob/8358afac209c00b7feb3e81c901098852a9413b3/networkx/algorithms/dag.py#L88-L168
+    """
+    if not graph.is_directed():
+        raise networkx.NetworkXError(
+            'Topological sort not defined on undirected graphs.')
+
+    # nonrecursive version
+    seen = set()
+    explored = set()
+
+    for v in sorted(graph.nodes_iter()):
+        if v in explored:
+            continue
+        fringe = [v]  # nodes yet to look at
+        while fringe:
+            w = fringe[-1]  # depth first search
+            if w in explored:  # already looked down this branch
+                fringe.pop()
+                continue
+            seen.add(w)     # mark as seen
+            # Check successors for cycles and for new nodes
+            new_nodes = []
+            for n in sorted(graph[w]):
+                if n not in explored:
+                    if n in seen:  # CYCLE!! OH NOOOO!!
+                        raise networkx.NetworkXUnfeasible(
+                            'Graph contains a cycle.')
+                    new_nodes.append(n)
+            if new_nodes:   # Add new_nodes to fringe
+                fringe.extend(new_nodes)
+            else:           # No new nodes so w is fully explored
+                explored.add(w)
+                yield w
+                fringe.pop()  # done considering this node
+
+
 def build_target_dep_graph(build_context, unused_conf: Config):
     build_context.target_graph = networkx.DiGraph()
     for target_name, target in build_context.targets.items():
@@ -119,8 +193,8 @@ def populate_targets_graph(build_context, conf: Config):
     assert dag.is_directed_acyclic_graph(build_context.target_graph)
 
 
-def topological_sort(graph: networkx.DiGraph, reverse: bool=True):
-    yield from dag.topological_sort(graph, reverse=reverse)
+def topological_sort(graph: networkx.DiGraph):
+    yield from stable_reverse_topological_sort(graph)
 
 
 def get_descendants(graph: networkx.DiGraph, source):

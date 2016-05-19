@@ -22,6 +22,7 @@ yabt target graph tests
 """
 
 
+import networkx
 import pytest
 
 from .buildcontext import BuildContext
@@ -60,3 +61,60 @@ def test_target_graph(basic_conf):
     assert_dep_chain(':flask', 'fe:fe')
     assert_dep_chain('yapi/server:users', 'fe:fe')
     assert_dep_chain('common:logging', 'common:base', 'fe:fe')
+
+
+def test_stable_topological_sort():
+    """Test that my modified topological sort is stable.
+
+    Note - not doing many cycles because I saw that even with the non-stable
+    implementation, it is stable in the context of the same process...
+    (only reruns showed the unstable behavior)
+    """
+    expected_order = ['world', 'bar', 'baz', 'hello', 'foo']
+
+    graph = networkx.DiGraph()
+    graph.add_edges_from([('foo', 'bar'), ('foo', 'baz'),
+                          ('bar', 'world'), ('foo', 'hello')])
+    assert list(topological_sort(graph)) == expected_order
+
+    same_graph = networkx.DiGraph({'foo': ['baz', 'hello', 'bar']})
+    same_graph.add_edge('bar', 'world')
+    assert list(topological_sort(same_graph)) == expected_order
+
+
+def test_topological_sort1():
+    graph = networkx.DiGraph()
+    graph.add_edges_from([(1, 2), (1, 3), (2, 3)])
+    assert list(topological_sort(graph)) == [3, 2, 1]
+
+    graph.add_edge(3, 2)
+    with pytest.raises(networkx.NetworkXUnfeasible):
+        list(topological_sort(graph))
+
+    graph.remove_edge(2, 3)
+    assert list(topological_sort(graph)) == [2, 3, 1]
+
+
+def test_topological_sort2():
+    graph = networkx.DiGraph({1: [2], 2: [3], 3: [4],
+                              4: [5], 5: [1], 11: [12],
+                              12: [13], 13: [14], 14: [15]})
+
+    with pytest.raises(networkx.NetworkXUnfeasible):
+        list(topological_sort(graph))
+
+    graph.remove_edge(1, 2)
+    assert list(topological_sort(graph)) == [1, 5, 4, 3, 2, 15, 14, 13, 12, 11]
+
+
+def test_topological_sort4():
+    graph = networkx.Graph()
+    graph.add_edge(1, 2)
+    with pytest.raises(networkx.NetworkXError):
+        list(topological_sort(graph))
+
+
+def test_topological_sort4():
+    graph = networkx.DiGraph()
+    graph.add_edge(1, 2)
+    assert list(topological_sort(graph)) == [2, 1]
