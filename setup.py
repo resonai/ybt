@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 import yabt
 
 setup(
-    name='yabt',
+    name='ybt',
     version=yabt.__version__,
     author=yabt.__author__,
     author_email='yabt@ostricher.com',
@@ -60,6 +60,7 @@ setup(
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',

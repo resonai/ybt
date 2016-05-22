@@ -30,6 +30,7 @@ from os.path import basename, isfile, join, relpath, splitext
 import shutil
 import tarfile
 from urllib.parse import urlparse
+from zipfile import ZipFile
 
 import git
 from git import InvalidGitRepositoryError, NoSuchPathError
@@ -153,8 +154,17 @@ def archive_handler(unused_build_context, target, package_dir):
     package_content_dir = join(package_dir, 'content')
     fetch_url(target.props.uri, package_dest, package_dir)
 
-    with tarfile.open(package_dest, 'r:*') as tar:
-        tar.extractall(package_content_dir)
+    # TODO(itamar): Avoid repetition of splitting extension here and above
+    # TODO(itamar): Don't use `extractall` on potentially untrsuted archives
+    ext = splitext(package_dest)[-1].lower()
+    if ext in ('.gz', '.bz2'):
+        with tarfile.open(package_dest, 'r:*') as tar:
+            tar.extractall(package_content_dir)
+    elif ext in ('.zip',):
+        with ZipFile(package_dest, 'r') as zipf:
+            zipf.extractall(package_content_dir)
+    else:
+        raise ValueError('Unsupported extension {}'.format(ext))
 
     tar = make_tar(target)
     tar.add(package_content_dir, arcname=split_name(target.name))
