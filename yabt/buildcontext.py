@@ -30,6 +30,7 @@ from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
 
 from .config import Config
+from .docker import format_qualified_image_name
 from .extend import Plugin
 from .graph import get_descendants, topological_sort
 from .logging import make_logger
@@ -74,9 +75,9 @@ class BuildContext:
         self.processed_build_files = set()
         # Target graph is *not necessarily thread-safe*!
         self.target_graph = None
-        # A *thread-safe* map from BuildEnv name to qualified Docker image
-        #  name for that BuildEnv
-        self.buildenv_images = {}
+        # # A *thread-safe* map from BuildEnv name to qualified Docker image
+        # #  name for that BuildEnv
+        # self.buildenv_images = {}
 
     def get_workspace(self, *parts) -> str:
         """Return a path to a private workspace dir.
@@ -160,20 +161,27 @@ class BuildContext:
                                                  build_file_path, self)
         return extraction_context
 
-    def register_buildenv_image(self, name: str, docker_image: str):
-        """Register a named BuildEnv Docker image in this build context."""
-        self.buildenv_images[name] = docker_image
+    # def register_buildenv_image(self, name: str, docker_image: str):
+    #     """Register a named BuildEnv Docker image in this build context."""
+    #     self.buildenv_images[name] = docker_image
 
-    def run_in_buildenv(self, buildenv: str, *cmd, **kwargs):
+    def run_in_buildenv(
+            self, buildenv_target_name: str, cmd: list, cmd_env: dict=None,
+            **kwargs):
         """Run a command in a named BuildEnv Docker image.
 
+        :param buildenv_target_name: A named Docker image target in which the
+                                     command should be run.
         :param cmd: The command to run, as you'd pass to subprocess.run()
+        :param cmd_env: A dictionary of environment variables for the command.
         :param kwargs: Extra keyword arguments that are passed to the
                         subprocess.run() call that runs the BuildEnv container
                         (for, e.g. timeout arg, stdout/err redirection, etc.)
 
         :raises KeyError: If named BuildEnv is not a registered BuildEnv image
         """
+        buildenv_target = self.targets[buildenv_target_name]
+        # TODO(itamar): Assert that buildenv_target is up to date
         redirection = any(
             stream_key in kwargs
             for stream_key in ('stdin', 'stdout', 'stderr', 'input'))
@@ -181,16 +189,20 @@ class BuildContext:
             'docker', 'run', '-i' if redirection else '-it', '--rm',
             '-v', self.conf.project_root + ':/project', '-w', '/project',
         ]
+        if cmd_env:
+            for key, value in cmd_env.items():
+                # TODO(itamar): escaping
+                docker_run.extend(['-e', '{}={}'.format(key, value)])
         if platform.system() == 'Linux':
             # Fix permissions for bind-mounted project dir
             # The fix is not needed when using Docker machine on OS X with
-            # VirtualBox, because it is somehow taken care of by the shared
-            # folder thingie...
+            # VirtualBox or xhyve, because it is somehow taken care of by
+            # the shared folder thingie...
             docker_run.extend(['-u', '{}:{}'.format(os.getuid(), os.getgid())])
-        docker_run.append(self.buildenv_images[buildenv])
+        docker_run.append(format_qualified_image_name(buildenv_target))
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
-                    buildenv, docker_run)
+                    buildenv_target_name, docker_run)
         return run(docker_run, **kwargs)
 
     def build_target(self, target: Target):

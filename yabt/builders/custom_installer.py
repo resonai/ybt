@@ -60,7 +60,7 @@ CustomInstaller = namedtuple('CustomInstaller',
                              ['name', 'package', 'install_script'])
 
 
-KNOWN_ARCHIVES = frozenset(('.gz', '.bz2', '.zip'))
+KNOWN_ARCHIVES = frozenset(('.gz', '.bz2', '.tgz', '.zip'))
 
 
 def guess_uri_type(uri: str, hint: str=None):
@@ -134,9 +134,11 @@ def fetch_url(url, dest, parent_to_remove_before_fetch):
         except FileNotFoundError:
             pass
         os.makedirs(parent_to_remove_before_fetch)
+        # TODO(itamar): Better downloading (multi-process-multi-threaded?)
+        # Consider offloading this to a "standalone app" invoked with Docker
         resp = requests.get(url, stream=True)
         with open(dest, 'wb') as fetch_file:
-            for chunk in resp.iter_content():
+            for chunk in resp.iter_content(chunk_size=32 * 1024):
                 fetch_file.write(chunk)
 
 
@@ -157,7 +159,7 @@ def archive_handler(unused_build_context, target, package_dir):
     # TODO(itamar): Avoid repetition of splitting extension here and above
     # TODO(itamar): Don't use `extractall` on potentially untrsuted archives
     ext = splitext(package_dest)[-1].lower()
-    if ext in ('.gz', '.bz2'):
+    if ext in ('.gz', '.bz2', '.tgz'):
         with tarfile.open(package_dest, 'r:*') as tar:
             tar.extractall(package_content_dir)
     elif ext in ('.zip',):

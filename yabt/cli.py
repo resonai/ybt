@@ -79,7 +79,6 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         PARSER.add('--build-file-name', default='YBuild')
         PARSER.add('--build-base-images', action='store_true')
         PARSER.add('--builders-workspace-dir', default='yabtwork')
-        PARSER.add('--default-buildenv-base-image')
         PARSER.add('--default-target-name', default='@default')
         PARSER.add('--force-pull', action='store_true')
         PARSER.add('--offline', action='store_true')

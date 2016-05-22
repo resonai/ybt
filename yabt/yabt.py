@@ -73,20 +73,20 @@ def cmd_build(conf: Config):
     """Build requested targets, and their dependencies."""
     build_context = BuildContext(conf)
     populate_targets_graph(build_context, conf)
-    # pass 1: prepare BuildEnv images
-    if conf.default_buildenv_base_image:
-        # TODO(itamar): generate random tag to avoid conflicts if running
-        # multiple instances concurrently
-        build_docker_image(
-            build_context,
-            name='ybt-buildenv',
-            tag='latest',
-            base_image=build_context.targets[conf.default_buildenv_base_image],
-            deps=[build_context.targets[target_name] for target_name in
-                  topological_sort(build_context.target_graph)],
-            no_artifacts=True)
-        build_context.register_buildenv_image('ybt-buildenv',
-                                              'ybt-buildenv:latest')
+    # # pass 1: prepare BuildEnv images
+    # if conf.default_buildenv_base_image:
+    #     # TODO(itamar): generate random tag to avoid conflicts if running
+    #     # multiple instances concurrently
+    #     build_docker_image(
+    #         build_context,
+    #         name='ybt-buildenv',
+    #         tag='latest',
+    #         base_image=build_context.targets[conf.default_buildenv_base_image],
+    #         deps=[build_context.targets[target_name] for target_name in
+    #               topological_sort(build_context.target_graph)],
+    #         no_artifacts=True)
+    #     build_context.register_buildenv_image('ybt-buildenv',
+    #                                           'ybt-buildenv:latest')
     # pass 2: build
     for target_name in topological_sort(build_context.target_graph):
         target = build_context.targets[target_name]
