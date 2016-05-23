@@ -27,7 +27,6 @@ import pytest
 from subprocess import PIPE
 
 from .buildcontext import BuildContext
-from .docker import build_docker_image
 from .graph import populate_targets_graph, topological_sort
 
 
@@ -35,18 +34,11 @@ from .graph import populate_targets_graph, topological_sort
 def test_target_graph(basic_conf):
     build_context = BuildContext(basic_conf)
     populate_targets_graph(build_context, basic_conf)
-    build_docker_image(
-            build_context,
-            name='ybt-buildenv',
-            tag='latest',
-            base_image=build_context.targets['3rdparty:python3'],
-            deps=[build_context.targets[target_name] for target_name in
-                  topological_sort(build_context.target_graph)],
-            no_artifacts=True)
-    build_context.register_buildenv_image('ybt-buildenv',
-                                          'ybt-buildenv:latest')
+    for target_name in topological_sort(build_context.target_graph):
+        target = build_context.targets[target_name]
+        build_context.build_target(target)
     result = build_context.run_in_buildenv(
-        'ybt-buildenv', 'pip', 'freeze', stdout=PIPE, stderr=PIPE)
+        'app:flask-hello', ['pip', 'freeze'], stdout=PIPE, stderr=PIPE)
     assert 0 == result.returncode
     for package in [
             b'Flask',
