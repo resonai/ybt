@@ -13,7 +13,13 @@ Requires Python 3.4 or above, so make sure you have it (``type -P python3 && pyt
 .. code-block:: shell
     sudo apt-get install -y python3-dev python3-pip
     sudo pip3 install --upgrade pip
-    sudo pip3 install "git+ssh://git@bitbucket.org/yowza3d/yabt.git/#egg=ybt"
+    sudo pip3 install ybt
+
+
+To configure bash tab-completion, add the following line to your `.bashrc`:
+
+.. code-block:: shell
+    eval "$(register-python-argcomplete ybt)"
 
 
 Development
