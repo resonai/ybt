@@ -185,10 +185,16 @@ class BuildContext:
         redirection = any(
             stream_key in kwargs
             for stream_key in ('stdin', 'stdout', 'stderr', 'input'))
-        docker_run = [
-            'docker', 'run', '-i' if redirection else '-it', '--rm',
-            '-v', self.conf.project_root + ':/project', '-w', '/project',
-        ]
+        docker_run = ['docker', 'run']
+        if not self.conf.non_interactive:
+            docker_run.append('-i')
+        if not redirection:
+            docker_run.append('-t')
+        docker_run.extend([
+            '--rm',
+            '-v', self.conf.project_root + ':/project',
+            '-w', '/project',
+        ])
         if cmd_env:
             for key, value in cmd_env.items():
                 # TODO(itamar): escaping
