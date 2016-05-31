@@ -146,6 +146,8 @@ def populate_targets_graph(build_context, conf: Config):
             if seed not in seeds_used_for_extending:
                 # Avoid infinite loop in case of cyclic dependencies
                 seeds.extend(build_context.targets[seed].deps)
+                if build_context.targets[seed].buildenv:
+                    seeds.append(build_context.targets[seed].buildenv)
                 seeds_used_for_extending.add(seed)
         else:
             if seed == '**:*':
@@ -165,6 +167,9 @@ def populate_targets_graph(build_context, conf: Config):
                         build_context.targets_by_module[build_module]):
                     seeds.extend(
                         build_context.targets[module_target].deps)
+                    if build_context.targets[module_target].buildenv:
+                        seeds.append(
+                            build_context.targets[module_target].buildenv)
             else:
                 if seed not in build_context.targets:
                     raise RuntimeError(
@@ -175,6 +180,8 @@ def populate_targets_graph(build_context, conf: Config):
                     targets_to_prune.add(module_target)
                 targets_to_prune.remove(seed)
                 seeds.extend(build_context.targets[seed].deps)
+                if build_context.targets[seed].buildenv:
+                    seeds.append(build_context.targets[seed].buildenv)
         # TODO(itamar): Write tests that pruning is *ALWAYS* correct!
         # e.g., not pruning things it shouldn't (like when targets are in prune
         # list when loaded initially, but should be removed later because a

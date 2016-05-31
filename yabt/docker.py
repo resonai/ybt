@@ -398,6 +398,8 @@ def build_docker_image(
 
     # Add ENTRYPOINT (one layer)
     if entrypoint:
+        # TODO(itamar): Consider adding tini as entrypoint also if given
+        # Docker CMD without a Docker ENTRYPOINT?
         if build_context.conf.with_tini_entrypoint:
             entrypoint = ['tini', '--'] + entrypoint
         dockerfile.append(

@@ -53,6 +53,4 @@ def ext_command_builder(build_context, target):
 
 @register_manipulate_target_hook('ExtCommand')
 def ext_command_manipulate_target(build_context, target):
-    logger.debug('Injecting "{}" to deps of {}',
-                 target.props.in_buildenv, target)
-    target.deps.append(target.props.in_buildenv)
+    target.buildenv = target.props.in_buildenv
