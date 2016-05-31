@@ -69,6 +69,7 @@ register_builder_sig(
     'DockerImage',
     [('start_from', PT.Target),
      ('deps', PT.TargetList, None),
+     ('docker_entrypoint', PT.StrList, None),
      ('docker_cmd', PT.StrList, None),
      ('image_name', PT.str, None),
      ('image_tag', PT.str, 'latest'),
@@ -97,5 +98,6 @@ def docker_image_builder(build_context, target):
         env=target.props.env,
         work_dir=target.props.work_dir,
         truncate_common_parent=target.props.truncate_common_parent,
+        entrypoint=target.props.docker_entrypoint,
         cmd=target.props.docker_cmd,
         image_caching_behavior=target.props.image_caching_behavior)

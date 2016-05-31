@@ -87,6 +87,7 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         # TODO(itamar): this flag should come from the builder, not from here
         PARSER.add('--push', action='store_true')
         PARSER.add('--scm-provider')
+        PARSER.add('--with-tini-entrypoint', action='store_true')
         # Logging flags
         PARSER.add('--logtostderr', action='store_true',
                    help='Whether to log to STDERR')

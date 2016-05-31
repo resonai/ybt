@@ -234,8 +234,8 @@ def handle_build_cache(name: str, tag: str, image_caching_behavior: dict):
 def build_docker_image(
         build_context, name: str, tag: str, base_image, deps: list=None,
         env: dict=None, work_dir: str=None, truncate_common_parent: str=None,
-        cmd: list=None, image_caching_behavior: dict=None,
-        no_artifacts: bool=False):
+        entrypoint: list=None, cmd: list=None,
+        image_caching_behavior: dict=None, no_artifacts: bool=False):
     docker_image = '{}:{}'.format(name, tag)
     if image_caching_behavior is None:
         image_caching_behavior = {}
@@ -393,10 +393,18 @@ def build_docker_image(
         if num_linked > 0:
             dockerfile.append('COPY src /usr/src\n')
 
-    # Add CMD (one layer)
     def format_docker_cmd(docker_cmd):
         return ('"{}"'.format(cmd) for cmd in docker_cmd)
 
+    # Add ENTRYPOINT (one layer)
+    if entrypoint:
+        if build_context.conf.with_tini_entrypoint:
+            entrypoint = ['tini', '--'] + entrypoint
+        dockerfile.append(
+            'ENTRYPOINT [{}]\n'.format(
+                ', '.join(format_docker_cmd(entrypoint))))
+
+    # Add CMD (one layer)
     if cmd:
         dockerfile.append(
             'CMD [{}]\n'.format(', '.join(format_docker_cmd(cmd))))
