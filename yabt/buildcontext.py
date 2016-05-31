@@ -209,7 +209,7 @@ class BuildContext:
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
                     buildenv_target_name, docker_run)
-        return run(docker_run, **kwargs)
+        return run(docker_run, check=True, **kwargs)
 
     def build_target(self, target: Target):
         """Invoke the builder function for a target."""
