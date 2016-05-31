@@ -17,8 +17,8 @@
 # pylint: disable=invalid-name, unused-argument
 
 """
-yabt External command builder
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+yabt NodeJS Builders
+~~~~~~~~~~~~~~~~~~~~
 
 :author: Itamar Ostricher
 """
@@ -27,30 +27,28 @@ yabt External command builder
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
-from ..logging import make_logger
-
-
-logger = make_logger(__name__)
 
 
 register_builder_sig(
-    'ExtCommand',
-    [('cmd'),
-     ('in_buildenv', PT.Target, None),
-     ('cmd_env', None),
-     ('deps', PT.TargetList, None),
+    'NpmPackage',
+    [('package', PT.str),
+     ('version', PT.str, None),
+     ('global_install', PT.bool, False),
+     ('deps', PT.TargetList, None)
      ])
 
 
-@register_build_func('ExtCommand')
-def ext_command_builder(build_context, target):
-    print('Build (run) ExtCommand', target)
-    build_context.run_in_buildenv(
-        target.props.in_buildenv, target.props.cmd, target.props.cmd_env)
-    # TODO(itamar): way to describe the artifacts of the external command,
-    # so it can be used by dependent targets, and cached in some smart way
+def format_npm_specifier(target):
+    if target.props.version:
+        return '{0.package}@{0.version}'.format(target.props)
+    return '{0.package}'.format(target.props)
 
 
-@register_manipulate_target_hook('ExtCommand')
-def ext_command_manipulate_target(build_context, target):
-    target.buildenv = target.props.in_buildenv
+@register_build_func('NpmPackage')
+def npm_package_builder(build_context, target):
+    print('Fetch and cache NPM package', target)
+
+
+@register_manipulate_target_hook('NpmPackage')
+def npm_package_manipulate_target(build_context, target):
+    target.tags.add('npm-installable')

@@ -40,7 +40,9 @@ from ostrich.utils.collections import listify
 from .config import Config
 from .logging import make_logger
 from .builders.apt import format_package_specifier
+from .builders.nodejs import format_npm_specifier
 from .builders.python import format_req_specifier
+from .builders.ruby import format_gem_specifier
 from . import target_utils
 
 
@@ -232,8 +234,8 @@ def handle_build_cache(name: str, tag: str, image_caching_behavior: dict):
 def build_docker_image(
         build_context, name: str, tag: str, base_image, deps: list=None,
         env: dict=None, work_dir: str=None, truncate_common_parent: str=None,
-        cmd: list=None, image_caching_behavior: dict=None,
-        no_artifacts: bool=False):
+        entrypoint: list=None, cmd: list=None,
+        image_caching_behavior: dict=None, no_artifacts: bool=False):
     docker_image = '{}:{}'.format(name, tag)
     if image_caching_behavior is None:
         image_caching_behavior = {}
@@ -254,6 +256,9 @@ def build_docker_image(
     apt_packages = list()
     pip_requirements = list()
     custom_installers = list()
+    npm_global_packages = list()
+    npm_local_packages = list()
+    gem_packages = list()
 
     if deps is None:
         deps = []
@@ -278,6 +283,13 @@ def build_docker_image(
             pip_requirements.append(format_req_specifier(dep))
         if 'custom-installer' in dep.tags:
             custom_installers.append(dep.props.installer_desc)
+        if 'npm-installable' in dep.tags:
+            if dep.props.global_install:
+                npm_global_packages.append(format_npm_specifier(dep))
+            else:
+                npm_local_packages.append(format_npm_specifier(dep))
+        if 'gem-installable' in dep.tags:
+            gem_packages.append(format_gem_specifier(dep))
 
     # Handle apt keys, repositories, and packages (one layer for all)
     apt_cmd = ''
@@ -336,6 +348,22 @@ def build_docker_image(
             'pip install --no-cache-dir -r /usr/src/requirements.txt\n'
         ])
 
+    # Handle npm packages (1-2 layer)
+    def install_npm(npm_packages: list, global_install: bool):
+        if npm_packages:
+            dockerfile.append(
+                'RUN npm install {}{}\n'.format(
+                    ' '.join(npm_packages),
+                    ' --global' if global_install else ''))
+    install_npm(npm_global_packages, True)
+    install_npm(npm_local_packages, False)
+
+    # Handle gem packages (1-2 layer)
+    if gem_packages:
+        dockerfile.append(
+            'RUN gem install {}\n'.format(
+                ' '.join(gem_packages)))
+
     # Add environment variables (one layer)
     if env:
         dockerfile.append(
@@ -365,10 +393,20 @@ def build_docker_image(
         if num_linked > 0:
             dockerfile.append('COPY src /usr/src\n')
 
-    # Add CMD (one layer)
     def format_docker_cmd(docker_cmd):
         return ('"{}"'.format(cmd) for cmd in docker_cmd)
 
+    # Add ENTRYPOINT (one layer)
+    if entrypoint:
+        # TODO(itamar): Consider adding tini as entrypoint also if given
+        # Docker CMD without a Docker ENTRYPOINT?
+        if build_context.conf.with_tini_entrypoint:
+            entrypoint = ['tini', '--'] + entrypoint
+        dockerfile.append(
+            'ENTRYPOINT [{}]\n'.format(
+                ', '.join(format_docker_cmd(entrypoint))))
+
+    # Add CMD (one layer)
     if cmd:
         dockerfile.append(
             'CMD [{}]\n'.format(', '.join(format_docker_cmd(cmd))))

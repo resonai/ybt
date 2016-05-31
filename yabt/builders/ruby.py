@@ -17,8 +17,8 @@
 # pylint: disable=invalid-name, unused-argument
 
 """
-yabt External command builder
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+yabt Ruby Builders
+~~~~~~~~~~~~~~~~~~
 
 :author: Itamar Ostricher
 """
@@ -27,30 +27,31 @@ yabt External command builder
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
-from ..logging import make_logger
-
-
-logger = make_logger(__name__)
 
 
 register_builder_sig(
-    'ExtCommand',
-    [('cmd'),
-     ('in_buildenv', PT.Target, None),
-     ('cmd_env', None),
-     ('deps', PT.TargetList, None),
+    'GemPackage',
+    [('package', PT.str),
+     ('version', PT.str, None),
+     ('deps', PT.TargetList, None)
      ])
 
 
-@register_build_func('ExtCommand')
-def ext_command_builder(build_context, target):
-    print('Build (run) ExtCommand', target)
-    build_context.run_in_buildenv(
-        target.props.in_buildenv, target.props.cmd, target.props.cmd_env)
-    # TODO(itamar): way to describe the artifacts of the external command,
-    # so it can be used by dependent targets, and cached in some smart way
+def format_gem_specifier(target):
+    # TODO(itamar): support pinned version
+    # this should be the way to specify a version for a ruby gem:
+    # http://stackoverflow.com/questions/17026441/how-to-install-a-specific-version-of-a-ruby-gem
+    # but it doesn't work...
+    # if target.props.version:
+    #     return "{0.package}:'{0.version}'".format(target.props)
+    return '{0.package}'.format(target.props)
 
 
-@register_manipulate_target_hook('ExtCommand')
-def ext_command_manipulate_target(build_context, target):
-    target.buildenv = target.props.in_buildenv
+@register_build_func('GemPackage')
+def gem_package_builder(build_context, target):
+    print('Fetch and cache Gem package', target)
+
+
+@register_manipulate_target_hook('GemPackage')
+def gem_package_manipulate_target(build_context, target):
+    target.tags.add('gem-installable')

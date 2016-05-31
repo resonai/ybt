@@ -31,6 +31,8 @@ setup(
             'ExtCommand = yabt.builders.extcommand',
             'ExtDockerImage = yabt.builders.docker',
             'FileGroup = yabt.builders.filegroup',
+            'GemPackage = yabt.builders.ruby',
+            'NpmPackage = yabt.builders.nodejs',
             'PythonPackage = yabt.builders.python',
             'Python = yabt.builders.python',
             'TargetGroup = yabt.builders.targetgroup',

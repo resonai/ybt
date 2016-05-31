@@ -32,7 +32,7 @@ from .config import Config, BUILD_PROJ_FILE
 from .docker import build_docker_image
 from .extend import Plugin
 from .graph import populate_targets_graph, topological_sort
-from .target_utils import parse_target_selectors, split
+from .target_utils import parse_target_selectors, split, Target
 
 
 YabtCommand = namedtuple('YabtCommand', ['func', 'requires_project'])
@@ -73,6 +73,25 @@ def cmd_build(conf: Config):
     """Build requested targets, and their dependencies."""
     build_context = BuildContext(conf)
     populate_targets_graph(build_context, conf)
+    built_targets = set()
+
+    def build(target: Target):
+        """Build `target` if it wasn't built already, and mark it built."""
+        if target.name not in built_targets:
+            build_context.build_target(target)
+            built_targets.add(target.name)
+
+    # pre-pass: build detected buildenv targets and their dependencies
+    for name, target in build_context.targets.items():
+        if name in built_targets:
+            continue
+        if target.buildenv:
+            buildenv = build_context.targets[target.buildenv]
+            for dep in build_context.walk_target_deps_topological_order(
+                    buildenv):
+                build(dep)
+            build(buildenv)
+
     # # pass 1: prepare BuildEnv images
     # if conf.default_buildenv_base_image:
     #     # TODO(itamar): generate random tag to avoid conflicts if running
@@ -87,10 +106,11 @@ def cmd_build(conf: Config):
     #         no_artifacts=True)
     #     build_context.register_buildenv_image('ybt-buildenv',
     #                                           'ybt-buildenv:latest')
+
     # pass 2: build
     for target_name in topological_sort(build_context.target_graph):
         target = build_context.targets[target_name]
-        build_context.build_target(target)
+        build(target)
 
 
 def cmd_tree(conf: Config):
