@@ -41,6 +41,7 @@ from ..extend import (
     register_manipulate_target_hook)
 from ..logging import make_logger
 from ..target_utils import split_name
+from ..utils import yprint
 
 
 logger = make_logger(__name__)
@@ -198,7 +199,8 @@ def local_handler(build_context, target, package_dir):
 @register_build_func('CustomInstaller')
 def custom_installer_builder(build_context, target):
     # TODO(itamar): Handle cached package invalidation
-    print('Fetch and cache custom installer package', target)
+    yprint(build_context.conf,
+           'Fetch and cache custom installer package', target)
     workspace_dir = build_context.get_workspace('CustomInstaller', target.name)
     target_name = split_name(target.name)
     script_name = basename(target.props.script)

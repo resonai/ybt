@@ -44,6 +44,7 @@ from .builders.nodejs import format_npm_specifier
 from .builders.python import format_req_specifier
 from .builders.ruby import format_gem_specifier
 from . import target_utils
+from .utils import yprint
 
 
 logger = make_logger(__name__)
@@ -240,7 +241,8 @@ def build_docker_image(
     if image_caching_behavior is None:
         image_caching_behavior = {}
     if handle_build_cache(name, tag, image_caching_behavior):
-        print('Skipping build of cached Docker image', docker_image)
+        yprint(build_context.conf,
+               'Skipping build of cached Docker image', docker_image)
         return
     # create directory for this target under a private builder workspace
     workspace_dir = build_context.get_workspace('DockerBuilder', docker_image)
@@ -351,10 +353,12 @@ def build_docker_image(
     # Handle npm packages (1-2 layer)
     def install_npm(npm_packages: list, global_install: bool):
         if npm_packages:
+            if not global_install:
+                dockerfile.append('WORKDIR /usr/src\n')
             dockerfile.append(
-                'RUN npm install {}{}\n'.format(
+                'RUN npm install {} {}\n'.format(
                     ' '.join(npm_packages),
-                    ' --global' if global_install else ''))
+                    '--global' if global_install else '&& npm dedupe'))
     install_npm(npm_global_packages, True)
     install_npm(npm_local_packages, False)
 

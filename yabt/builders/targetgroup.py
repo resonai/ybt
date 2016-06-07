@@ -25,6 +25,7 @@ yabt Target group builder
 
 
 from ..extend import PropType as PT, register_build_func, register_builder_sig
+from ..utils import yprint
 
 
 register_builder_sig(
@@ -35,4 +36,4 @@ register_builder_sig(
 
 @register_build_func('TargetGroup')
 def file_group_builder(build_context, target):
-    print('Build TargetGroup', target)
+    yprint(build_context.conf, 'Build TargetGroup', target)

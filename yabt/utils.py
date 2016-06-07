@@ -24,8 +24,13 @@ yabt utils
 
 import os
 from os.path import join, normpath
+import sys
 
 from .compat import scandir
+from .logging import make_logger
+
+
+logger = make_logger(__name__)
 
 
 def norm_proj_path(path, build_module):
@@ -93,3 +98,10 @@ def search_for_parent_dir(start_at: str=None, with_files: set=None,
         if os.path.realpath(cur_level) == os.path.realpath(start_at):
             # looped on root once
             break
+
+
+def yprint(config, *objects, **kwargs):
+    if config.verbose:
+        print(*objects, **kwargs)
+    else:
+        logger.info('{}', ' '.join(str(obj) for obj in objects))

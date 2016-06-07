@@ -24,6 +24,7 @@ yabt Build context module
 
 from collections import defaultdict
 import os
+from os.path import join
 import platform
 
 from ostrich.utils.proc import run
@@ -167,13 +168,16 @@ class BuildContext:
 
     def run_in_buildenv(
             self, buildenv_target_name: str, cmd: list, cmd_env: dict=None,
-            **kwargs):
+            work_dir: str=None, auto_uid: bool=True, **kwargs):
         """Run a command in a named BuildEnv Docker image.
 
         :param buildenv_target_name: A named Docker image target in which the
                                      command should be run.
         :param cmd: The command to run, as you'd pass to subprocess.run()
         :param cmd_env: A dictionary of environment variables for the command.
+        :param work_dir: A different work dir to run in.
+                         Either absolute path, or relative to project root.
+        :param auto_uid: Whether to run as the active uid:gid, or as root.
         :param kwargs: Extra keyword arguments that are passed to the
                         subprocess.run() call that runs the BuildEnv container
                         (for, e.g. timeout arg, stdout/err redirection, etc.)
@@ -193,13 +197,13 @@ class BuildContext:
         docker_run.extend([
             '--rm',
             '-v', self.conf.project_root + ':/project',
-            '-w', '/project',
+            '-w', join('/project', work_dir) if work_dir else '/project',
         ])
         if cmd_env:
             for key, value in cmd_env.items():
                 # TODO(itamar): escaping
                 docker_run.extend(['-e', '{}={}'.format(key, value)])
-        if platform.system() == 'Linux':
+        if platform.system() == 'Linux' and auto_uid:
             # Fix permissions for bind-mounted project dir
             # The fix is not needed when using Docker machine on OS X with
             # VirtualBox or xhyve, because it is somehow taken care of by
