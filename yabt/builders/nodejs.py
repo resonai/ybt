@@ -27,13 +27,14 @@ yabt NodeJS Builders
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
+from ..utils import yprint
 
 
 register_builder_sig(
     'NpmPackage',
     [('package', PT.str),
      ('version', PT.str, None),
-     ('global_install', PT.bool, False),
+     ('global_install', PT.bool, True),
      ('deps', PT.TargetList, None)
      ])
 
@@ -46,7 +47,7 @@ def format_npm_specifier(target):
 
 @register_build_func('NpmPackage')
 def npm_package_builder(build_context, target):
-    print('Fetch and cache NPM package', target)
+    yprint(build_context.conf, 'Fetch and cache NPM package', target)
 
 
 @register_manipulate_target_hook('NpmPackage')

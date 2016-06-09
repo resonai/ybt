@@ -30,6 +30,7 @@ from .config import Config
 from .logging import make_logger
 from .target_utils import generate_build_modules
 from .target_utils import parse_target_selectors
+from .utils import yprint
 
 
 logger = make_logger(__name__)
@@ -122,12 +123,12 @@ def populate_targets_graph(build_context, conf: Config):
     process_build_file(conf.get_project_build_file(), build_context, conf)
     targets_to_prune = set(build_context.targets.keys())
     if conf.targets:
-        print('targets:', conf.targets)
+        yprint(build_context.conf, 'targets:', conf.targets)
         # TODO(itamar): Figure out how to support a target selector that is a
         #   parent directory which isn't a build module, but contains build
         #   modules (e.g., `ybt tree yapi` from the `dag` test root).
         seeds = parse_target_selectors(conf.targets, conf)
-        print('seeds', seeds)
+        yprint(build_context.conf, 'seeds', seeds)
     else:
         default_target = ':{}'.format(conf.default_target_name)
         logger.info('searching for default target {}', default_target)

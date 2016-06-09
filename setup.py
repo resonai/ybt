@@ -32,6 +32,7 @@ setup(
             'ExtDockerImage = yabt.builders.docker',
             'FileGroup = yabt.builders.filegroup',
             'GemPackage = yabt.builders.ruby',
+            'Grunt = yabt.builders.grunt',
             'NpmPackage = yabt.builders.nodejs',
             'PythonPackage = yabt.builders.python',
             'Python = yabt.builders.python',

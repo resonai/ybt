@@ -28,6 +28,7 @@ from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
 from ..logging import make_logger
+from ..utils import yprint
 
 
 logger = make_logger(__name__)
@@ -44,7 +45,7 @@ register_builder_sig(
 
 @register_build_func('ExtCommand')
 def ext_command_builder(build_context, target):
-    print('Build (run) ExtCommand', target)
+    yprint(build_context.conf, 'Build (run) ExtCommand', target)
     build_context.run_in_buildenv(
         target.props.in_buildenv, target.props.cmd, target.props.cmd_env)
     # TODO(itamar): way to describe the artifacts of the external command,

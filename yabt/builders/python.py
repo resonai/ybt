@@ -27,6 +27,7 @@ yabt Python Builders
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
+from ..utils import yprint
 
 
 register_builder_sig(
@@ -45,7 +46,7 @@ def format_req_specifier(target):
 
 @register_build_func('PythonPackage')
 def python_package_builder(build_context, target):
-    print('Fetch and cache PyPI package', target)
+    yprint(build_context.conf, 'Fetch and cache PyPI package', target)
 
 
 @register_manipulate_target_hook('PythonPackage')
@@ -63,7 +64,7 @@ register_builder_sig(
 
 @register_build_func('Python')
 def python_builder(build_context, target):
-    print('Build Python', target)
+    yprint(build_context.conf, 'Build Python', target)
     # TODO(itamar): auto-add __init__.py in dirs of sources if they exist
     target.artifacts['app'].extend(target.props.sources)
     target.artifacts['app'].extend(target.props.data)

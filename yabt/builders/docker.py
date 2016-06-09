@@ -41,6 +41,7 @@ from ..extend import (
 from ..logging import make_logger
 from ..docker import build_docker_image, get_image_name
 from .. import target_utils
+from ..utils import yprint
 
 
 logger = make_logger(__name__)
@@ -62,7 +63,8 @@ register_builder_sig(
 
 @register_build_func('ExtDockerImage')
 def ext_docker_image_builder(build_context, target):
-    print('Fetch and cache Docker image from registry', target)
+    yprint(build_context.conf,
+           'Fetch and cache Docker image from registry', target)
 
 
 register_builder_sig(

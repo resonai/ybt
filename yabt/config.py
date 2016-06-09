@@ -40,8 +40,8 @@ class Config:
     attrs_from_args = frozenset((
         'build_file_name', 'default_target_name', 'cmd', 'targets',
         'build_base_images', 'builders_workspace_dir', 'force_pull',
-        'offline', 'non_interactive', 'push', 'with_tini_entrypoint',
-        'loglevel', 'logtostderr', 'logtostdout',
+        'offline', 'non_interactive', 'push', 'verbose',
+        'with_tini_entrypoint', 'loglevel', 'logtostderr', 'logtostdout',
     ))
 
     def __init__(self, args, project_root_dir: str, work_dir: str):

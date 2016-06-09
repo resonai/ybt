@@ -27,6 +27,7 @@ yabt Apt Builders
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
+from ..utils import yprint
 
 
 register_builder_sig(
@@ -48,7 +49,7 @@ def format_package_specifier(target):
 
 @register_build_func('AptPackage')
 def apt_package_builder(build_context, target):
-    print('Fetch and cache Apt package', target)
+    yprint(build_context.conf, 'Fetch and cache Apt package', target)
 
 
 @register_manipulate_target_hook('AptPackage')
