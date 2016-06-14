@@ -34,7 +34,6 @@ register_builder_sig(
     'GemPackage',
     [('package', PT.str),
      ('version', PT.str, None),
-     ('deps', PT.TargetList, None)
      ])
 
 

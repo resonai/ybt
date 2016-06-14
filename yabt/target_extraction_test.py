@@ -37,7 +37,6 @@ def with_spam_builder_sig():
     Plugin.remove_builder('Spam')
     register_builder_sig('Spam', ['foo',
                                   ('bar', PT.str),
-                                  ('deps', PT.TargetList, None),
                                   ('cats', PT.StrList, None),
                                   ('cat_list', PT.File, None),
                                   ])
@@ -50,7 +49,8 @@ def test_build_sig_args_to_props_valid_positional_args():
     args_to_props(target, Plugin.builders['Spam'],
                   args=['my-spam', 'foo', 'bar'], kwargs={})
     assert target.props == {'name': 'my-spam', 'foo': 'foo', 'bar': 'bar',
-                            'deps': None, 'cats': None, 'cat_list': None}
+                            'deps': None, 'cats': None, 'cat_list': None,
+                            'packaging_params': {}}
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')
@@ -89,7 +89,8 @@ def test_build_sig_args_to_props_valid_mix_pos_kwargs():
     args_to_props(target, Plugin.builders['Spam'],
                   args=['my-spam'], kwargs={'foo': 'foo', 'bar': 'bar'})
     assert target.props == {'name': 'my-spam', 'foo': 'foo', 'bar': 'bar',
-                            'deps': None, 'cats': None, 'cat_list': None}
+                            'deps': None, 'cats': None, 'cat_list': None,
+                            'packaging_params': {}}
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')
@@ -127,21 +128,10 @@ def test_build_sig_args_to_props_too_many_pos_args():
     target = Target(builder_name='Spam')
     with pytest.raises(TypeError) as excinfo:
         args_to_props(target, Plugin.builders['Spam'],
-                      args=['my-spam', 'foo', 'bar', None, None, None, 'w00t'],
+                      args=['my-spam', 'foo', 'bar', None, None, None, {},
+                            'w00t'],
                       kwargs={})
-    assert ('Spam() takes from 3 to 6 positional arguments, but 7 were given'
-            in str(excinfo.value))
-
-
-def test_build_sig_args_to_props_too_many_pos_args_singular():
-    # this time use a name-only builder
-    Plugin.remove_builder('Spam')
-    register_builder_sig('Spam', [])
-    target = Target(builder_name='Spam')
-    with pytest.raises(TypeError) as excinfo:
-        args_to_props(target, Plugin.builders['Spam'],
-                      args=['my-spam', 'w00t'], kwargs={})
-    assert ('Spam() takes 1 positional argument, but 2 were given'
+    assert ('Spam() takes from 3 to 7 positional arguments, but 8 were given'
             in str(excinfo.value))
 
 
@@ -175,21 +165,22 @@ def test_typed_args_valid_defaults():
     handle_typed_args(target, Plugin.builders['Spam'], 'spams')
     assert target.props == {'name': 'spams:my-spam', 'foo': 'foo',
                             'bar': 'bar', 'deps': [], 'cats': [],
-                            'cat_list': None}
+                            'cat_list': None, 'packaging_params': {}}
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')
 def test_typed_args_valid_non_default():
     target = Target(builder_name='Spam')
     args_to_props(target, Plugin.builders['Spam'],
-                  args=['my-spam', 'foo', 'bar', '../hams:my-ham',
-                        ('my cat', 'other cat'), '../lists/from-vet-4'],
+                  args=['my-spam', 'foo', 'bar', ('my cat', 'other cat'),
+                        '../lists/from-vet-4', '../hams:my-ham'],
                   kwargs={})
     handle_typed_args(target, Plugin.builders['Spam'], 'spams')
     assert target.props == {'name': 'spams:my-spam', 'foo': 'foo',
                             'bar': 'bar', 'deps': ['hams:my-ham'],
                             'cats': ['my cat', 'other cat'],
-                            'cat_list': 'lists/from-vet-4'}
+                            'cat_list': 'lists/from-vet-4',
+                            'packaging_params': {}}
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')
@@ -201,4 +192,5 @@ def test_file_arg_from_project_root():
     handle_typed_args(target, Plugin.builders['Spam'], 'spams')
     assert target.props == {'name': 'spams:my-spam', 'foo': 'foo',
                             'bar': 'bar', 'deps': [], 'cats': [],
-                            'cat_list': 'lists/from-vet-4'}
+                            'cat_list': 'lists/from-vet-4',
+                            'packaging_params': {}}

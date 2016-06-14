@@ -26,7 +26,7 @@ NOT to be confused with the Docker builder...
 """
 
 
-from collections import defaultdict
+from collections import defaultdict, deque
 import os
 from os.path import (
     basename, isdir, isfile, join, normpath, relpath, samefile, split)
@@ -39,9 +39,9 @@ from ostrich.utils.collections import listify
 
 from .config import Config
 from .logging import make_logger
-from .builders.apt import format_package_specifier
+from .builders.apt import format_apt_specifier
 from .builders.nodejs import format_npm_specifier
-from .builders.python import format_req_specifier
+from .builders.python import format_pypi_specifier
 from .builders.ruby import format_gem_specifier
 from . import target_utils
 from .utils import yprint
@@ -255,12 +255,54 @@ def build_docker_image(
     all_artifacts = defaultdict(set)
     apt_keys = set()
     apt_repositories = set()
-    apt_packages = list()
-    pip_requirements = list()
-    custom_installers = list()
-    npm_global_packages = list()
-    npm_local_packages = list()
-    gem_packages = list()
+    effective_env = {}
+    env_manipulations = {}
+    packaging_layers = []
+
+    def add_package(pkg_type, pkg_spec):
+        """Add package specification of certain package type.
+
+        Uses last layer if matches package type, otherwise opens a new layer.
+
+        This can result "Docker layer framgantation", by opening and closing
+        many layers.
+        No optimization is performed on detecting opportunities to merge layers
+        that were split just because of arbitrary topological sort decision
+        (tie breaker), and not a real topology in the target graph.
+        Such an optimization could be done here by inspecting the graph
+        directly, but decided not to go into it at this stage, since it's not
+        clear it's beneficial overall (e.g. better to have more layers so
+        some of them can remain cached if others change).
+        A better optimization (also not implemented) could be to do topological
+        sort tie breaking based on Docker-cache optimization - e.g., move new
+        things to new layers in order to keep old things in cached layers.
+        """
+        if len(packaging_layers) == 0:
+            layer = (pkg_type, list())
+            packaging_layers.append(layer)
+        else:
+            layer = packaging_layers[-1]
+            if pkg_type != layer[0]:
+                layer = (pkg_type, list())
+                packaging_layers.append(layer)
+        layer[1].append(pkg_spec)
+
+    def check_env_overrides(new_vars: set, op_kind: str, vars_source: str):
+        overridden_vars = new_vars.intersection(effective_env.keys())
+        if overridden_vars:
+            raise ValueError(
+                'Following env vars {} from {} override previously set vars '
+                'during build of Docker image "{}": {}'.format(
+                    op_kind, vars_source, docker_image,
+                    ', '.join(overridden_vars)))
+        if op_kind == 'set':
+            overridden_vars = new_vars.intersection(env_manipulations.keys())
+            if overridden_vars:
+                raise ValueError(
+                    'Following env vars {} from {} override previous '
+                    'manipulations during build of Docker image "{}": {}'
+                    .format(op_kind, vars_source, docker_image,
+                            ', '.join(overridden_vars)))
 
     if deps is None:
         deps = []
@@ -275,82 +317,81 @@ def build_docker_image(
         if not no_artifacts:
             for kind, artifacts in dep.artifacts.items():
                 all_artifacts[kind].update(artifacts)
+
+        PACKAGING_PARAMS = frozenset(('set_env', 'semicolon_join_env'))
+        invalid_keys = set(
+            dep.props.packaging_params.keys()).difference(PACKAGING_PARAMS)
+        if invalid_keys:
+            raise ValueError(
+                'Unknown keys in packaging params of target "{}": {}'.format(
+                    dep.name, ', '.join(invalid_keys)))
+        if 'set_env' in dep.props.packaging_params:
+            dep_env = dep.props.packaging_params['set_env']
+            check_env_overrides(
+                set(dep_env.keys()), 'set', 'dependency {}'.format(dep.name))
+            effective_env.update(dep_env)
+        if 'semicolon_join_env' in dep.props.packaging_params:
+            append_env = dep.props.packaging_params['semicolon_join_env']
+            check_env_overrides(set(append_env.keys()), 'manipulations',
+                                'dependency {}'.format(dep.name))
+            for key, value in append_env.items():
+                env_manip = env_manipulations.setdefault(
+                    key, ['${{{}}}'.format(key)])
+                if value not in env_manip:
+                    env_manip.append(value)
+
         if 'apt-installable' in dep.tags:
-            apt_packages.append(format_package_specifier(dep))
+            add_package('apt', format_apt_specifier(dep))
             if dep.props.repository:
                 apt_repositories.add(dep.props.repository)
             if dep.props.repo_key:
                 apt_keys.add((dep.props.repo_key, dep.props.repo_keyserver))
         if 'pip-installable' in dep.tags:
-            pip_requirements.append(format_req_specifier(dep))
+            add_package('pip', format_pypi_specifier(dep))
         if 'custom-installer' in dep.tags:
-            custom_installers.append(dep.props.installer_desc)
+            add_package('custom', dep.props.installer_desc)
         if 'npm-installable' in dep.tags:
             if dep.props.global_install:
-                npm_global_packages.append(format_npm_specifier(dep))
+                add_package('npm-global', format_npm_specifier(dep))
             else:
-                npm_local_packages.append(format_npm_specifier(dep))
+                add_package('npm-local', format_npm_specifier(dep))
         if 'gem-installable' in dep.tags:
-            gem_packages.append(format_gem_specifier(dep))
+            add_package('gem', format_gem_specifier(dep))
 
-    # Handle apt keys, repositories, and packages (one layer for all)
-    apt_cmd = ''
+    # Add environment variables (one layer)
+    if env:
+        check_env_overrides(set(env.keys()), 'set', 'the target')
+        effective_env.update(env)
+    for key, value in env_manipulations.items():
+        effective_env[key] = ':'.join(value)
+    if effective_env:
+        dockerfile.append(
+            'ENV {}\n'.format(
+                ' '.join('{}="{}"'.format(key, value)
+                         for key, value in sorted(effective_env.items()))))
+
+    # Handle apt keys and repositories (one layer for all)
+    apt_cmds = []
     if apt_keys:
-        apt_cmd += ' && '.join(
-            'apt-key adv --keyserver {} --recv {}'.format(keyserver, repo_key)
-            for repo_key, keyserver in sorted(apt_keys)) + ' && '
+        apt_cmds.append(
+            ' && '.join('apt-key adv --keyserver {} --recv {}'
+                        .format(keyserver, repo_key)
+                        for repo_key, keyserver in sorted(apt_keys)))
     if apt_repositories:
-        apt_cmd += (
+        apt_cmds.append(
             # TODO(itamar): I'm assuming software-properties-common exists in
             # the base image, because it's much faster this way, but need a
             # better solution for when it's not true...
             # 'apt-get update -y && apt-get install -y '
             # 'software-properties-common --no-install-recommends && ' +
             ' && '.join('add-apt-repository -y "{}"'.format(repo)
-                        for repo in sorted(apt_repositories))) + ' && '
-    if apt_packages:
-        apt_cmd += (
-            'apt-get update -y && apt-get install -y {} '
-            '--no-install-recommends'.format(' '.join(sorted(apt_packages))))
-        if False:
-            apt_cmd += ' && rm -rf /var/lib/apt/lists/*'
-    if apt_cmd:
-        dockerfile.append('RUN {}\n'.format(apt_cmd))
+                        for repo in sorted(apt_repositories)))
+    if apt_cmds:
+        dockerfile.append('RUN {}\n'.format(' && '.join(apt_cmds)))
 
-    # Handle custom installers (2 layers)
-    if custom_installers:
-        workspace_packages_dir = join(workspace_dir, 'packages')
-        try:
-            shutil.rmtree(workspace_packages_dir)
-        except FileNotFoundError:
-            pass
-        os.makedirs(workspace_packages_dir)
-        run_installers = []
-        for custom_installer in custom_installers:
-            package_tar = basename(custom_installer.package)
-            os.link(custom_installer.package,
-                    join(workspace_packages_dir, package_tar))
-            run_installers.extend([
-                'tar -xf /tmp/install/{} -C /tmp/install'.format(package_tar),
-                'cd /tmp/install/{}'.format(custom_installer.name),
-                './{}'.format(custom_installer.install_script),
-            ])
-        dockerfile.extend([
-            'COPY packages /tmp/install\n',
-            'RUN {} && cd / && rm -rf /tmp/install\n'.format(
-                ' && '.join(run_installers)),
-        ])
+    custom_cnt = 0
+    pip_req_cnt = 0
 
-    # Handle pip packages (2 layers)
-    pip_req_file = join(workspace_dir, 'requirements.txt')
-    if make_pip_requirements(pip_requirements, pip_req_file):
-        dockerfile.extend([
-            'COPY requirements.txt /usr/src/\n',
-            'RUN pip install --no-cache-dir --upgrade pip && '
-            'pip install --no-cache-dir -r /usr/src/requirements.txt\n'
-        ])
-
-    # Handle npm packages (1-2 layer)
     def install_npm(npm_packages: list, global_install: bool):
         if npm_packages:
             if not global_install:
@@ -359,21 +400,69 @@ def build_docker_image(
                 'RUN npm install {} {}\n'.format(
                     ' '.join(npm_packages),
                     '--global' if global_install else '&& npm dedupe'))
-    install_npm(npm_global_packages, True)
-    install_npm(npm_local_packages, False)
 
-    # Handle gem packages (1-2 layer)
-    if gem_packages:
-        dockerfile.append(
-            'RUN gem install {}\n'.format(
-                ' '.join(gem_packages)))
+    for layer in packaging_layers:
+        pkg_type, packages = layer
 
-    # Add environment variables (one layer)
-    if env:
-        dockerfile.append(
-            'ENV {}\n'.format(
-                ' '.join('{}="{}"'.format(key, value)
-                         for key, value in sorted(env.items()))))
+        if pkg_type == 'apt':
+            dockerfile.append(
+                'RUN apt-get update -y && apt-get install '
+                '--no-install-recommends -y {} '
+                '&& rm -rf /var/lib/apt/lists/*\n'.format(
+                    ' '.join(sorted(packages))))
+
+        elif pkg_type == 'custom':
+            # Handle custom installers (2 layers per occurrence)
+            custom_cnt += 1
+            packages_dir = 'packages{}'.format(custom_cnt)
+            tmp_install = '/tmp/install{}'.format(custom_cnt)
+            workspace_packages_dir = join(workspace_dir, packages_dir)
+            try:
+                shutil.rmtree(workspace_packages_dir)
+            except FileNotFoundError:
+                pass
+            os.makedirs(workspace_packages_dir)
+            run_installers = []
+            for custom_installer in packages:
+                package_tar = basename(custom_installer.package)
+                os.link(custom_installer.package,
+                        join(workspace_packages_dir, package_tar))
+                run_installers.extend([
+                    'tar -xf {0}/{1} -C {0}'.format(tmp_install, package_tar),
+                    'cd {}/{}'.format(tmp_install, custom_installer.name),
+                    './{}'.format(custom_installer.install_script),
+                ])
+            dockerfile.extend([
+                'COPY {} {}\n'.format(packages_dir, tmp_install),
+                'RUN {} && cd / && rm -rf {}\n'.format(
+                    ' && '.join(run_installers), tmp_install),
+            ])
+
+        elif pkg_type == 'pip':
+            # Handle pip packages (2 layers per occurrence)
+            pip_req_cnt += 1
+            req_fname = 'requirements_{}.txt'.format(pip_req_cnt)
+            pip_req_file = join(workspace_dir, req_fname)
+            if make_pip_requirements(packages, pip_req_file):
+                dockerfile.extend([
+                    'COPY {} /usr/src/\n'.format(req_fname),
+                    'RUN {}pip install --no-cache-dir -r /usr/src/{}\n'.format(
+                        'pip install --no-cache-dir --upgrade pip && '
+                        if pip_req_cnt == 0 else '', req_fname)
+                ])
+
+        elif pkg_type == 'npm-global':
+            # Handle npm global packages (1 layer per occurrence)
+            install_npm(packages, True)
+
+        elif pkg_type == 'npm-local':
+            # Handle npm local packages (1 layer per occurrence)
+            install_npm(packages, False)
+
+        elif pkg_type == 'gem':
+            # Handle gem (ruby) packages (1 layer per occurrence)
+            dockerfile.append(
+                'RUN gem install {}\n'.format(' '.join(packages)))
 
     if work_dir:
         dockerfile.append('WORKDIR {}\n'.format(work_dir))

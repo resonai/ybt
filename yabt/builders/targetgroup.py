@@ -28,10 +28,7 @@ from ..extend import PropType as PT, register_build_func, register_builder_sig
 from ..utils import yprint
 
 
-register_builder_sig(
-    'TargetGroup',
-    [('deps', PT.TargetList, None),
-     ])
+register_builder_sig('TargetGroup')
 
 
 @register_build_func('TargetGroup')

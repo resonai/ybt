@@ -34,11 +34,10 @@ register_builder_sig(
     'PythonPackage',
     [('package', PT.str),
      ('version', PT.str, None),
-     ('deps', PT.TargetList, None)
      ])
 
 
-def format_req_specifier(target):
+def format_pypi_specifier(target):
     if target.props.version:
         return '{0.package}=={0.version}'.format(target.props)
     return '{0.package}'.format(target.props)
@@ -56,9 +55,8 @@ def python_package_manipulate_target(build_context, target):
 
 register_builder_sig(
     'Python',
-    [('deps', PT.TargetList, None),
-     ('sources', PT.FileList, None),
-     ('data', PT.FileList, None)
+    [('sources', PT.FileList, None),
+     ('data', PT.FileList, None),
      ])
 
 

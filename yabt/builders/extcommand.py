@@ -39,7 +39,6 @@ register_builder_sig(
     [('cmd'),
      ('in_buildenv', PT.Target, None),
      ('cmd_env', None),
-     ('deps', PT.TargetList, None),
      ])
 
 

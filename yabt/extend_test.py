@@ -38,7 +38,7 @@ def test_non_default_args_after_default_args_error():
     Plugin.remove_builder('Spam')
     with pytest.raises(SyntaxError) as excinfo:
         register_builder_sig('Spam', ['foo',
-                                      ('deps', PT.TargetList, None),
+                                      ('cats', PT.TargetList, None),
                                       ('bar'),
                                       ])
     assert (
@@ -65,12 +65,17 @@ def test_dup_builder_func_error():
     assert 'Spam already registered a build function!' in str(excinfo.value)
 
 
-def test_builder_sig_wrong_deps_type():
+def test_register_build_sig_duplicate_arg():
     Plugin.remove_builder('Spam')
-    with pytest.raises(TypeError) as excinfo:
-        register_builder_sig('Spam', [('deps', PT.StrList, None)])
-    assert ('Spam signature attmpted to define `deps` as PropType.StrList - '
-            'must be TargetList' in str(excinfo.value))
+    with pytest.raises(SyntaxError) as excinfo:
+        register_builder_sig('Spam', [('deps', PT.TargetList, None)])
+    assert ("duplicate argument 'deps' in function definition"
+            in str(excinfo.value))
+    Plugin.remove_builder('Spam')
+    with pytest.raises(SyntaxError) as excinfo:
+        register_builder_sig('Spam', [('name', PT.TargetName)])
+    assert ("duplicate argument 'name' in function definition"
+            in str(excinfo.value))
 
 
 def test_builder_sig_untyped_default_value():
