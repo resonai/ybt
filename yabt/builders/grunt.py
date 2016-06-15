@@ -56,6 +56,10 @@ def grunt_builder(build_context, target):
     #                  dep.props.global_install)]
     work_dir = (target.props.work_dir if target.props.work_dir
                 else split_build_module(target.name))
+    logger.debug('Cleaning ".tmp" directory')
+    build_context.run_in_buildenv(
+        target.props.in_buildenv, ['rm', '-rf', '.tmp'],
+        target.props.cmd_env, work_dir, auto_uid=False)
     yprint(build_context.conf, 'Running "npm install" in {}'.format(work_dir))
     build_context.run_in_buildenv(
         target.props.in_buildenv, ['npm', 'install'],
