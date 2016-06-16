@@ -52,7 +52,6 @@ register_builder_sig(
     [('uri', PT.str),
      ('script', PT.File),
      ('local_data', PT.FileList, None),
-     ('deps', PT.TargetList, None),
      ('uri_type', PT.str, None),
      ])
 

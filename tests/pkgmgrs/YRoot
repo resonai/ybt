@@ -1,0 +1,107 @@
+AptPackage(
+    'wget',
+    package='wget'
+)
+
+AptPackage(
+    'curl',
+    package='curl',
+    deps=':wget'
+)
+
+AptPackage(
+    'apt-transport-https',
+    package='apt-transport-https',
+    deps=':curl'
+)
+
+CustomInstaller(
+    'node',
+    uri='https://deb.nodesource.com/setup_4.x',
+    script='install-nodejs.sh',
+    deps=':apt-transport-https',
+    packaging_params={
+        'set_env': {
+            'FOO': 'BAR',
+        }
+    }
+)
+
+AptPackage(
+    'ruby-run',
+    package='ruby2.2',
+    repository='ppa:brightbox/ruby-ng',
+    repo_key='C3173AA6',
+    deps=':node'
+)
+
+AptPackage(
+    'ruby-dev',
+    package='ruby2.2-dev',
+    repository='ppa:brightbox/ruby-ng',
+    repo_key='C3173AA6'
+)
+
+TargetGroup(
+    'ruby',
+    deps=[':ruby-run', ':ruby-dev'],
+    packaging_params={
+        'set_env': {
+            'TEST': '1',
+        },
+        'semicolon_join_env': {
+            'PATH': '/foo/bar',
+        },
+    }
+)
+
+PythonPackage(
+    'flask',
+    package='flask',
+    version='0.10.1',
+    deps=':ruby',
+    packaging_params={
+        'semicolon_join_env': {
+            'PATH': '/ham',
+        },
+    }
+)
+
+NpmPackage(
+    'leftpad',
+    package='left-pad',
+    deps=':flask'
+)
+
+GemPackage(
+    'compass',
+    package='compass',
+    deps=':leftpad',
+    packaging_params={
+        'semicolon_join_env': {
+            'PATH': '/spam',
+        },
+    }
+)
+
+PythonPackage(
+    'gunicorn',
+    package='gunicorn',
+    deps=':compass'
+)
+
+# TODO(itamar): change back to basic python3 base image when removing
+# requirement for add-apt-repository in base image
+ExtDockerImage(
+    'python',
+    image='localhost:5000/yowza3d/ubuntu',
+    tag='14.04.4-py2.7.11-ywz3'
+)
+
+DockerImage(
+    'the-image',
+    start_from=':python',
+    deps=[
+        ':gunicorn'
+    ]
+)

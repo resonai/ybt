@@ -28,7 +28,7 @@ from ..extend import (
     PropType as PT, register_builder_sig, register_manipulate_target_hook)
 
 
-register_builder_sig('Alias', [('deps', PT.TargetList, None)])
+register_builder_sig('Alias')
 
 
 @register_manipulate_target_hook('Alias')

@@ -43,7 +43,6 @@ register_builder_sig(
      ('grunt_tasks', PT.StrList, None),
      ('cmd_env', None),
      ('work_dir', None),
-     ('deps', PT.TargetList, None),
      ])
 
 

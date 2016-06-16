@@ -57,7 +57,6 @@ register_builder_sig(
     'ExtDockerImage',
     [('image', PT.str),
      ('tag', PT.str, None),
-     ('deps', PT.TargetList, None),
      ])
 
 
@@ -70,14 +69,13 @@ def ext_docker_image_builder(build_context, target):
 register_builder_sig(
     'DockerImage',
     [('start_from', PT.Target),
-     ('deps', PT.TargetList, None),
      ('docker_entrypoint', PT.StrList, None),
      ('docker_cmd', PT.StrList, None),
      ('image_name', PT.str, None),
      ('image_tag', PT.str, 'latest'),
      ('work_dir', PT.str, '/usr/src/app'),
-     ('env', None),
-     ('image_caching_behavior', None),
+     ('env', PT.dict, None),
+     ('image_caching_behavior', PT.dict, None),
      ('truncate_common_parent', PT.str, None)
      ])
 

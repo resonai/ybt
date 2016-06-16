@@ -27,4 +27,4 @@ yabt Builders for tests
 from ..extend import PropType as PT, register_builder_sig
 
 
-register_builder_sig('DepTester', [('deps', PT.TargetList, None)])
+register_builder_sig('DepTester')

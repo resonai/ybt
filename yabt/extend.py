@@ -27,6 +27,8 @@ from enum import Enum
 from functools import partial, wraps
 import pkg_resources
 
+from ostrich.utils.collections import listify
+
 from .logging import make_logger
 
 
@@ -41,6 +43,7 @@ PropType = Enum('PropType', """str
                                numeric
                                bool
                                list
+                               dict
                                StrList
                                TargetName
                                Target
@@ -76,6 +79,9 @@ def evaluate_arg_spec(arg_spec):
     return arg_name, ArgSpec(arg_type, def_val)
 
 
+INJECTED_ARGS = frozenset(('deps', 'packaging_params'))
+
+
 class Builder:
 
     def __init__(self):
@@ -85,20 +91,43 @@ class Builder:
         self.min_positional_args = 1  # the `name`
 
     def register_sig(self, builder_name: str, sig: list, docstring: str):
+        """Register a builder signature & docstring for `builder_name`.
+
+        The input for the builder signature is a list of "sig-spec"s
+        representing the builder function arguments.
+
+        Each sig-spec in the list can be:
+        1. A string. This represents a simple untyped positional argument name,
+            with no default value.
+        2. A 1-tuple with one string element. Same as #1.
+        3. A 2-tuple with ('arg-name', arg_type). This represents a typed
+            positional argument, if arg_type is an instance of PropType enum.
+        4. A 2-tuple with ('arg-name', default_value). This represents an
+            un-typed keyword argument with a default value.
+        5. A 3-tuple with ('arg-name', arg_type, default_value). This
+            represents a typed keyword argument with a default value,
+            if arg_type is an instance of PropType enum.
+
+        In addition to the args specified in the `sig` list, there are several
+        *injected* args:
+        1. A positional arg `name` of type TargetName is always the first arg.
+        2. A keyword arg `deps` of type TargetList and default value `None`
+            (or empty list) is always the first after all builder args.
+        3. A keyword arg `packaging_params` of type dict and default value {}
+            (empty dict) is always after `deps`.
+        """
         if self.sig is not None:
             raise KeyError('{} already registered a signature!'
                            .format(builder_name))
         self.sig = OrderedDict(name=ArgSpec(PropType.TargetName, Empty))
         self.docstring = docstring
         kwargs_section = False
-        for arg_spec in sig:
+        for arg_spec in listify(sig):
             arg_name, sig_spec = evaluate_arg_spec(arg_spec)
-            # `deps` is special - if part of the signature,
-            # it must be TargetList - so if it's not - raise
-            if arg_name == 'deps' and sig_spec.type != PropType.TargetList:
-                raise TypeError(
-                    '{} signature attmpted to define `deps` as {} - must be '
-                    'TargetList'.format(builder_name, sig_spec.type))
+            if arg_name in self.sig or arg_name in INJECTED_ARGS:
+                raise SyntaxError(
+                    "duplicate argument '{}' in function definition"
+                    .format(arg_name))
             self.sig[arg_name] = sig_spec
             if sig_spec.default == Empty:
                 if kwargs_section:
@@ -109,6 +138,8 @@ class Builder:
                 self.min_positional_args += 1
             else:
                 kwargs_section = True
+        self.sig['deps'] = ArgSpec(PropType.TargetList, None)
+        self.sig['packaging_params'] = ArgSpec(PropType.dict, {})
 
 
 class Plugin:
@@ -154,7 +185,7 @@ class Plugin:
             hook_spec.pop(builder_name, None)
 
 
-def register_builder_sig(builder_name, sig, docstring=None):
+def register_builder_sig(builder_name, sig=None, docstring=None):
     Plugin.builders[builder_name].register_sig(builder_name, sig, docstring)
     logger.debug('Registered {} builder signature'.format(builder_name))
 

@@ -24,10 +24,15 @@ yabt py.test conftest
 
 import os
 
+import pytest
 from pytest import yield_fixture
 
 import yabt
 from yabt.cli import init_and_get_conf
+
+
+def pytest_addoption(parser):
+    parser.addoption('--with-slow', action='store_true', help='run slow tests')
 
 
 def yabt_project_fixture(project):
@@ -47,6 +52,11 @@ def in_simple_project():
 @yield_fixture
 def in_dag_project():
     yield from yabt_project_fixture('dag')
+
+
+@yield_fixture
+def in_pkgmgrs_project():
+    yield from yabt_project_fixture('pkgmgrs')
 
 
 @yield_fixture

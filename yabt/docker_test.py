@@ -28,10 +28,16 @@ from subprocess import PIPE
 
 from .buildcontext import BuildContext
 from .graph import populate_targets_graph, topological_sort
+from .yabt import cmd_build
 
 
+slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
+                          reason='need --with-slow option to run')
+
+
+@slow
 @pytest.mark.usefixtures('in_simple_project')
-def test_target_graph(basic_conf):
+def test_run_in_buildenv(basic_conf):
     build_context = BuildContext(basic_conf)
     populate_targets_graph(build_context, basic_conf)
     for target_name in topological_sort(build_context.target_graph):
@@ -48,3 +54,35 @@ def test_target_graph(basic_conf):
             b'Werkzeug',
             ]:
         assert package in result.stdout
+
+
+@slow
+@pytest.mark.usefixtures('in_pkgmgrs_project')
+def test_package_managers_install_order(basic_conf):
+    basic_conf.targets = [':the-image']
+    cmd_build(basic_conf)
+    exp_dockerfile = [
+        'FROM localhost:5000/yowza3d/ubuntu:14.04.4-py2.7.11-ywz3\n',
+        'ARG DEBIAN_FRONTEND=noninteractive\n',
+        'ENV FOO="BAR" PATH="${PATH}:/foo/bar:/ham:/spam" TEST="1"\n',
+        'RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv '
+        'C3173AA6 && add-apt-repository -y "ppa:brightbox/ruby-ng"\n',
+        'RUN apt-get update -y && apt-get install --no-install-recommends -y '
+        'apt-transport-https curl wget && rm -rf /var/lib/apt/lists/*\n',
+        'COPY packages1 /tmp/install1\n',
+        'RUN tar -xf /tmp/install1/node.tar.gz -C /tmp/install1 && '
+        'cd /tmp/install1/node && ./install-nodejs.sh && cd / && '
+        'rm -rf /tmp/install1\n',
+        'RUN apt-get update -y && apt-get install --no-install-recommends -y '
+        'ruby2.2 ruby2.2-dev && rm -rf /var/lib/apt/lists/*\n',
+        'COPY requirements_1.txt /usr/src/\n',
+        'RUN pip install --no-cache-dir -r /usr/src/requirements_1.txt\n',
+        'RUN npm install left-pad --global\n',
+        'RUN gem install compass\n',
+        'COPY requirements_2.txt /usr/src/\n',
+        'RUN pip install --no-cache-dir -r /usr/src/requirements_2.txt\n',
+        'WORKDIR /usr/src/app\n',
+    ]
+    with open('yabtwork/DockerBuilder/the-image_latest/Dockerfile',
+              'r') as dockerfile:
+        assert exp_dockerfile == dockerfile.readlines()

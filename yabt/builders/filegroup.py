@@ -33,7 +33,6 @@ from ..utils import yprint
 register_builder_sig(
     'FileGroup',
     [('files', PT.FileList, None),
-     ('deps', PT.TargetList, None),
      ('kind', PT.str, 'app'),
      ])
 

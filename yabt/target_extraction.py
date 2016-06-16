@@ -137,6 +137,11 @@ def handle_typed_args(target, builder, build_module):
             assert_type(arg_name, value, Number, 'numeric')
         elif arg_type == PT.list:
             target.props[arg_name] = listify(value)
+        elif arg_type == PT.dict:
+            # replace `None` with empty dict
+            assert_type(arg_name, value, dict, 'dict')
+            if value is None:
+                target.props[arg_name] = {}
         elif arg_type == PT.StrList:
             target.props[arg_name] = [
                 assert_type(arg_name, val, str, 'string')

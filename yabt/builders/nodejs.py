@@ -35,7 +35,6 @@ register_builder_sig(
     [('package', PT.str),
      ('version', PT.str, None),
      ('global_install', PT.bool, True),
-     ('deps', PT.TargetList, None)
      ])
 
 
