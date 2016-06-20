@@ -39,7 +39,7 @@ from ostrich.utils.collections import listify
 
 from .config import Config
 from .logging import make_logger
-from .builders.apt import format_apt_specifier
+from .builders.apt import format_apt_specifier, parse_apt_repository
 from .builders.nodejs import format_npm_specifier
 from .builders.python import format_pypi_specifier
 from .builders.ruby import format_gem_specifier
@@ -69,6 +69,27 @@ def make_pip_requirements(pip_requirements: set, pip_req_file_path: str):
     elif isfile(pip_req_file_path):
         # delete remnant requirements file
         os.remove(pip_req_file_path)
+        return False
+
+
+def make_apt_sources_list(apt_sources: list, apt_sources_file_path: str):
+    if apt_sources:
+        try:
+            with open(apt_sources_file_path, 'r') as apt_sources_file:
+                if (set(line.strip() for line in apt_sources_file) ==
+                        set(apt_sources)):
+                    # no change in sources file - don't rewrite it
+                    logger.debug(
+                        'Short circuiting sources list file generation')
+                    return True
+        except FileNotFoundError:
+            pass
+        with open(apt_sources_file_path, 'w') as apt_sources_file:
+            apt_sources_file.write('\n'.join(sorted(apt_sources)) + '\n')
+        return True
+    elif isfile(apt_sources_file_path):
+        # delete remnant sources list file
+        os.remove(apt_sources_file_path)
         return False
 
 
@@ -235,7 +256,7 @@ def handle_build_cache(name: str, tag: str, image_caching_behavior: dict):
 def build_docker_image(
         build_context, name: str, tag: str, base_image, deps: list=None,
         env: dict=None, work_dir: str=None, truncate_common_parent: str=None,
-        entrypoint: list=None, cmd: list=None,
+        entrypoint: list=None, cmd: list=None, distro: dict=None,
         image_caching_behavior: dict=None, no_artifacts: bool=False):
     docker_image = '{}:{}'.format(name, tag)
     if image_caching_behavior is None:
@@ -253,8 +274,7 @@ def build_docker_image(
         'ARG DEBIAN_FRONTEND=noninteractive\n',
     ]
     all_artifacts = defaultdict(set)
-    apt_keys = set()
-    apt_repositories = set()
+    apt_repo_deps = []
     effective_env = {}
     env_manipulations = {}
     packaging_layers = []
@@ -311,6 +331,9 @@ def build_docker_image(
     base_image_deps = set(dep.name for dep in
                           build_context.walk_target_graph([base_image.name]))
     for dep in deps:
+        if not distro and 'distro' in dep.props:
+            distro = dep.props.distro
+
         if dep.name in base_image_deps:
             logger.debug('Skipping base image dep {}', dep.name)
             continue
@@ -340,12 +363,10 @@ def build_docker_image(
                 if value not in env_manip:
                     env_manip.append(value)
 
+        if 'apt-repository' in dep.tags:
+            apt_repo_deps.append(dep)
         if 'apt-installable' in dep.tags:
             add_package('apt', format_apt_specifier(dep))
-            if dep.props.repository:
-                apt_repositories.add(dep.props.repository)
-            if dep.props.repo_key:
-                apt_keys.add((dep.props.repo_key, dep.props.repo_keyserver))
         if 'pip-installable' in dep.tags:
             add_package('pip', format_pypi_specifier(dep))
         if 'custom-installer' in dep.tags:
@@ -370,24 +391,24 @@ def build_docker_image(
                 ' '.join('{}="{}"'.format(key, value)
                          for key, value in sorted(effective_env.items()))))
 
-    # Handle apt keys and repositories (one layer for all)
-    apt_cmds = []
-    if apt_keys:
-        apt_cmds.append(
-            ' && '.join('apt-key adv --keyserver {} --recv {}'
-                        .format(keyserver, repo_key)
-                        for repo_key, keyserver in sorted(apt_keys)))
+    apt_key_cmds = []
+    apt_repositories = []
+    for dep in apt_repo_deps:
+        source_line, apt_key_cmd = parse_apt_repository(
+            build_context, dep, distro)
+        apt_repositories.append(source_line)
+        if apt_key_cmd:
+            apt_key_cmds.append(apt_key_cmd)
+    # Handle apt keys (one layer for all)
+    if apt_key_cmds:
+        dockerfile.append(
+            'RUN {}\n'.format(' && '.join(apt_key_cmds)))
+    # Handle apt repositories (one layer for all)
     if apt_repositories:
-        apt_cmds.append(
-            # TODO(itamar): I'm assuming software-properties-common exists in
-            # the base image, because it's much faster this way, but need a
-            # better solution for when it's not true...
-            # 'apt-get update -y && apt-get install -y '
-            # 'software-properties-common --no-install-recommends && ' +
-            ' && '.join('add-apt-repository -y "{}"'.format(repo)
-                        for repo in sorted(apt_repositories)))
-    if apt_cmds:
-        dockerfile.append('RUN {}\n'.format(' && '.join(apt_cmds)))
+        apt_src_file = join(workspace_dir, 'ybt.list')
+        if make_apt_sources_list(apt_repositories, apt_src_file):
+            dockerfile.append(
+                'COPY ybt.list /etc/apt/sources.list.d/\n')
 
     custom_cnt = 0
     pip_req_cnt = 0

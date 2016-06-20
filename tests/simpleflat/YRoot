@@ -10,7 +10,13 @@ PythonPackage(
 ExtDockerImage(
     'python-3.5',
     image='python',
-    tag='3.5'
+    tag='3.5',
+    distro={
+        'id': 'Debian',
+        'release': '8.2',
+        'codename': 'jessie',
+        'description': 'Debian GNU/Linux 8.2 (jessie)',
+    }
 )
 
 # these variables are two very simple examples that demonstrate why it is

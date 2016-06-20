@@ -27,19 +27,21 @@ CustomInstaller(
     }
 )
 
+AptRepository(
+    'ruby-ng-ppa',
+    source='ppa:brightbox/ruby-ng'
+)
+
 AptPackage(
     'ruby-run',
     package='ruby2.2',
-    repository='ppa:brightbox/ruby-ng',
-    repo_key='C3173AA6',
-    deps=':node'
+    deps=[':node', ':ruby-ng-ppa']
 )
 
 AptPackage(
     'ruby-dev',
     package='ruby2.2-dev',
-    repository='ppa:brightbox/ruby-ng',
-    repo_key='C3173AA6'
+    deps=':ruby-ng-ppa'
 )
 
 TargetGroup(
@@ -90,12 +92,10 @@ PythonPackage(
     deps=':compass'
 )
 
-# TODO(itamar): change back to basic python3 base image when removing
-# requirement for add-apt-repository in base image
 ExtDockerImage(
     'python',
-    image='localhost:5000/yowza3d/ubuntu',
-    tag='14.04.4-py2.7.11-ywz3'
+    image='python',
+    tag='3'
 )
 
 DockerImage(
