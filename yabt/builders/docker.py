@@ -24,23 +24,13 @@ yabt Docker Builder
 """
 
 
-import os
-from os.path import (
-    basename, isdir, isfile, join, normpath, relpath, samefile, split)
-import shutil
-
-from ostrich.utils.path import commonpath
-from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
-from ostrich.utils.collections import listify
 
-from ..config import Config
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
 from ..logging import make_logger
 from ..docker import build_docker_image, get_image_name
-from .. import target_utils
 from ..utils import yprint
 
 
@@ -91,9 +81,12 @@ def docker_image_manipulate_target(build_context, target):
 
 @register_build_func('DockerImage')
 def docker_image_builder(build_context, target):
-    build_docker_image(
+    # left-stripping ":" to remove the build-module separator for root images,
+    # since Docker image names must begin with an alphanumeric character
+    safe_image_name = get_safe_path(target.name.lstrip(':'))
+    image_id = build_docker_image(
         build_context,
-        name=get_image_name(target),
+        name=safe_image_name,
         tag=target.props.image_tag,
         base_image=build_context.targets[target.props.start_from],
         deps=build_context.walk_target_deps_topological_order(target),
@@ -104,3 +97,4 @@ def docker_image_builder(build_context, target):
         distro=target.props.distro,
         cmd=target.props.docker_cmd,
         image_caching_behavior=target.props.image_caching_behavior)
+    target.props.docker_image_id = image_id

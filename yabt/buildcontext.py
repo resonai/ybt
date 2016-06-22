@@ -98,6 +98,17 @@ class BuildContext:
             os.makedirs(workspace_dir, exist_ok=True)
         return workspace_dir
 
+    def get_bin_dir(self, build_module: str) -> str:
+        """Return a path to the binaries dir for a build module dir.
+           Create sub-tree of missing dirs as needed, and return full path
+           to innermost directory.
+        """
+        bin_dir = os.path.join(self.conf.get_bin_path(), build_module)
+        if not os.path.isdir(bin_dir):
+            # exist_ok=True in case of concurrent creation of the same bin dir
+            os.makedirs(bin_dir, exist_ok=True)
+        return bin_dir
+
     def walk_target_graph(self, target_names: iter):
         """Generate entire target sub-tree for given `target_names` in order.
 

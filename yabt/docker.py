@@ -174,6 +174,8 @@ def format_qualified_image_name(target):
         if target.props.tag:
             return '{}:{}'.format(target.props.image, target.props.tag)
         return target.props.image
+    elif 'docker_image_id' in target.props:
+        return target.props.docker_image_id
     elif target.builder_name == 'DockerImage':
         return '{}:{}'.format(get_image_name(target), target.props.image_tag)
     else:
@@ -216,14 +218,14 @@ def tag_docker_image(src_image, tag_as_image):
 def handle_build_cache(name: str, tag: str, image_caching_behavior: dict):
     """Handle Docker image build cache.
 
-    Return True if image is cached, and there's no need to redo the build.
-    Return False if need to build the image (whether cahced locally or not).
+    Return image ID if image is cached, and there's no need to redo the build.
+    Return None if need to build the image (whether cahced locally or not).
     Raise RuntimeError if not allowed to build the image because of state of
     local cache.
 
     TODO(itamar): figure out a better name for this function, that reflects
-    the fact that it returns a boolean value (e.g. `should_build` or
-    `is_cached`), without "surprising" the caller with the potential of long
+    what it returns (e.g. `get_cached_image_id`),
+    without "surprising" the caller with the potential of long
     and non-trivial operations that are not usually expected from functions
     with such names.
     """
@@ -246,11 +248,11 @@ def handle_build_cache(name: str, tag: str, image_caching_behavior: dict):
     local_image = '{}:{}'.format(name, tag)
     if skip_build_if_cached and get_cached_image_id(remote_image) is not None:
         tag_docker_image(remote_image, local_image)
-        return True
+        return get_cached_image_id(local_image)
     if ((not allow_build_if_not_cached) and
             get_cached_image_id(remote_image) is None):
         raise RuntimeError('No cached image for {}'.format(local_image))
-    return False
+    return None
 
 
 def build_docker_image(
@@ -258,13 +260,42 @@ def build_docker_image(
         env: dict=None, work_dir: str=None, truncate_common_parent: str=None,
         entrypoint: list=None, cmd: list=None, distro: dict=None,
         image_caching_behavior: dict=None, no_artifacts: bool=False):
+    """Build Docker image, and return a (image_id, image_name:tag) tuple of
+       built image, if built successfully.
+
+    Notes:
+    Using the given image name & tag as they are, but using the global host
+    Docker image namespace (as opposed to a private-project-workspace),
+    so collisions between projects are possible (and very likely, e.g., when
+    used in a CI environment, or shared machine use-case).
+    Trying to address this issue to some extent by using the image ID after
+    it is built, which is unique.
+    There's a race condition between "build" and "get ID" - ignoring this at
+    the moment.
+    Also, I'm not sure about Docker's garbage collection...
+    If I use the image ID in other places, and someone else "grabbed" my image
+    name and tag (so now my image ID is floating), is it still safe to use
+    the ID? Or is it going to be garbage collected and cleaned up sometime?
+    From my experiments, the "floating image ID" was left alone (usable),
+    but prone to "manual cleanups".
+    Also ignoring this at the moment...
+    Thought about an alternative approach based on first building an image
+    with a randomly generated tag, so I can use that safely later, and tag it
+    to the requested tag.
+    Decided against it, seeing that every run increases the local Docker
+    images spam significantly with a bunch of random tags, making it even less
+    useful.
+    Documenting it here to remember it was considered, and to discuss it
+    further in case anyone thinks it's a better idea than what I went with.
+    """
     docker_image = '{}:{}'.format(name, tag)
     if image_caching_behavior is None:
         image_caching_behavior = {}
-    if handle_build_cache(name, tag, image_caching_behavior):
+    image_id = handle_build_cache(name, tag, image_caching_behavior)
+    if image_id:
         yprint(build_context.conf,
                'Skipping build of cached Docker image', docker_image)
-        return
+        return image_id
     # create directory for this target under a private builder workspace
     workspace_dir = build_context.get_workspace('DockerBuilder', docker_image)
     # generate Dockerfile and build it
@@ -534,10 +565,13 @@ def build_docker_image(
     logger.info('Building docker image "{}" using command {}',
                 docker_image, docker_build_cmd)
     run(docker_build_cmd, check=True)
+    # TODO(itamar): race condition here
+    image_id = get_cached_image_id(docker_image)
     if image_caching_behavior.get('push_image_after_build', False):
         remote_image = get_remote_image_name(name, tag, image_caching_behavior)
-        tag_docker_image(docker_image, remote_image)
+        tag_docker_image(image_id, remote_image)
         push_docker_image(remote_image)
+    return image_id
 
 
 def base_image_caching_behavior(conf: Config, **kwargs):

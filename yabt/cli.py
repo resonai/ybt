@@ -76,6 +76,7 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
             args_for_setting_config_path=['--config'],
             args_for_writing_out_config_file=['--write-out-config-file'])
         # PARSER.add('--config', is_config_file=True, help='Config file path')
+        PARSER.add('--bin-output-dir', default='ybt_bin')
         PARSER.add('--build-file-name', default='YBuild')
         PARSER.add('--build-base-images', action='store_true')
         PARSER.add('--builders-workspace-dir', default='yabtwork')
