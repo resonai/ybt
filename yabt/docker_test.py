@@ -62,11 +62,12 @@ def test_package_managers_install_order(basic_conf):
     basic_conf.targets = [':the-image']
     cmd_build(basic_conf)
     exp_dockerfile = [
-        'FROM localhost:5000/yowza3d/ubuntu:14.04.4-py2.7.11-ywz3\n',
+        'FROM python:3\n',
         'ARG DEBIAN_FRONTEND=noninteractive\n',
         'ENV FOO="BAR" PATH="${PATH}:/foo/bar:/ham:/spam" TEST="1"\n',
         'RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv '
-        'C3173AA6 && add-apt-repository -y "ppa:brightbox/ruby-ng"\n',
+        '80F70E11F0F0D5F10CB20E62F5DA5F09C3173AA6\n',
+        'COPY ybt.list /etc/apt/sources.list.d/\n',
         'RUN apt-get update -y && apt-get install --no-install-recommends -y '
         'apt-transport-https curl wget && rm -rf /var/lib/apt/lists/*\n',
         'COPY packages1 /tmp/install1\n',
