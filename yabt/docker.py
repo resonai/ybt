@@ -39,10 +39,10 @@ from ostrich.utils.collections import listify
 
 from .config import Config
 from .logging import make_logger
-from .builders.apt import format_apt_specifier, parse_apt_repository
 from .builders.nodejs import format_npm_specifier
-from .builders.python import format_pypi_specifier
 from .builders.ruby import format_gem_specifier
+from .pkgmgmt import (
+    format_apt_specifier, format_pypi_specifier, parse_apt_repository)
 from . import target_utils
 from .utils import yprint
 
@@ -259,7 +259,8 @@ def build_docker_image(
         build_context, name: str, tag: str, base_image, deps: list=None,
         env: dict=None, work_dir: str=None, truncate_common_parent: str=None,
         entrypoint: list=None, cmd: list=None, distro: dict=None,
-        image_caching_behavior: dict=None, no_artifacts: bool=False):
+        image_caching_behavior: dict=None, runtime_params: dict=None,
+        ybt_bin_path: str=None, no_artifacts: bool=False):
     """Build Docker image, and return a (image_id, image_name:tag) tuple of
        built image, if built successfully.
 
@@ -307,6 +308,12 @@ def build_docker_image(
     all_artifacts = defaultdict(set)
     apt_repo_deps = []
     effective_env = {}
+    KNOWN_RUNTIME_PARAMS = frozenset((
+        'ports', 'volumes', 'container_name', 'daemonize', 'rm'))
+    if runtime_params is None:
+        runtime_params = {}
+    runtime_params['ports'] = listify(runtime_params.get('ports'))
+    runtime_params['volumes'] = listify(runtime_params.get('volumes'))
     env_manipulations = {}
     packaging_layers = []
 
@@ -355,6 +362,24 @@ def build_docker_image(
                     .format(op_kind, vars_source, docker_image,
                             ', '.join(overridden_vars)))
 
+    def update_runtime_params(new_rt_param: dict, params_source: str):
+        invalid_keys = set(
+            new_rt_param.keys()).difference(KNOWN_RUNTIME_PARAMS)
+        if invalid_keys:
+            raise ValueError(
+                'Unknown keys in runtime params of {}: {}'.format(
+                    params_source, ', '.join(invalid_keys)))
+        # TODO(itamar): check for invalid values and inconsistencies
+        runtime_params['ports'].extend(listify(new_rt_param.get('ports')))
+        runtime_params['volumes'].extend(listify(new_rt_param.get('volumes')))
+        if 'container_name' in new_rt_param:
+            # TODO(itamar): check conflicting overrides
+            runtime_params['container_name'] = new_rt_param['container_name']
+        if 'daemonize' in new_rt_param:
+            runtime_params['daemonize'] = True
+        if 'rm' in new_rt_param:
+            runtime_params['rm'] = True
+
     if deps is None:
         deps = []
     # Get all base image deps, so when building this image we can skip adding
@@ -364,6 +389,9 @@ def build_docker_image(
     for dep in deps:
         if not distro and 'distro' in dep.props:
             distro = dep.props.distro
+        if 'runtime_params' in dep.props:
+            update_runtime_params(dep.props.runtime_params,
+                                  'dependency {}'.format(dep.name))
 
         if dep.name in base_image_deps:
             logger.debug('Skipping base image dep {}', dep.name)
@@ -571,6 +599,35 @@ def build_docker_image(
         remote_image = get_remote_image_name(name, tag, image_caching_behavior)
         tag_docker_image(image_id, remote_image)
         push_docker_image(remote_image)
+    # Generate ybt_bin scripts
+    if ybt_bin_path:
+        # Make sure ybt_bin's are created only under bin_path
+        assert (build_context.conf.get_bin_path() ==
+                commonpath([build_context.conf.get_bin_path(), ybt_bin_path]))
+
+        def format_docker_run_params(params: dict):
+            param_strings = []
+            if 'container_name' in params:
+                param_strings.extend(['--name', params['container_name']])
+            if params.get('rm'):
+                param_strings.append('--rm')
+            if params.get('daemonize'):
+                param_strings.append('-d')
+            for port in params['ports']:
+                param_strings.extend(['-p', port])
+            for volume in params['volumes']:
+                param_strings.extend(['-v', volume])
+            return ' '.join(param_strings)
+
+        ybt_bin = [
+            '#!/bin/bash\n',
+            '# Command for running Docker image `{}\'\n'.format(docker_image),
+            'docker run {} {} "$@"\n'.format(
+                format_docker_run_params(runtime_params), image_id),
+        ]
+        with open(ybt_bin_path, 'w') as ybt_bin_f:
+            ybt_bin_f.writelines(ybt_bin)
+        os.chmod(ybt_bin_path, 0o755)
     return image_id
 
 

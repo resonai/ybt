@@ -69,6 +69,7 @@ register_builder_sig(
      ('distro', PT.dict, None),
      ('image_caching_behavior', PT.dict, None),
      ('truncate_common_parent', PT.str, None),
+     ('ybt_bin_path', PT.str, None),
      ])
 
 
@@ -96,5 +97,7 @@ def docker_image_builder(build_context, target):
         entrypoint=target.props.docker_entrypoint,
         distro=target.props.distro,
         cmd=target.props.docker_cmd,
-        image_caching_behavior=target.props.image_caching_behavior)
+        image_caching_behavior=target.props.image_caching_behavior,
+        runtime_params=target.props.runtime_params,
+        ybt_bin_path=target.props.ybt_bin_path)
     target.props.docker_image_id = image_id

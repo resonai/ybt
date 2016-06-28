@@ -24,10 +24,15 @@ yabt Python Builders
 """
 
 
+from .dockerapp import build_app_docker_and_bin, register_app_builder_sig
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
+from ..logging import make_logger
 from ..utils import yprint
+
+
+logger = make_logger(__name__)
 
 
 register_builder_sig(
@@ -35,12 +40,6 @@ register_builder_sig(
     [('package', PT.str),
      ('version', PT.str, None),
      ])
-
-
-def format_pypi_specifier(target):
-    if target.props.version:
-        return '{0.package}=={0.version}'.format(target.props)
-    return '{0.package}'.format(target.props)
 
 
 @register_build_func('PythonPackage')
@@ -61,8 +60,26 @@ register_builder_sig(
 
 
 @register_build_func('Python')
-def python_builder(build_context, target):
+def python_app_builder(build_context, target):
     yprint(build_context.conf, 'Build Python', target)
-    # TODO(itamar): auto-add __init__.py in dirs of sources if they exist
     target.artifacts['app'].extend(target.props.sources)
     target.artifacts['app'].extend(target.props.data)
+
+
+register_app_builder_sig('PythonApp', [('main', PT.File)])
+
+
+@register_manipulate_target_hook('PythonApp')
+def python_app_manipulate_target(build_context, target):
+    logger.debug('Injecting "{}" to deps of {}',
+                 target.props.base_image, target)
+    target.deps.append(target.props.base_image)
+
+
+@register_build_func('PythonApp')
+def python_app_builder(build_context, target):
+    yprint(build_context.conf, 'Build PythonApp', target)
+    if target.props.main not in target.artifacts['app']:
+        target.artifacts['app'].append(target.props.main)
+    build_app_docker_and_bin(
+        build_context, target, entrypoint=[target.props.main])
