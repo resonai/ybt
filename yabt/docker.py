@@ -405,10 +405,11 @@ def build_docker_image(
             'RUN {}\n'.format(' && '.join(apt_key_cmds)))
     # Handle apt repositories (one layer for all)
     if apt_repositories:
-        apt_src_file = join(workspace_dir, 'ybt.list')
+        list_name = '{}.list'.format(name)
+        apt_src_file = join(workspace_dir, list_name)
         if make_apt_sources_list(apt_repositories, apt_src_file):
             dockerfile.append(
-                'COPY ybt.list /etc/apt/sources.list.d/\n')
+                'COPY {} /etc/apt/sources.list.d/\n'.format(list_name))
 
     custom_cnt = 0
     pip_req_cnt = 0
