@@ -67,7 +67,7 @@ def test_package_managers_install_order(basic_conf):
         'ENV FOO="BAR" PATH="${PATH}:/foo/bar:/ham:/spam" TEST="1"\n',
         'RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv '
         '80F70E11F0F0D5F10CB20E62F5DA5F09C3173AA6\n',
-        'COPY ybt.list /etc/apt/sources.list.d/\n',
+        'COPY the-image.list /etc/apt/sources.list.d/\n',
         'RUN apt-get update -y && apt-get install --no-install-recommends -y '
         'apt-transport-https curl wget && rm -rf /var/lib/apt/lists/*\n',
         'COPY packages1 /tmp/install1\n',
@@ -87,3 +87,23 @@ def test_package_managers_install_order(basic_conf):
     with open('yabtwork/DockerBuilder/the-image_latest/Dockerfile',
               'r') as dockerfile:
         assert exp_dockerfile == dockerfile.readlines()
+
+
+@slow
+@pytest.mark.usefixtures('in_pkgmgrs_project')
+def test_generate_needed_lists(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = [':another-image']
+    populate_targets_graph(build_context, basic_conf)
+    for target_name in topological_sort(build_context.target_graph):
+        target = build_context.targets[target_name]
+        build_context.build_target(target)
+    result = build_context.run_in_buildenv(
+        ':another-image', ['ls', '/etc/apt/sources.list.d/'],
+        stdout=PIPE, stderr=PIPE)
+    assert 0 == result.returncode
+    for file in [
+            b'another-image.list',
+            b'the-image.list',
+            ]:
+        assert file in result.stdout
