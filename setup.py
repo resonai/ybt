@@ -41,6 +41,7 @@ setup(
             'PythonPackage = yabt.builders.python',
             'Python = yabt.builders.python',
             'TargetGroup = yabt.builders.targetgroup',
+            'Proto = yabt.builders.proto',
 
             'DepTester = yabt.builders.fortests',
         ],

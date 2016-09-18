@@ -233,7 +233,9 @@ class BuildContext:
         if builder.func:
             logger.info('About to invoke the {} builder function for {}',
                         target.builder_name, target)
-            builder.func(self, target)
+            res = builder.func(self, target)
+            if res is not None:
+                        target.artifacts = res
         else:
             logger.warning('Skipping {} builder function for target {} (no '
                            'function registered)', target.builder_name, target)

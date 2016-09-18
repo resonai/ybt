@@ -1,0 +1,48 @@
+ExtDockerImage(
+    'ubuntu',
+    image='ubuntu',
+    tag='14.04'
+)
+
+DockerImage(
+    'build_run_base',
+    start_from=':ubuntu',
+    deps=['//3rdparty:upgrade-pip'],
+    #image_tag=SCM.get_revision()
+)
+
+ExtDockerImage(
+    'run_base',
+    image='build_run_base',
+    tag='latest'
+)
+
+Proto(
+    'hello',
+    in_buildenv=':flask-hello',
+    sources='hello.proto',
+    output_path='out/'
+
+)
+
+Python(
+    'flask-hello-app',
+    sources='app.py',
+    deps='//3rdparty:flask'
+)
+
+DockerImage(
+    # 'flask-hello',
+    # start_from='//3rdparty:python3',
+    # deps=['//3rdparty:apt-utils',':flask-hello-app','//3rdparty:protobuf'],
+    # docker_cmd=['python3', 'app.py'],
+    # image_tag=SCM.get_revision()
+    #
+    'flask-hello',
+    start_from=':run_base',
+    env = {'PYTHONPATH': '.:./yabtwork'},
+    deps = ['//3rdparty:protobuf',':flask-hello-app'],
+    docker_cmd = ['python', 'app/app.py'],
+    #image_tag=SCM.get_revision()
+    # tag=SCM.get_revision()
+)

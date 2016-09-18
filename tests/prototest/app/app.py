@@ -1,13 +1,15 @@
-#!/usr/local/bin/python
 
 from flask import Flask
+from proto.app_hello.app import hello_pb2
 
 APP = Flask(__name__)
 
 
 @APP.route('/')
 def home():
-    return 'Hello!'
+    hello = hello_pb2.Hello()
+    hello.world = 'foo'
+    return str(hello)
 
 
 if '__main__' == __name__:
