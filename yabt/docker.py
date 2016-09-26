@@ -29,7 +29,8 @@ NOT to be confused with the Docker builder...
 from collections import defaultdict, deque
 import os
 from os.path import (
-    basename, isdir, isfile, join, normpath, relpath, samefile, split)
+    abspath, basename, dirname, isdir, isfile, join,
+    normpath, relpath, samefile, split)
 import shutil
 
 from ostrich.utils.path import commonpath
@@ -619,14 +620,13 @@ def build_docker_image(
                 param_strings.extend(['-v', volume])
             return ' '.join(param_strings)
 
-        ybt_bin = [
-            '#!/bin/bash\n',
-            '# Command for running Docker image `{}\'\n'.format(docker_image),
-            'docker run {} {} "$@"\n'.format(
-                format_docker_run_params(runtime_params), image_id),
-        ]
+        with open(join(dirname(abspath(__file__)),
+                  'ybtbin.sh.tmpl'), 'r') as tmpl_f:
+            ybt_bin = tmpl_f.read().format(
+                image_name=docker_image, image_id=image_id,
+                docker_opts=format_docker_run_params(runtime_params))
         with open(ybt_bin_path, 'w') as ybt_bin_f:
-            ybt_bin_f.writelines(ybt_bin)
+            ybt_bin_f.write(ybt_bin)
         os.chmod(ybt_bin_path, 0o755)
     return image_id
 
