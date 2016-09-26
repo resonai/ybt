@@ -14,6 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+yabt ProtoBuf builder
+~~~~~~~~~~~~~~~~~~~~~
+
+:author: Zohar Rimon
+"""
+
+
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
@@ -27,33 +35,28 @@ logger = make_logger(__name__)
 
 register_builder_sig(
     'Proto',
-    [  # ('deps', PT.TargetList, None),
-     ('output_path', PT.str),
-     ('sources', PT.FileList, None),
+    [('sources', PT.FileList),
+     ('output_dir', PT.str),
      ('in_buildenv', PT.Target, None),
      ('cmd_env', None),
-
      ])
 
 
 @register_build_func('Proto')
 def proto_builder(build_context, target):
-    yprint(build_context.conf, 'Build (run) Proto', target)
-    workspace_dir = build_context.get_workspace('proto', target.name)
-    output_dir = './{}'.format(target.props.output_path)
-    if(not os.path.isdir(output_dir)):
-        build_context.run_in_buildenv(
-            target.props.in_buildenv, [
-                'mkdir',
-                # '--proto_path=build/gen',
-                'out'], target.props.cmd_env)
+    yprint(build_context.conf, 'Build ProtoBuf', target)
+    workspace_dir = build_context.get_workspace('ProtoBuilder', target.name)
+    if not os.path.isdir(target.props.output_dir):
+        os.makedirs(target.props.output_dir)
     build_context.run_in_buildenv(
-        target.props.in_buildenv, [
-          'protoc',
-          # '--proto_path=build/gen',
-          '--cpp_out', output_dir,
-          '--python_out', output_dir,
-          target.props.sources[0]], target.props.cmd_env)
+        target.props.in_buildenv,
+        ['protoc',
+         # '--proto_path=build/gen',
+         '--cpp_out', target.props.output_dir,
+         '--python_out', target.props.output_dir,
+         ' '.join(target.props.sources),
+         ],
+        target.props.cmd_env)
 
 
 @register_manipulate_target_hook('Proto')

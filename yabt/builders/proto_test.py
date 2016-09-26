@@ -14,34 +14,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+
+:author: Zohar Rimon
+"""
+
+
+import os
+import shutil
 
 import pytest
 
-from .builders import proto
-from .buildcontext import BuildContext
-from .graph import populate_targets_graph, topological_sort
-from .utils import yprint
-import os
+from . import proto
+from ..buildcontext import BuildContext
+from ..graph import populate_targets_graph, topological_sort
+from ..utils import yprint
 
-DISTRO = {
-    'id': 'Ubuntu',
-    'release': '14.04',
-    'codename': 'trusty',
-    'description': 'Ubuntu 14.04.4 LTS',
-}
+
+def clear_output():
+    try:
+        shutil.rmtree('out')
+    except FileNotFoundError:
+        pass
 
 
 @pytest.mark.usefixtures('in_prototest_project')
-def test_proto(basic_conf):
+def test_proto_builder(basic_conf):
+    clear_output()
     build_context = BuildContext(basic_conf)
     basic_conf.targets = ['app:hello']
     populate_targets_graph(build_context, basic_conf)
     for target_name in topological_sort(build_context.target_graph):
         target = build_context.targets[target_name]
         build_context.build_target(target)
-    for file in [
+    for exp_gen_fname in [
         'hello.pb.cc',
         'hello.pb.h',
         'hello_pb2.py'
     ]:
-        assert file in os.listdir('./out/app')
+        assert os.path.isfile(os.path.join('out', 'app', exp_gen_fname))
+    clear_output()

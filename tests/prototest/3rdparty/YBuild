@@ -4,44 +4,28 @@ PythonPackage(
     deps = ':upgrade-pip'
 )
 
-
-# PythonPackage(
-#     'proto',
-#     package='protobuf'
-# )
-
 AptPackage(
     'pip',
     package='python-pip'
 )
 
-
-# ExtDockerImage(
-#     'python3',
-#     image='python',
-#     tag='3.5',
-#     distro={
-#         'id': 'Debian',
-#         'release': '8.2',
-#         'codename': 'jessie',
-#         'description': 'Debian GNU/Linux 8.2 (jessie)',
-#     }
-# )
+AptPackage(
+    'setuptools',
+    package='python-setuptools'
+)
 
 CustomInstaller(
     'protobuf', # version 2.6.1
-    # uri='https://github.com/google/protobuf/releases/download/v2.5.0/protobuf-2.5.0.tar.gz',
     uri='https://github.com/google/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.gz',
     script='install-protobuf.sh',
     deps=':build-essentials-pack'
 )
 
 CustomInstaller(
-    'upgrade-pip', # version 2.6.1
+    'upgrade-pip',
     uri='',
     script='upgrade-pip.sh',
-    deps=':pip'
-
+    deps=[':pip', ':setuptools']
 )
 
 TargetGroup(
@@ -51,14 +35,14 @@ TargetGroup(
           ':cmake',
           ':curl',
           ':gettext',
-          ':m4']
+          ':m4',
+    ]
 )
 
 AptPackage(
     'apt-utils',
     package='apt-utils'
 )
-
 
 AptPackage(
     'autoconf',
@@ -88,6 +72,4 @@ AptPackage(
 AptPackage(
     'm4',
     package='m4'
-) #Target Group
-
-
+)
