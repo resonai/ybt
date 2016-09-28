@@ -377,9 +377,9 @@ def build_docker_image(
             # TODO(itamar): check conflicting overrides
             runtime_params['container_name'] = new_rt_param['container_name']
         if 'daemonize' in new_rt_param:
-            runtime_params['daemonize'] = True
+            runtime_params['daemonize'] = new_rt_param['daemonize']
         if 'rm' in new_rt_param:
-            runtime_params['rm'] = True
+            runtime_params['rm'] = new_rt_param['rm']
 
     if deps is None:
         deps = []
