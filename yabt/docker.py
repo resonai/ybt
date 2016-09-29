@@ -29,7 +29,8 @@ NOT to be confused with the Docker builder...
 from collections import defaultdict, deque
 import os
 from os.path import (
-    basename, isdir, isfile, join, normpath, relpath, samefile, split)
+    abspath, basename, dirname, isdir, isfile, join,
+    normpath, relpath, samefile, split)
 import shutil
 
 from ostrich.utils.path import commonpath
@@ -39,10 +40,10 @@ from ostrich.utils.collections import listify
 
 from .config import Config
 from .logging import make_logger
-from .builders.apt import format_apt_specifier, parse_apt_repository
 from .builders.nodejs import format_npm_specifier
-from .builders.python import format_pypi_specifier
 from .builders.ruby import format_gem_specifier
+from .pkgmgmt import (
+    format_apt_specifier, format_pypi_specifier, parse_apt_repository)
 from . import target_utils
 from .utils import yprint
 
@@ -174,6 +175,8 @@ def format_qualified_image_name(target):
         if target.props.tag:
             return '{}:{}'.format(target.props.image, target.props.tag)
         return target.props.image
+    elif 'docker_image_id' in target.props:
+        return target.props.docker_image_id
     elif target.builder_name == 'DockerImage':
         return '{}:{}'.format(get_image_name(target), target.props.image_tag)
     else:
@@ -216,14 +219,14 @@ def tag_docker_image(src_image, tag_as_image):
 def handle_build_cache(name: str, tag: str, image_caching_behavior: dict):
     """Handle Docker image build cache.
 
-    Return True if image is cached, and there's no need to redo the build.
-    Return False if need to build the image (whether cahced locally or not).
+    Return image ID if image is cached, and there's no need to redo the build.
+    Return None if need to build the image (whether cahced locally or not).
     Raise RuntimeError if not allowed to build the image because of state of
     local cache.
 
     TODO(itamar): figure out a better name for this function, that reflects
-    the fact that it returns a boolean value (e.g. `should_build` or
-    `is_cached`), without "surprising" the caller with the potential of long
+    what it returns (e.g. `get_cached_image_id`),
+    without "surprising" the caller with the potential of long
     and non-trivial operations that are not usually expected from functions
     with such names.
     """
@@ -246,25 +249,55 @@ def handle_build_cache(name: str, tag: str, image_caching_behavior: dict):
     local_image = '{}:{}'.format(name, tag)
     if skip_build_if_cached and get_cached_image_id(remote_image) is not None:
         tag_docker_image(remote_image, local_image)
-        return True
+        return get_cached_image_id(local_image)
     if ((not allow_build_if_not_cached) and
             get_cached_image_id(remote_image) is None):
         raise RuntimeError('No cached image for {}'.format(local_image))
-    return False
+    return None
 
 
 def build_docker_image(
         build_context, name: str, tag: str, base_image, deps: list=None,
         env: dict=None, work_dir: str=None, truncate_common_parent: str=None,
         entrypoint: list=None, cmd: list=None, distro: dict=None,
-        image_caching_behavior: dict=None, no_artifacts: bool=False):
+        image_caching_behavior: dict=None, runtime_params: dict=None,
+        ybt_bin_path: str=None, no_artifacts: bool=False):
+    """Build Docker image, and return a (image_id, image_name:tag) tuple of
+       built image, if built successfully.
+
+    Notes:
+    Using the given image name & tag as they are, but using the global host
+    Docker image namespace (as opposed to a private-project-workspace),
+    so collisions between projects are possible (and very likely, e.g., when
+    used in a CI environment, or shared machine use-case).
+    Trying to address this issue to some extent by using the image ID after
+    it is built, which is unique.
+    There's a race condition between "build" and "get ID" - ignoring this at
+    the moment.
+    Also, I'm not sure about Docker's garbage collection...
+    If I use the image ID in other places, and someone else "grabbed" my image
+    name and tag (so now my image ID is floating), is it still safe to use
+    the ID? Or is it going to be garbage collected and cleaned up sometime?
+    From my experiments, the "floating image ID" was left alone (usable),
+    but prone to "manual cleanups".
+    Also ignoring this at the moment...
+    Thought about an alternative approach based on first building an image
+    with a randomly generated tag, so I can use that safely later, and tag it
+    to the requested tag.
+    Decided against it, seeing that every run increases the local Docker
+    images spam significantly with a bunch of random tags, making it even less
+    useful.
+    Documenting it here to remember it was considered, and to discuss it
+    further in case anyone thinks it's a better idea than what I went with.
+    """
     docker_image = '{}:{}'.format(name, tag)
     if image_caching_behavior is None:
         image_caching_behavior = {}
-    if handle_build_cache(name, tag, image_caching_behavior):
+    image_id = handle_build_cache(name, tag, image_caching_behavior)
+    if image_id:
         yprint(build_context.conf,
                'Skipping build of cached Docker image', docker_image)
-        return
+        return image_id
     # create directory for this target under a private builder workspace
     workspace_dir = build_context.get_workspace('DockerBuilder', docker_image)
     # generate Dockerfile and build it
@@ -276,6 +309,12 @@ def build_docker_image(
     all_artifacts = defaultdict(set)
     apt_repo_deps = []
     effective_env = {}
+    KNOWN_RUNTIME_PARAMS = frozenset((
+        'ports', 'volumes', 'container_name', 'daemonize', 'rm'))
+    if runtime_params is None:
+        runtime_params = {}
+    runtime_params['ports'] = listify(runtime_params.get('ports'))
+    runtime_params['volumes'] = listify(runtime_params.get('volumes'))
     env_manipulations = {}
     packaging_layers = []
 
@@ -324,6 +363,24 @@ def build_docker_image(
                     .format(op_kind, vars_source, docker_image,
                             ', '.join(overridden_vars)))
 
+    def update_runtime_params(new_rt_param: dict, params_source: str):
+        invalid_keys = set(
+            new_rt_param.keys()).difference(KNOWN_RUNTIME_PARAMS)
+        if invalid_keys:
+            raise ValueError(
+                'Unknown keys in runtime params of {}: {}'.format(
+                    params_source, ', '.join(invalid_keys)))
+        # TODO(itamar): check for invalid values and inconsistencies
+        runtime_params['ports'].extend(listify(new_rt_param.get('ports')))
+        runtime_params['volumes'].extend(listify(new_rt_param.get('volumes')))
+        if 'container_name' in new_rt_param:
+            # TODO(itamar): check conflicting overrides
+            runtime_params['container_name'] = new_rt_param['container_name']
+        if 'daemonize' in new_rt_param:
+            runtime_params['daemonize'] = new_rt_param['daemonize']
+        if 'rm' in new_rt_param:
+            runtime_params['rm'] = new_rt_param['rm']
+
     if deps is None:
         deps = []
     # Get all base image deps, so when building this image we can skip adding
@@ -333,6 +390,9 @@ def build_docker_image(
     for dep in deps:
         if not distro and 'distro' in dep.props:
             distro = dep.props.distro
+        if 'runtime_params' in dep.props:
+            update_runtime_params(dep.props.runtime_params,
+                                  'dependency {}'.format(dep.name))
 
         if dep.name in base_image_deps:
             logger.debug('Skipping base image dep {}', dep.name)
@@ -534,10 +594,41 @@ def build_docker_image(
     logger.info('Building docker image "{}" using command {}',
                 docker_image, docker_build_cmd)
     run(docker_build_cmd, check=True)
+    # TODO(itamar): race condition here
+    image_id = get_cached_image_id(docker_image)
     if image_caching_behavior.get('push_image_after_build', False):
         remote_image = get_remote_image_name(name, tag, image_caching_behavior)
-        tag_docker_image(docker_image, remote_image)
+        tag_docker_image(image_id, remote_image)
         push_docker_image(remote_image)
+    # Generate ybt_bin scripts
+    if ybt_bin_path:
+        # Make sure ybt_bin's are created only under bin_path
+        assert (build_context.conf.get_bin_path() ==
+                commonpath([build_context.conf.get_bin_path(), ybt_bin_path]))
+
+        def format_docker_run_params(params: dict):
+            param_strings = []
+            if 'container_name' in params:
+                param_strings.extend(['--name', params['container_name']])
+            if params.get('rm'):
+                param_strings.append('--rm')
+            if params.get('daemonize'):
+                param_strings.append('-d')
+            for port in params['ports']:
+                param_strings.extend(['-p', port])
+            for volume in params['volumes']:
+                param_strings.extend(['-v', volume])
+            return ' '.join(param_strings)
+
+        with open(join(dirname(abspath(__file__)),
+                  'ybtbin.sh.tmpl'), 'r') as tmpl_f:
+            ybt_bin = tmpl_f.read().format(
+                image_name=docker_image, image_id=image_id,
+                docker_opts=format_docker_run_params(runtime_params))
+        with open(ybt_bin_path, 'w') as ybt_bin_f:
+            ybt_bin_f.write(ybt_bin)
+        os.chmod(ybt_bin_path, 0o755)
+    return image_id
 
 
 def base_image_caching_behavior(conf: Config, **kwargs):

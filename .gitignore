@@ -20,6 +20,7 @@
 build
 dist
 yabtwork
+ybt_bin
 
 # Python Testing
 .tox

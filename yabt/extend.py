@@ -115,6 +115,8 @@ class Builder:
             (or empty list) is always the first after all builder args.
         3. A keyword arg `packaging_params` of type dict and default value {}
             (empty dict) is always after `deps`.
+        4. A keyword arg `runtime_params` of type dict and default value {}
+            (empty dict) is always after `packaging_params`.
         """
         if self.sig is not None:
             raise KeyError('{} already registered a signature!'
@@ -140,6 +142,7 @@ class Builder:
                 kwargs_section = True
         self.sig['deps'] = ArgSpec(PropType.TargetList, None)
         self.sig['packaging_params'] = ArgSpec(PropType.dict, {})
+        self.sig['runtime_params'] = ArgSpec(PropType.dict, {})
 
 
 class Plugin:

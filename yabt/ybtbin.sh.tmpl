@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Split command line on `--`
+# Anything before the first `--` is passed as args to the container command
+# Anything after the first `--` is passed as extra Docker options
+# The `--` must be surrounded by whitespace
+
+ARGS=""
+DOCKER_OPTS=""
+PHASE=1
+
+for arg in "$@"; do
+  if [ "$arg" == "--" ]; then
+    if [ $PHASE == 1 ]; then
+      PHASE=2
+    else
+      DOCKER_OPTS="$DOCKER_OPTS --"
+    fi
+  else
+    if [ $PHASE == 1 ]; then
+      ARGS="$ARGS $arg"
+    else
+      DOCKER_OPTS="$DOCKER_OPTS $arg"
+    fi
+  fi
+done
+
+# Command for running Docker image `{image_name}'
+echo docker run {docker_opts} $DOCKER_OPTS {image_name} $ARGS
+docker run {docker_opts} $DOCKER_OPTS {image_id} $ARGS

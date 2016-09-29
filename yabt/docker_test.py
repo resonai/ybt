@@ -57,6 +57,16 @@ def test_run_in_buildenv(basic_conf):
 
 
 @slow
+@pytest.mark.usefixtures('in_simple_project')
+def test_ybt_bin_generation(basic_conf):
+    basic_conf.targets = ['app:flask-app']
+    cmd_build(basic_conf)
+    with open('ybt_bin/app/flask-app', 'r') as app_ybt_bin:
+        assert ('docker run --name my-flask-app -p 5555:5000'
+                in app_ybt_bin.read())
+
+
+@slow
 @pytest.mark.usefixtures('in_pkgmgrs_project')
 def test_package_managers_install_order(basic_conf):
     basic_conf.targets = [':the-image']

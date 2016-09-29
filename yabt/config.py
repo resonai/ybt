@@ -38,8 +38,8 @@ class Config:
     """Runtime Config info class"""
 
     attrs_from_args = frozenset((
-        'build_file_name', 'default_target_name', 'cmd', 'targets',
-        'build_base_images', 'builders_workspace_dir', 'force_pull',
+        'bin_output_dir', 'build_file_name', 'default_target_name', 'cmd',
+        'targets', 'build_base_images', 'builders_workspace_dir', 'force_pull',
         'offline', 'non_interactive', 'push', 'verbose',
         'with_tini_entrypoint', 'loglevel', 'logtostderr', 'logtostdout',
     ))
@@ -75,3 +75,6 @@ class Config:
 
     def get_workspace_path(self) -> str:
         return os.path.join(self.project_root, self.builders_workspace_dir)
+
+    def get_bin_path(self) -> str:
+        return os.path.join(self.project_root, self.bin_output_dir)

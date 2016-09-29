@@ -1,7 +1,10 @@
 Python(
     'flask-hello-app',
     sources='app.py',
-    deps='//3rdparty:flask'
+    deps='//3rdparty:flask',
+    runtime_params={
+        'ports': '5555:5000',
+    }
 )
 
 DockerImage(
@@ -11,4 +14,14 @@ DockerImage(
     docker_cmd=['python3', 'app.py'],
     image_tag=SCM.get_revision(),
     truncate_common_parent='app'
+)
+
+PythonApp(
+    'flask-app',
+    base_image='//3rdparty:python3',
+    deps=':flask-hello-app',
+    main='app.py',
+    runtime_params={
+        'container_name': 'my-flask-app',
+    }
 )
