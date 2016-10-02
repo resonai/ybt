@@ -160,8 +160,10 @@ def link_artifacts(artifacts: set, workspace_src_dir: str,
 
 
 def get_image_name(target):
+    # left-stripping ":" to remove the build-module separator for root images,
+    # since Docker image names must begin with an alphanumeric character
     return (target.props.image_name if target.props.image_name
-            else target_utils.split_name(target.name))
+            else get_safe_path(target.name.lstrip(':')))
 
 
 def get_remote_image_name(name: str, tag: str, image_caching_behavior: dict):

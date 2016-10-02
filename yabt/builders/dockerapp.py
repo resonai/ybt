@@ -27,9 +27,8 @@ yabt DockerApp Builder
 from os.path import join
 
 from ostrich.utils.collections import listify
-from ostrich.utils.text import get_safe_path
 
-from ..docker import build_docker_image
+from ..docker import build_docker_image, get_image_name
 from ..extend import PropType as PT, register_builder_sig
 from .. import target_utils
 
@@ -53,12 +52,9 @@ def register_app_builder_sig(builder_name, sig=None, docstring=None):
 def build_app_docker_and_bin(build_context, target, **kwargs):
     build_module, bin_name = target_utils.split(target.name)
     ybt_bin_path = join(build_context.get_bin_dir(build_module), bin_name)
-    # left-stripping ":" to remove the build-module separator for root images,
-    # since Docker image names must begin with an alphanumeric character
-    safe_image_name = get_safe_path(target.name.lstrip(':'))
     image_id = build_docker_image(
         build_context,
-        name=safe_image_name,
+        name=get_image_name(target),
         tag=target.props.image_tag,
         base_image=build_context.targets[target.props.base_image],
         deps=build_context.walk_target_deps_topological_order(target),

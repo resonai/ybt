@@ -24,8 +24,6 @@ yabt Docker Builder
 """
 
 
-from ostrich.utils.text import get_safe_path
-
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
@@ -82,12 +80,9 @@ def docker_image_manipulate_target(build_context, target):
 
 @register_build_func('DockerImage')
 def docker_image_builder(build_context, target):
-    # left-stripping ":" to remove the build-module separator for root images,
-    # since Docker image names must begin with an alphanumeric character
-    safe_image_name = get_safe_path(target.name.lstrip(':'))
     image_id = build_docker_image(
         build_context,
-        name=safe_image_name,
+        name=get_image_name(target),
         tag=target.props.image_tag,
         base_image=build_context.targets[target.props.start_from],
         deps=build_context.walk_target_deps_topological_order(target),

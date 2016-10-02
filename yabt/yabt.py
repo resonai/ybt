@@ -29,7 +29,6 @@ import sys
 from .buildcontext import BuildContext
 from .cli import init_and_get_conf
 from .config import Config, BUILD_PROJ_FILE
-from .docker import build_docker_image
 from .extend import Plugin
 from .graph import populate_targets_graph, topological_sort
 from .target_utils import parse_target_selectors, split, Target
@@ -92,22 +91,7 @@ def cmd_build(conf: Config):
                 build(dep)
             build(buildenv)
 
-    # # pass 1: prepare BuildEnv images
-    # if conf.default_buildenv_base_image:
-    #     # TODO(itamar): generate random tag to avoid conflicts if running
-    #     # multiple instances concurrently
-    #     build_docker_image(
-    #         build_context,
-    #         name='ybt-buildenv',
-    #         tag='latest',
-    #         base_image=build_context.targets[conf.default_buildenv_base_image],
-    #         deps=[build_context.targets[target_name] for target_name in
-    #               topological_sort(build_context.target_graph)],
-    #         no_artifacts=True)
-    #     build_context.register_buildenv_image('ybt-buildenv',
-    #                                           'ybt-buildenv:latest')
-
-    # pass 2: build
+    # main pass: build
     for target_name in topological_sort(build_context.target_graph):
         target = build_context.targets[target_name]
         build(target)
