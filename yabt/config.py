@@ -40,7 +40,7 @@ class Config:
     attrs_from_args = frozenset((
         'bin_output_dir', 'build_file_name', 'default_target_name', 'cmd',
         'targets', 'build_base_images', 'builders_workspace_dir', 'force_pull',
-        'offline', 'non_interactive', 'push', 'verbose',
+        'offline', 'non_interactive', 'push', 'docker_volume', 'verbose',
         'with_tini_entrypoint', 'loglevel', 'logtostderr', 'logtostdout',
     ))
 

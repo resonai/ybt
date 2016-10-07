@@ -88,6 +88,8 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         # TODO(itamar): this flag should come from the builder, not from here
         PARSER.add('--push', action='store_true')
         PARSER.add('--scm-provider')
+        PARSER.add('--docker-volume',
+                   help='Use the specified docker volume as buildenv /project')
         PARSER.add('-v', '--verbose', action='store_true',
                    help='More verbose output to STDOUT')
         PARSER.add('--with-tini-entrypoint', action='store_true')

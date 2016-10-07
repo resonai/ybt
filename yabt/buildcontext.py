@@ -207,7 +207,8 @@ class BuildContext:
             docker_run.append('-t')
         docker_run.extend([
             '--rm',
-            '-v', self.conf.project_root + ':/project',
+            '-v', (self.conf.docker_volume if self.conf.docker_volume else
+                   self.conf.project_root) + ':/project',
             '-w', join('/project', work_dir) if work_dir else '/project',
         ])
         if cmd_env:

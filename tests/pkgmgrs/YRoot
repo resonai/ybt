@@ -107,7 +107,7 @@ DockerImage(
 )
 
 AptRepository(
-    'postgresql-reposiotry',
+    'postgresql-repository',
     source='deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main',
     key='7FCC7D46ACCC4CF8'
 )
@@ -115,8 +115,8 @@ AptRepository(
 AptPackage(
     'postgresql-client',
     package='postgresql-client',
-    version='9.5*',
-    deps=':postgresql-reposiotry'
+    version='9.6*',
+    deps=':postgresql-repository'
 )
 
 DockerImage(
