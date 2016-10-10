@@ -74,6 +74,7 @@ def test_package_managers_install_order(basic_conf):
     exp_dockerfile = [
         'FROM python:3\n',
         'ARG DEBIAN_FRONTEND=noninteractive\n',
+        'USER root\n',
         'ENV FOO="BAR" PATH="${PATH}:/foo/bar:/ham:/spam" TEST="1"\n',
         'RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv '
         '80F70E11F0F0D5F10CB20E62F5DA5F09C3173AA6\n',
@@ -93,6 +94,8 @@ def test_package_managers_install_order(basic_conf):
         'COPY requirements_2.txt /usr/src/\n',
         'RUN pip install --no-cache-dir -r /usr/src/requirements_2.txt\n',
         'WORKDIR /usr/src/app\n',
+        'USER root\n',
+        'CMD ["foo"]\n',
     ]
     with open('yabtwork/DockerBuilder/the-image_latest/Dockerfile',
               'r') as dockerfile:
