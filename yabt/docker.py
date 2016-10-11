@@ -263,7 +263,8 @@ def build_docker_image(
         env: dict=None, work_dir: str=None, truncate_common_parent: str=None,
         entrypoint: list=None, cmd: list=None, distro: dict=None,
         image_caching_behavior: dict=None, runtime_params: dict=None,
-        ybt_bin_path: str=None, no_artifacts: bool=False):
+        ybt_bin_path: str=None, build_user: str=None, run_user: str=None,
+        no_artifacts: bool=False):
     """Build Docker image, and return a (image_id, image_name:tag) tuple of
        built image, if built successfully.
 
@@ -308,6 +309,8 @@ def build_docker_image(
         'FROM {}\n'.format(format_qualified_image_name(base_image)),
         'ARG DEBIAN_FRONTEND=noninteractive\n',
     ]
+    if build_user:
+        dockerfile.append('USER {}\n'.format(build_user))
     all_artifacts = defaultdict(set)
     apt_repo_deps = []
     effective_env = {}
@@ -572,6 +575,9 @@ def build_docker_image(
 
     def format_docker_cmd(docker_cmd):
         return ('"{}"'.format(cmd) for cmd in docker_cmd)
+
+    if run_user:
+        dockerfile.append('USER {}\n'.format(run_user))
 
     # Add ENTRYPOINT (one layer)
     if entrypoint:

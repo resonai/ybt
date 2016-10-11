@@ -45,6 +45,8 @@ def register_app_builder_sig(builder_name, sig=None, docstring=None):
             ('distro', PT.dict, None),
             ('image_caching_behavior', PT.dict, None),
             ('truncate_common_parent', PT.str, None),
+            ('build_user', PT.str, None),
+            ('run_user', PT.str, None),
         ],
         docstring)
 
@@ -65,5 +67,7 @@ def build_app_docker_and_bin(build_context, target, **kwargs):
         distro=target.props.distro,
         image_caching_behavior=target.props.image_caching_behavior,
         runtime_params=target.props.runtime_params,
-        ybt_bin_path=ybt_bin_path)
+        ybt_bin_path=ybt_bin_path,
+        build_user=target.props.build_user,
+        run_user=target.props.run_user)
     target.props.docker_image_id = image_id

@@ -101,6 +101,9 @@ ExtDockerImage(
 DockerImage(
     'the-image',
     start_from=':python',
+    docker_cmd='foo',
+    build_user='root',
+    run_user='root',
     deps=[
         ':gunicorn'
     ]
