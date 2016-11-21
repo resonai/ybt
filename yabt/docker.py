@@ -29,8 +29,7 @@ NOT to be confused with the Docker builder...
 from collections import defaultdict, deque
 import os
 from os.path import (
-    abspath, basename, dirname, isdir, isfile, join,
-    normpath, relpath, samefile, split)
+    abspath, basename, dirname, isfile, join, relpath, samefile, split)
 import shutil
 
 from ostrich.utils.path import commonpath
@@ -45,7 +44,7 @@ from .builders.ruby import format_gem_specifier
 from .pkgmgmt import (
     format_apt_specifier, format_pypi_specifier, parse_apt_repository)
 from . import target_utils
-from .utils import yprint
+from .utils import link_artifacts, yprint
 
 
 logger = make_logger(__name__)
@@ -92,71 +91,6 @@ def make_apt_sources_list(apt_sources: list, apt_sources_file_path: str):
         # delete remnant sources list file
         os.remove(apt_sources_file_path)
         return False
-
-
-def link_artifacts(artifacts: set, workspace_src_dir: str,
-                   common_parent: str, conf: Config):
-    """Sync the list of files and directories in `artifacts` to destination
-       directory specified by `workspace_src_dir`.
-
-    "Sync" in the sense that every file given in `artifacts` will be
-    hard-linked under `workspace_src_dir` after this function returns, and no
-    other files will exist under `workspace_src_dir`.
-
-    For directories in `artifacts`, hard-links of contained files are
-    created recursively.
-
-    All paths in `artifacts`, and the `workspace_src_dir`, must be relative
-    to `conf.project_root`.
-
-    If `workspace_src_dir` exists before calling this function, it is removed
-    before syncing.
-
-    If `common_parent` is given, and it is a common parent directory of all
-    `artifacts`, then the `commonm_parent` part is truncated from the
-    sync'ed files destination path under `workspace_src_dir`.
-
-    :raises FileNotFoundError: If `artifacts` contains files or directories
-                               that do not exist.
-
-    :raises ValueError: If `common_parent` is given (not `None`), but is *NOT*
-                        a common parent of all `artifacts`.
-    """
-    try:
-        shutil.rmtree(workspace_src_dir)
-    except FileNotFoundError:
-        pass
-    if common_parent:
-        common_parent = normpath(common_parent)
-        base_dir = commonpath(list(artifacts) + [common_parent])
-        if base_dir != common_parent:
-            raise ValueError('{} is not the common parent of all target '
-                             'sources and data'.format(common_parent))
-        logger.debug('Rebasing files in image relative to common parent dir {}'
-                     .format(base_dir))
-    else:
-        base_dir = ''
-    num_linked = 0
-    for src in artifacts:
-        abs_src = join(conf.project_root, src)
-        abs_dest = join(workspace_src_dir, relpath(src, base_dir))
-        if isfile(abs_src):
-            # sync file by linking it to dest
-            dest_parent_dir = split(abs_dest)[0]
-            if not isdir(dest_parent_dir):
-                # exist_ok=True in case of concurrent creation of the same
-                # parent dir
-                os.makedirs(dest_parent_dir, exist_ok=True)
-            os.link(abs_src, abs_dest)
-        elif isdir(abs_src):
-            # sync dir by recursively linking files under it to dest
-            shutil.copytree(abs_src, abs_dest,
-                            copy_function=os.link,
-                            ignore=shutil.ignore_patterns('.git'))
-        else:
-            raise FileNotFoundError(abs_src)
-        num_linked += 1
-    return num_linked
 
 
 def get_image_name(target):

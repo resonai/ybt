@@ -3,18 +3,6 @@ PythonPackage(
     package='flask'
 )
 
-
-PythonPackage(
-    'protobuf',
-    package='protobuf'
-)
-
-AptPackage(
-    'pip',
-    package='python-pip'
-)
-
-
 ExtDockerImage(
     'python3',
     image='python',

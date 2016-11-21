@@ -57,6 +57,7 @@ class Config:
         self.scm_provider = str(args.scm_provider).lower()
         self.scm = ScmManager.get_provider(self.scm_provider, self)
         Plugin.load_plugins(self)
+        self.deleted_dirs = set()
 
     def in_yabt_project(self) -> bool:
         return self.project_root is not None
@@ -78,3 +79,8 @@ class Config:
 
     def get_bin_path(self) -> str:
         return os.path.join(self.project_root, self.bin_output_dir)
+
+    def host_to_buildenv_path(self, host_path: str) -> str:
+        return os.path.join(
+            '/project',
+            os.path.relpath(os.path.abspath(host_path), self.project_root))

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -eo
+set -e
 cd protobuf-2.6.1/
 ./configure
 make

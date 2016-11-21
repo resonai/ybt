@@ -205,10 +205,11 @@ class BuildContext:
             docker_run.append('-i')
         if not redirection:
             docker_run.append('-t')
+        project_vol = (self.conf.docker_volume if self.conf.docker_volume else
+                       self.conf.project_root)
         docker_run.extend([
             '--rm',
-            '-v', (self.conf.docker_volume if self.conf.docker_volume else
-                   self.conf.project_root) + ':/project',
+            '-v', project_vol + ':/project',
             '-w', join('/project', work_dir) if work_dir else '/project',
         ])
         if cmd_env:
@@ -233,9 +234,7 @@ class BuildContext:
         if builder.func:
             logger.info('About to invoke the {} builder function for {}',
                         target.builder_name, target)
-            res = builder.func(self, target)
-            if res is not None:
-                        target.artifacts = res
+            builder.func(self, target)
         else:
             logger.warning('Skipping {} builder function for target {} (no '
                            'function registered)', target.builder_name, target)

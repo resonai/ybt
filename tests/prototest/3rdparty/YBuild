@@ -1,18 +1,12 @@
 PythonPackage(
     'flask',
     package='flask',
-    deps = ':upgrade-pip'
+    deps=':upgrade-pip'
 )
 
-AptPackage(
-    'pip',
-    package='python-pip'
-)
+AptPackage('pip', package='python-pip')
 
-AptPackage(
-    'setuptools',
-    package='python-setuptools'
-)
+AptPackage('setuptools', package='python-setuptools')
 
 CustomInstaller(
     'protobuf', # version 2.6.1
@@ -30,46 +24,26 @@ CustomInstaller(
 
 TargetGroup(
     'build-essentials-pack',
-    deps=[':autoconf',
-          ':build-essential',
-          ':cmake',
-          ':curl',
-          ':gettext',
-          ':m4',
+    deps=[
+        ':autoconf',
+        ':build-essential',
+        ':cmake',
+        ':curl',
+        ':gettext',
+        ':m4',
     ]
 )
 
-AptPackage(
-    'apt-utils',
-    package='apt-utils'
-)
+AptPackage('apt-utils', package='apt-utils')
 
-AptPackage(
-    'autoconf',
-    package='autoconf'
-)
+AptPackage('autoconf', package='autoconf')
 
-AptPackage(
-    'build-essential',
-    package='build-essential'
-)
+AptPackage('build-essential', package='build-essential')
 
-AptPackage(
-    'cmake',
-    package='cmake'
-)
+AptPackage('cmake', package='cmake')
 
-AptPackage(
-    'curl',
-    package='curl'
-)
+AptPackage('curl', package='curl')
 
-AptPackage(
-    'gettext',
-    package='gettext'
-)
+AptPackage('gettext', package='gettext')
 
-AptPackage(
-    'm4',
-    package='m4'
-)
+AptPackage('m4', package='m4')

@@ -5,31 +5,17 @@ ExtDockerImage(
 )
 
 DockerImage(
-    'build-run-base',
+    'proto-builder',
     start_from=':ubuntu',
-    deps='//3rdparty:upgrade-pip'
+    deps=[
+        '//3rdparty:upgrade-pip',
+        '//3rdparty:protobuf',
+    ]
 )
 
 Proto(
-    'hello',
-    in_buildenv=':flask-hello',
+    'hello-proto',
+    in_buildenv=':proto-builder',
     sources='hello.proto',
-    output_dir='out'
-
-)
-
-Python(
-    'flask-hello-app',
-    sources='app.py',
-    deps='//3rdparty:flask'
-)
-
-DockerImage(
-    'flask-hello',
-    start_from=':build-run-base',
-    env = {
-        'PYTHONPATH': '.:./yabtwork',
-    },
-    deps = ['//3rdparty:protobuf',':flask-hello-app'],
-    docker_cmd = ['python', 'app/app.py']
+    copy_generated_to='//build/gen'
 )

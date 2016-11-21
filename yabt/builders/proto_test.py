@@ -21,6 +21,7 @@
 
 
 import os
+from os.path import isdir, isfile, join
 import shutil
 
 import pytest
@@ -31,26 +32,37 @@ from ..graph import populate_targets_graph, topological_sort
 from ..utils import yprint
 
 
+slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
+                          reason='need --with-slow option to run')
+
+
 def clear_output():
     try:
-        shutil.rmtree('out')
+        shutil.rmtree('build')
     except FileNotFoundError:
         pass
 
 
+@slow
 @pytest.mark.usefixtures('in_prototest_project')
 def test_proto_builder(basic_conf):
     clear_output()
     build_context = BuildContext(basic_conf)
-    basic_conf.targets = ['app:hello']
+    basic_conf.targets = ['app:hello-proto']
     populate_targets_graph(build_context, basic_conf)
     for target_name in topological_sort(build_context.target_graph):
         target = build_context.targets[target_name]
         build_context.build_target(target)
+    assert isdir('build')
+    assert isdir(join('build', 'gen'))
+    assert isdir(join('build', 'gen', 'proto'))
+    assert isfile(join('build', 'gen', 'proto', '__init__.py'))
+    assert isdir(join('build', 'gen', 'proto', 'app'))
+    assert isfile(join('build', 'gen', 'proto', 'app', '__init__.py'))
     for exp_gen_fname in [
         'hello.pb.cc',
         'hello.pb.h',
         'hello_pb2.py'
     ]:
-        assert os.path.isfile(os.path.join('out', 'app', exp_gen_fname))
+        assert isfile(join('build', 'gen', 'proto', 'app', exp_gen_fname))
     clear_output()
