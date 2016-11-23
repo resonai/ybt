@@ -52,6 +52,12 @@ def test_proto_builder(basic_conf):
     populate_targets_graph(build_context, basic_conf)
     for target_name in topological_sort(build_context.target_graph):
         target = build_context.targets[target_name]
+        if target.buildenv:
+            buildenv = build_context.targets[target.buildenv]
+            for dep in build_context.walk_target_deps_topological_order(
+                    buildenv):
+                build_context.build_target(dep)
+            build_context.build_target(buildenv)
         build_context.build_target(target)
     assert isdir('build')
     assert isdir(join('build', 'gen'))
