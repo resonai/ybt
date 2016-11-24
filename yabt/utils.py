@@ -45,6 +45,13 @@ def rmtree(path: str):
         pass
 
 
+def link_func(src: str, dst: str):
+    try:
+        os.link(src, dst)
+    except FileExistsError:
+        pass
+
+
 def link_node(abs_src: str, abs_dest: str):
     """Sync source node (file / dir) to destination path using hard links."""
     if isfile(abs_src):
@@ -54,11 +61,11 @@ def link_node(abs_src: str, abs_dest: str):
             # exist_ok=True in case of concurrent creation of the same
             # parent dir
             os.makedirs(dest_parent_dir, exist_ok=True)
-        os.link(abs_src, abs_dest)
+        link_func(abs_src, abs_dest)
     elif isdir(abs_src):
         # sync dir by recursively linking files under it to dest
         shutil.copytree(abs_src, abs_dest,
-                        copy_function=os.link,
+                        copy_function=link_func,
                         ignore=shutil.ignore_patterns('.git'))
     else:
         raise FileNotFoundError(abs_src)
