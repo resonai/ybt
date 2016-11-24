@@ -58,9 +58,12 @@ def in_dag_project():
 def in_pkgmgrs_project():
     yield from yabt_project_fixture('pkgmgrs')
 
+@yield_fixture
+def in_prototest_project():
+    yield from yabt_project_fixture('prototest')
 
 @yield_fixture
 def basic_conf():
-    conf = init_and_get_conf([])
+    conf = init_and_get_conf(['--non-interactive'])
     yabt.extend.Plugin.load_plugins(conf)
     yield conf

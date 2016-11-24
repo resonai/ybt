@@ -1,0 +1,5 @@
+package tests;
+
+message Hello {
+    optional string world = 1;
+}
