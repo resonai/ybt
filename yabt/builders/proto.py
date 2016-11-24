@@ -18,13 +18,15 @@
 yabt ProtoBuf builder
 ~~~~~~~~~~~~~~~~~~~~~
 
-:author: Zohar Rimon
+:author: Zohar Rimon, Itamar Ostricher
 """
 
 
 import os
-from os.path import dirname, isfile, join, splitext
+from os.path import dirname, isfile, join, relpath, splitext
 from pathlib import Path
+
+from ostrich.utils.path import commonpath
 
 from ..compat import walk
 from ..extend import (
@@ -80,6 +82,11 @@ def proto_builder(build_context, target):
     build_context.run_in_buildenv(
         target.props.in_buildenv, protoc_cmd, target.props.cmd_env)
     generated_files = []
+    target.artifacts['gen'] = {}
+
+    def add_artifact(file_path):
+        target.artifacts['gen'][relpath(file_path, workspace_dir)] = (
+            relpath(file_path, build_context.conf.project_root))
 
     def process_generated(src_base, gen_suffixes, is_artifact):
         gen_files = [src_base + gen_suffix for gen_suffix in gen_suffixes]
@@ -88,8 +95,14 @@ def proto_builder(build_context, target):
                          ', '.join(gen_files))
         else:
             if is_artifact:
-                target.artifacts['gen'].extend(gen_files)
+                for gen_file in gen_files:
+                    add_artifact(gen_file)
             generated_files.extend(gen_files)
+
+    def create_init_py(path: str):
+        init_py_path = join(path, '__init__.py')
+        Path(init_py_path).touch(exist_ok=True)
+        return init_py_path
 
     # Add generated files to artifacts / generated list
     for src in target.props.sources:
@@ -105,6 +118,13 @@ def proto_builder(build_context, target):
 
     # Create __init__.py files in all generated directories with Python files
     if target.props.gen_python or target.props.gen_python_rpcz:
+        join_env = target.props.packaging_params.pop('semicolon_join_env', {})
+        if 'PYTHONPATH' in join_env:
+            if '/usr/src/gen' not in join_env['PYTHONPATH'].split(':'):
+                join_env['PYTHONPATH'] += ':/usr/src/gen'
+        else:
+            join_env['PYTHONPATH'] = '/usr/src/gen'
+        target.props.packaging_params['semicolon_join_env'] = join_env
         py_dirs = set(('',))
         for src in target.props.sources:
             py_dir = dirname(src)
@@ -112,18 +132,18 @@ def proto_builder(build_context, target):
                 py_dirs.add(py_dir)
                 py_dir = dirname(py_dir)
         for py_dir in py_dirs:
-            init_path = join(proto_dir, py_dir, '__init__.py')
-            Path(init_path).touch(exist_ok=True)
-            target.artifacts['gen'].append(init_path)
+            add_artifact(create_init_py(join(proto_dir, py_dir)))
 
     # Copy generated files to external destination
     if target.props.copy_generated_to:
         link_artifacts(generated_files, target.props.copy_generated_to,
                        workspace_dir, build_context.conf)
-        # Create __init__.py files in external destination dirs too
-        for root, dirs, unused_files in walk(target.props.copy_generated_to):
-            for proto_dir in dirs:
-                Path(join(root, proto_dir, '__init__.py')).touch(exist_ok=True)
+        if target.props.gen_python or target.props.gen_python_rpcz:
+            # Create __init__.py files in external destination dirs too
+            for root, dirs, unused_files in walk(
+                    target.props.copy_generated_to):
+                for proto_dir in dirs:
+                    create_init_py(join(root, proto_dir))
 
 
 @register_manipulate_target_hook('Proto')

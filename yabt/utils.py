@@ -36,6 +36,34 @@ from .logging import make_logger
 logger = make_logger(__name__)
 
 
+def rmtree(path: str):
+    """Forcibly remove directory tree.
+       Fail silently if base dir doesn't exist."""
+    try:
+        shutil.rmtree(path)
+    except FileNotFoundError:
+        pass
+
+
+def link_node(abs_src: str, abs_dest: str):
+    """Sync source node (file / dir) to destination path using hard links."""
+    if isfile(abs_src):
+        # sync file by linking it to dest
+        dest_parent_dir = split(abs_dest)[0]
+        if not isdir(dest_parent_dir):
+            # exist_ok=True in case of concurrent creation of the same
+            # parent dir
+            os.makedirs(dest_parent_dir, exist_ok=True)
+        os.link(abs_src, abs_dest)
+    elif isdir(abs_src):
+        # sync dir by recursively linking files under it to dest
+        shutil.copytree(abs_src, abs_dest,
+                        copy_function=os.link,
+                        ignore=shutil.ignore_patterns('.git'))
+    else:
+        raise FileNotFoundError(abs_src)
+
+
 def link_artifacts(artifacts: set, workspace_src_dir: str,
                    common_parent: str, conf):
     """Sync the list of files and directories in `artifacts` to destination
@@ -67,10 +95,7 @@ def link_artifacts(artifacts: set, workspace_src_dir: str,
     norm_dir = normpath(workspace_src_dir)
     if norm_dir not in conf.deleted_dirs:
         conf.deleted_dirs.add(norm_dir)
-        try:
-            shutil.rmtree(norm_dir)
-        except FileNotFoundError:
-            pass
+        rmtree(norm_dir)
     if common_parent:
         common_parent = normpath(common_parent)
         base_dir = commonpath(list(artifacts) + [common_parent])
@@ -85,21 +110,7 @@ def link_artifacts(artifacts: set, workspace_src_dir: str,
     for src in artifacts:
         abs_src = join(conf.project_root, src)
         abs_dest = join(workspace_src_dir, relpath(src, base_dir))
-        if isfile(abs_src):
-            # sync file by linking it to dest
-            dest_parent_dir = split(abs_dest)[0]
-            if not isdir(dest_parent_dir):
-                # exist_ok=True in case of concurrent creation of the same
-                # parent dir
-                os.makedirs(dest_parent_dir, exist_ok=True)
-            os.link(abs_src, abs_dest)
-        elif isdir(abs_src):
-            # sync dir by recursively linking files under it to dest
-            shutil.copytree(abs_src, abs_dest,
-                            copy_function=os.link,
-                            ignore=shutil.ignore_patterns('.git'))
-        else:
-            raise FileNotFoundError(abs_src)
+        link_node(abs_src, abs_dest)
         num_linked += 1
     return num_linked
 

@@ -44,7 +44,7 @@ from .builders.ruby import format_gem_specifier
 from .pkgmgmt import (
     format_apt_specifier, format_pypi_specifier, parse_apt_repository)
 from . import target_utils
-from .utils import link_artifacts, yprint
+from .utils import link_artifacts, link_node, rmtree, yprint
 
 
 logger = make_logger(__name__)
@@ -246,6 +246,7 @@ def build_docker_image(
     if build_user:
         dockerfile.append('USER {}\n'.format(build_user))
     all_artifacts = defaultdict(set)
+    gen_artifacts = {}
     apt_repo_deps = []
     effective_env = {}
     KNOWN_RUNTIME_PARAMS = frozenset((
@@ -338,7 +339,10 @@ def build_docker_image(
             continue
         if not no_artifacts:
             for kind, artifacts in dep.artifacts.items():
-                all_artifacts[kind].update(artifacts)
+                if kind == 'gen':
+                    gen_artifacts.update(artifacts)
+                else:
+                    all_artifacts[kind].update(artifacts)
 
         PACKAGING_PARAMS = frozenset(('set_env', 'semicolon_join_env'))
         invalid_keys = set(
@@ -438,10 +442,7 @@ def build_docker_image(
             packages_dir = 'packages{}'.format(custom_cnt)
             tmp_install = '/tmp/install{}'.format(custom_cnt)
             workspace_packages_dir = join(workspace_dir, packages_dir)
-            try:
-                shutil.rmtree(workspace_packages_dir)
-            except FileNotFoundError:
-                pass
+            rmtree(workspace_packages_dir)
             os.makedirs(workspace_packages_dir)
             run_installers = []
             for custom_installer in packages:
@@ -494,16 +495,25 @@ def build_docker_image(
         # leftover files in there - I think this is better than walking it and
         # looking for files to remove - doesn't seem this would scale well
         workspace_src_dir = join(workspace_dir, 'src')
-        try:
-            shutil.rmtree(workspace_src_dir)
-        except FileNotFoundError:
-            pass
+        rmtree(workspace_src_dir)
         # sync artifacts between project and `workspace_src_dir`
         num_linked = 0
+        # link app artifacts (with common parent truncation)
+        app_artifacts = all_artifacts.pop('app', None)
+        if app_artifacts:
+            num_linked += link_artifacts(
+                app_artifacts, join(workspace_src_dir, 'app'),
+                truncate_common_parent, build_context.conf)
+        # link generated artifacts
+        for dest, src in gen_artifacts.items():
+            link_node(join(build_context.conf.project_root, src),
+                      join(workspace_src_dir, 'gen', dest))
+            num_linked += 1
+        # link "other" artifacts
         for kind, artifacts in all_artifacts.items():
             num_linked += link_artifacts(
-                artifacts, join(workspace_src_dir, kind),
-                truncate_common_parent, build_context.conf)
+                artifacts, join(workspace_src_dir, kind), None,
+                build_context.conf)
         if num_linked > 0:
             dockerfile.append('COPY src /usr/src\n')
 
