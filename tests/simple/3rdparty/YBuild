@@ -1,6 +1,7 @@
 PythonPackage(
     'flask',
-    package='flask'
+    package='flask',
+    pip='pip'
 )
 
 ExtDockerImage(

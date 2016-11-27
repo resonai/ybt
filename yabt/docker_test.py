@@ -87,12 +87,13 @@ def test_package_managers_install_order(basic_conf):
         'rm -rf /tmp/install1\n',
         'RUN apt-get update -y && apt-get install --no-install-recommends -y '
         'ruby2.2 ruby2.2-dev && rm -rf /var/lib/apt/lists/*\n',
-        'COPY requirements_1.txt /usr/src/\n',
-        'RUN pip install --no-cache-dir -r /usr/src/requirements_1.txt\n',
+        'COPY requirements_pip_1.txt /usr/src/\n',
+        'RUN pip install --no-cache-dir --upgrade pip && '
+        'pip install --no-cache-dir -r /usr/src/requirements_pip_1.txt\n',
         'RUN npm install left-pad --global\n',
         'RUN gem install compass\n',
-        'COPY requirements_2.txt /usr/src/\n',
-        'RUN pip install --no-cache-dir -r /usr/src/requirements_2.txt\n',
+        'COPY requirements_pip_2.txt /usr/src/\n',
+        'RUN pip install --no-cache-dir -r /usr/src/requirements_pip_2.txt\n',
         'WORKDIR /usr/src/app\n',
         'USER root\n',
         'CMD ["foo"]\n',

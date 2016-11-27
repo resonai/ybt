@@ -61,6 +61,7 @@ PythonPackage(
     'flask',
     package='flask',
     version='0.10.1',
+    pip='pip',
     deps=':ruby',
     packaging_params={
         'semicolon_join_env': {
@@ -89,7 +90,8 @@ GemPackage(
 PythonPackage(
     'gunicorn',
     package='gunicorn',
-    deps=':compass'
+    deps=':compass',
+    pip='pip'
 )
 
 ExtDockerImage(

@@ -373,7 +373,7 @@ def build_docker_image(
         if 'apt-installable' in dep.tags:
             add_package('apt', format_apt_specifier(dep))
         if 'pip-installable' in dep.tags:
-            add_package('pip', format_pypi_specifier(dep))
+            add_package(dep.props.pip, format_pypi_specifier(dep))
         if 'custom-installer' in dep.tags:
             add_package('custom', dep.props.installer_desc)
         if 'npm-installable' in dep.tags:
@@ -417,7 +417,7 @@ def build_docker_image(
                 'COPY {} /etc/apt/sources.list.d/\n'.format(list_name))
 
     custom_cnt = 0
-    pip_req_cnt = 0
+    pip_req_cnt = defaultdict(int)
 
     def install_npm(npm_packages: list, global_install: bool):
         if npm_packages:
@@ -462,18 +462,24 @@ def build_docker_image(
                     ' && '.join(run_installers), tmp_install),
             ])
 
-        elif pkg_type == 'pip':
+        elif pkg_type.startswith('pip'):
             # Handle pip packages (2 layers per occurrence)
-            pip_req_cnt += 1
-            req_fname = 'requirements_{}.txt'.format(pip_req_cnt)
+            req_fname = 'requirements_{}_{}.txt'.format(
+                pkg_type, pip_req_cnt[pkg_type] + 1)
             pip_req_file = join(workspace_dir, req_fname)
             if make_pip_requirements(packages, pip_req_file):
+                upgrade_pip = (
+                    '{pip} install --no-cache-dir --upgrade pip && '
+                    .format(pip=pkg_type)
+                    if pip_req_cnt[pkg_type] == 0 else '')
                 dockerfile.extend([
                     'COPY {} /usr/src/\n'.format(req_fname),
-                    'RUN {}pip install --no-cache-dir -r /usr/src/{}\n'.format(
-                        'pip install --no-cache-dir --upgrade pip && '
-                        if pip_req_cnt == 0 else '', req_fname)
+                    'RUN {upgrade_pip}'
+                    '{pip} install --no-cache-dir -r /usr/src/{reqs}\n'
+                    .format(upgrade_pip=upgrade_pip, pip=pkg_type,
+                            reqs=req_fname)
                 ])
+                pip_req_cnt[pkg_type] += 1
 
         elif pkg_type == 'npm-global':
             # Handle npm global packages (1 layer per occurrence)
