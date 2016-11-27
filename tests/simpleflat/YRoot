@@ -4,7 +4,8 @@ import math
 PythonPackage(
     'flask-0.10.1',
     package='flask',
-    version='0.10.1'
+    version='0.10.1',
+    pip='pip'
 )
 
 ExtDockerImage(
