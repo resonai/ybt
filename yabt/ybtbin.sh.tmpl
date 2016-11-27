@@ -5,8 +5,11 @@
 # Anything after the first `--` is passed as extra Docker options
 # The `--` must be surrounded by whitespace
 
+fd=0
+[[ -t "$fd" || -p /dev/stdin ]] && IT="-it" || IT=""
+
 ARGS=""
-DOCKER_OPTS=""
+DOCKER_OPTS="{default_opts}"
 PHASE=1
 
 for arg in "$@"; do

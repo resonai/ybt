@@ -30,6 +30,7 @@ from collections import defaultdict, deque
 import os
 from os.path import (
     abspath, basename, dirname, isfile, join, relpath, samefile, split)
+import platform
 import shutil
 
 from ostrich.utils.path import commonpath
@@ -195,10 +196,10 @@ def handle_build_cache(name: str, tag: str, image_caching_behavior: dict):
 def build_docker_image(
         build_context, name: str, tag: str, base_image, deps: list=None,
         env: dict=None, work_dir: str=None, truncate_common_parent: str=None,
-        entrypoint: list=None, cmd: list=None, distro: dict=None,
-        image_caching_behavior: dict=None, runtime_params: dict=None,
-        ybt_bin_path: str=None, build_user: str=None, run_user: str=None,
-        no_artifacts: bool=False):
+        entrypoint: list=None, cmd: list=None, full_path_cmd: bool=False,
+        distro: dict=None, image_caching_behavior: dict=None,
+        runtime_params: dict=None, ybt_bin_path: str=None,
+        build_user: str=None, run_user: str=None, no_artifacts: bool=False):
     """Build Docker image, and return a (image_id, image_name:tag) tuple of
        built image, if built successfully.
 
@@ -250,11 +251,13 @@ def build_docker_image(
     apt_repo_deps = []
     effective_env = {}
     KNOWN_RUNTIME_PARAMS = frozenset((
-        'ports', 'volumes', 'container_name', 'daemonize', 'rm'))
+        'ports', 'volumes', 'container_name', 'daemonize', 'interactive',
+        'term', 'auto_it', 'rm', 'env', 'work_dir', 'impersonate'))
     if runtime_params is None:
         runtime_params = {}
     runtime_params['ports'] = listify(runtime_params.get('ports'))
     runtime_params['volumes'] = listify(runtime_params.get('volumes'))
+    runtime_params['env'] = dict(runtime_params.get('env', {}))
     env_manipulations = {}
     packaging_layers = []
 
@@ -313,13 +316,12 @@ def build_docker_image(
         # TODO(itamar): check for invalid values and inconsistencies
         runtime_params['ports'].extend(listify(new_rt_param.get('ports')))
         runtime_params['volumes'].extend(listify(new_rt_param.get('volumes')))
-        if 'container_name' in new_rt_param:
-            # TODO(itamar): check conflicting overrides
-            runtime_params['container_name'] = new_rt_param['container_name']
-        if 'daemonize' in new_rt_param:
-            runtime_params['daemonize'] = new_rt_param['daemonize']
-        if 'rm' in new_rt_param:
-            runtime_params['rm'] = new_rt_param['rm']
+        runtime_params['env'].update(dict(runtime_params.get('env', {})))
+        for param in ('container_name', 'daemonize', 'interactive', 'term',
+                      'auto_it', 'rm', 'work_dir', 'impersonate'):
+            if param in new_rt_param:
+                # TODO(itamar): check conflicting overrides
+                runtime_params[param] = new_rt_param[param]
 
     if deps is None:
         deps = []
@@ -527,6 +529,8 @@ def build_docker_image(
     if entrypoint:
         # TODO(itamar): Consider adding tini as entrypoint also if given
         # Docker CMD without a Docker ENTRYPOINT?
+        if full_path_cmd:
+            entrypoint[0] = join('/usr/src/app', entrypoint[0])
         if build_context.conf.with_tini_entrypoint:
             entrypoint = ['tini', '--'] + entrypoint
         dockerfile.append(
@@ -535,6 +539,8 @@ def build_docker_image(
 
     # Add CMD (one layer)
     if cmd:
+        if full_path_cmd:
+            cmd[0] = join('/usr/src/app', cmd[0])
         dockerfile.append(
             'CMD [{}]\n'.format(', '.join(format_docker_cmd(cmd))))
 
@@ -562,21 +568,32 @@ def build_docker_image(
             param_strings = []
             if 'container_name' in params:
                 param_strings.extend(['--name', params['container_name']])
+            if params.get('interactive'):
+                param_strings.append('-i')
+            if params.get('term'):
+                param_strings.append('-t')
             if params.get('rm'):
                 param_strings.append('--rm')
             if params.get('daemonize'):
                 param_strings.append('-d')
+            if params.get('impersonate') and platform.system() == 'Linux':
+                param_strings.extend(['-u', '$( id -u ):$( id -g )'])
             for port in params['ports']:
                 param_strings.extend(['-p', port])
             for volume in params['volumes']:
                 param_strings.extend(['-v', volume])
+            if params.get('work_dir'):
+                param_strings.extend(['-w', params['work_dir']])
+            for var, value in params['env'].items():
+                param_strings.extend(['-e', '{}="{}"'.format(var, value)])
             return ' '.join(param_strings)
 
         with open(join(dirname(abspath(__file__)),
                   'ybtbin.sh.tmpl'), 'r') as tmpl_f:
             ybt_bin = tmpl_f.read().format(
                 image_name=docker_image, image_id=image_id,
-                docker_opts=format_docker_run_params(runtime_params))
+                docker_opts=format_docker_run_params(runtime_params),
+                default_opts='$IT' if runtime_params.get('auto_it') else '')
         with open(ybt_bin_path, 'w') as ybt_bin_f:
             ybt_bin_f.write(ybt_bin)
         os.chmod(ybt_bin_path, 0o755)
