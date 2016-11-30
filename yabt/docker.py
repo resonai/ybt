@@ -583,7 +583,10 @@ def build_docker_image(
             if params.get('daemonize'):
                 param_strings.append('-d')
             if params.get('impersonate') and platform.system() == 'Linux':
-                param_strings.extend(['-u', '$( id -u ):$( id -g )'])
+                param_strings.extend([
+                    '-u', '$( id -u ):$( id -g )',
+                    '-v', '/etc/passwd:/etc/passwd:ro',
+                    '-v', '/etc/group:/etc/group:ro'])
             for port in params['ports']:
                 param_strings.extend(['-p', port])
             for volume in params['volumes']:
