@@ -42,12 +42,12 @@ logger = make_logger(__name__)
 register_builder_sig(
     'Proto',
     [('sources', PT.FileList),
+     ('in_buildenv', PT.Target),
      ('gen_python', PT.bool, True),
      ('gen_cpp', PT.bool, True),
      ('gen_python_rpcz', PT.bool, False),
      ('gen_cpp_rpcz', PT.bool, False),
      ('copy_generated_to', PT.File, None),
-     ('in_buildenv', PT.Target, None),
      ('cmd_env', None),
      ])
 
@@ -147,5 +147,5 @@ def proto_builder(build_context, target):
 
 
 @register_manipulate_target_hook('Proto')
-def ext_command_manipulate_target(build_context, target):
+def proto_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
