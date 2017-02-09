@@ -98,6 +98,8 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         PARSER.add('-v', '--verbose', action='store_true',
                    help='More verbose output to STDOUT')
         PARSER.add('--with-tini-entrypoint', action='store_true')
+        PARSER.add('--artifacts-metadata-file',
+                   help='Output file to write artifacts metadata to')
         # Logging flags
         PARSER.add('--logtostderr', action='store_true',
                    help='Whether to log to STDERR')

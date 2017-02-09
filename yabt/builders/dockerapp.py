@@ -55,7 +55,7 @@ def register_app_builder_sig(builder_name, sig=None, docstring=None):
 def build_app_docker_and_bin(build_context, target, **kwargs):
     build_module, bin_name = target_utils.split(target.name)
     ybt_bin_path = join(build_context.get_bin_dir(build_module), bin_name)
-    image_id = build_docker_image(
+    metadata = build_docker_image(
         build_context,
         name=get_image_name(target),
         tag=target.props.image_tag,
@@ -72,4 +72,4 @@ def build_app_docker_and_bin(build_context, target, **kwargs):
         ybt_bin_path=ybt_bin_path,
         build_user=target.props.build_user,
         run_user=target.props.run_user)
-    target.props.docker_image_id = image_id
+    build_context.register_target_artifact_metadata(target, metadata)
