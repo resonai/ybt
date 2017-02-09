@@ -22,13 +22,14 @@ yabt cli module
 """
 
 
+from importlib.machinery import SourceFileLoader
 import os
 
 import argcomplete
 import colorama
 import configargparse
 
-from .config import BUILD_PROJ_FILE, Config, YCONFIG_FILE
+from .config import BUILD_PROJ_FILE, Config, YCONFIG_FILE, YSETTINGS_FILE
 from .utils import search_for_parent_dir
 
 
@@ -124,6 +125,40 @@ def find_project_config_file(project_root: str) -> str:
             return project_config_file
 
 
+def get_user_settings_module(project_root: str):
+    """Return project-specific user settings module, if it exists.
+
+    :param project_root: Absolute path to project root directory.
+
+    A project settings file is a file named `YSETTINGS_FILE` found at the top
+    level of the project root dir.
+
+    Return `None` if project root dir is not specified,
+    or if no such file is found.
+
+    Raise an exception if a file is found, but not importable.
+
+    The YSettings file can define 2 special module-level functions that
+    interact with the YABT CLI & config system:
+    1. `extend_cli`, if defined, takes the YABT `parser` object and may extend
+       it, to add custom command-line flags for the project.
+       (careful not to collide with YABT flags...)
+    2. `extend_config`, if defined, takes the YABT `config` object and the
+       parsed `args` object (returned by the the parser), and may extend the
+       config - should be used to reflect custom project CLI flags in the
+       config object.
+
+    Beyond that, the settings module is available in YBuild's under
+    `conf.settings` (except for the 2 special fucntions that are removed).
+    """
+    if project_root:
+        project_settings_file = os.path.join(project_root, YSETTINGS_FILE)
+        if os.path.isfile(project_settings_file):
+            settings_loader = SourceFileLoader(
+                'settings', project_settings_file)
+            return settings_loader.load_module()
+
+
 def init_and_get_conf(argv: list=None) -> Config:
     """Initialize a YABT CLI environment and return a Config instance.
 
@@ -134,5 +169,19 @@ def init_and_get_conf(argv: list=None) -> Config:
     project_root = search_for_parent_dir(work_dir,
                                          with_files=set([BUILD_PROJ_FILE]))
     parser = make_parser(find_project_config_file(project_root))
+    settings_module = get_user_settings_module(project_root)
+    if settings_module:
+        if hasattr(settings_module, 'extend_cli'):
+            settings_module.extend_cli(parser)
     argcomplete.autocomplete(parser)
-    return Config(parser.parse(argv), project_root, work_dir)
+    args = parser.parse(argv)
+    config = Config(args, project_root, work_dir)
+    if settings_module:
+        if hasattr(settings_module, 'extend_config'):
+            settings_module.extend_config(config, args)
+        config.settings = settings_module
+        delattr(config.settings, 'extend_cli')
+        delattr(config.settings, 'extend_config')
+    else:
+        config.settings = None
+    return config

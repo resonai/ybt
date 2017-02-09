@@ -32,6 +32,7 @@ from .utils import search_for_parent_dir
 
 BUILD_PROJ_FILE = 'YRoot'
 YCONFIG_FILE = 'YConfig'
+YSETTINGS_FILE = 'YSettings'
 
 
 class Config:

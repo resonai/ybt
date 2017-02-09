@@ -1,0 +1,7 @@
+MY_VERSION = '1.1'
+
+def extend_cli(parser):
+    parser.add('--python-version', type=int, default=3)
+
+def extend_config(config, args):
+    config.python_version = args.python_version
