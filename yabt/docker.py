@@ -128,15 +128,15 @@ def get_cached_image_id(qualified_image_name):
     return None
 
 
-def pull_docker_image(qualified_image_name):
-    docker_pull_cmd = ['docker', 'pull', qualified_image_name]
+def pull_docker_image(qualified_image_name: str, pull_cmd: list):
+    docker_pull_cmd = pull_cmd + [qualified_image_name]
     logger.debug('Pulling Docker image {} using command {}',
                  qualified_image_name, docker_pull_cmd)
     run(docker_pull_cmd, check=True)
 
 
-def push_docker_image(qualified_image_name):
-    docker_push_cmd = ['docker', 'push', qualified_image_name]
+def push_docker_image(qualified_image_name: str, push_cmd: list):
+    docker_push_cmd = push_cmd + [qualified_image_name]
     logger.debug('Pushing Docker image {} using command {}',
                  qualified_image_name, docker_push_cmd)
     run(docker_push_cmd, check=True)
@@ -153,7 +153,8 @@ def tag_docker_image(src_image, tag_as_image):
     run(docker_tag_cmd, check=True)
 
 
-def handle_build_cache(name: str, tag: str, image_caching_behavior: dict):
+def handle_build_cache(
+        build_context, name: str, tag: str, image_caching_behavior: dict):
     """Handle Docker image build cache.
 
     Return image ID if image is cached, and there's no need to redo the build.
@@ -180,7 +181,7 @@ def handle_build_cache(name: str, tag: str, image_caching_behavior: dict):
     if pull_if_cached or (pull_if_not_cached and
                           get_cached_image_id(remote_image) is None):
         try:
-            pull_docker_image(remote_image)
+            pull_docker_image(remote_image, build_context.conf.dokcer_pull_cmd)
         except CalledProcessError:
             pass
     local_image = '{}:{}'.format(name, tag)
@@ -231,7 +232,8 @@ def build_docker_image(
     docker_image = '{}:{}'.format(name, tag)
     if image_caching_behavior is None:
         image_caching_behavior = {}
-    image_id = handle_build_cache(name, tag, image_caching_behavior)
+    image_id = handle_build_cache(
+        build_context, name, tag, image_caching_behavior)
     if image_id:
         yprint(build_context.conf,
                'Skipping build of cached Docker image', docker_image)
@@ -563,7 +565,7 @@ def build_docker_image(
     if image_caching_behavior.get('push_image_after_build', False):
         remote_image = get_remote_image_name(name, tag, image_caching_behavior)
         tag_docker_image(image_id, remote_image)
-        push_docker_image(remote_image)
+        push_docker_image(remote_image, build_context.conf.docker_push_cmd)
     # Generate ybt_bin scripts
     if ybt_bin_path:
         # Make sure ybt_bin's are created only under bin_path

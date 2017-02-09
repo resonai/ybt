@@ -52,6 +52,8 @@ class Config:
         """
         for slot in self.attrs_from_args:
             setattr(self, slot, getattr(args, slot))
+        self.docker_pull_cmd = args.docker_pull_cmd.split()
+        self.docker_push_cmd = args.docker_push_cmd.split()
         configure_logging(self)
         self.project_root = project_root_dir
         self.work_dir = work_dir

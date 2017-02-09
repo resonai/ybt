@@ -91,6 +91,10 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         PARSER.add('--scm-provider')
         PARSER.add('--docker-volume',
                    help='Use the specified docker volume as buildenv /project')
+        PARSER.add('--docker-pull-cmd', default='docker pull',
+                   help='Command to use for pulling images from registries')
+        PARSER.add('--docker-push-cmd', default='docker push',
+                   help='Command to use for pushing images to registries')
         PARSER.add('-v', '--verbose', action='store_true',
                    help='More verbose output to STDOUT')
         PARSER.add('--with-tini-entrypoint', action='store_true')
