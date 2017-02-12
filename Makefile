@@ -30,7 +30,7 @@ dist:
 	@echo "Finished buliding source & wheel distributions"
 
 clean:
-	rm -r $(BASEDIR)/build $(BASEDIR)/dist
+	rm -rf $(BASEDIR)/build $(BASEDIR)/dist
 	@echo "Finished cleaning build & dist output dirs"
 
 pypi: clean dist
