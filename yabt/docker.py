@@ -181,7 +181,7 @@ def handle_build_cache(
     if pull_if_cached or (pull_if_not_cached and
                           get_cached_image_id(remote_image) is None):
         try:
-            pull_docker_image(remote_image, build_context.conf.dokcer_pull_cmd)
+            pull_docker_image(remote_image, build_context.conf.docker_pull_cmd)
         except CalledProcessError:
             pass
     local_image = '{}:{}'.format(name, tag)
@@ -237,7 +237,7 @@ def build_docker_image(
     if image_id:
         yprint(build_context.conf,
                'Skipping build of cached Docker image', docker_image)
-        return image_id
+        return {'image_id': image_id}
     # create directory for this target under a private builder workspace
     workspace_dir = build_context.get_workspace('DockerBuilder', docker_image)
     # generate Dockerfile and build it
@@ -562,10 +562,21 @@ def build_docker_image(
     run(docker_build_cmd, check=True)
     # TODO(itamar): race condition here
     image_id = get_cached_image_id(docker_image)
+    metadata = {
+        'image_id': image_id,
+        'images': [{
+            'name': docker_image,
+            'pushed': False,
+        }],
+    }
     if image_caching_behavior.get('push_image_after_build', False):
         remote_image = get_remote_image_name(name, tag, image_caching_behavior)
         tag_docker_image(image_id, remote_image)
         push_docker_image(remote_image, build_context.conf.docker_push_cmd)
+        metadata['images'].append({
+            'name': remote_image,
+            'pushed': True,
+        })
     # Generate ybt_bin scripts
     if ybt_bin_path:
         # Make sure ybt_bin's are created only under bin_path
@@ -608,7 +619,8 @@ def build_docker_image(
         with open(ybt_bin_path, 'w') as ybt_bin_f:
             ybt_bin_f.write(ybt_bin)
         os.chmod(ybt_bin_path, 0o755)
-    return image_id
+        metadata['ybt_bin'] = ybt_bin_path
+    return metadata
 
 
 def base_image_caching_behavior(conf: Config, **kwargs):

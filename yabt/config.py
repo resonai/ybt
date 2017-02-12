@@ -42,7 +42,8 @@ class Config:
         'bin_output_dir', 'build_file_name', 'default_target_name', 'cmd',
         'targets', 'build_base_images', 'builders_workspace_dir', 'force_pull',
         'offline', 'non_interactive', 'push', 'docker_volume', 'verbose',
-        'with_tini_entrypoint', 'loglevel', 'logtostderr', 'logtostdout',
+        'with_tini_entrypoint', 'artifacts_metadata_file',
+        'loglevel', 'logtostderr', 'logtostdout',
     ))
 
     def __init__(self, args, project_root_dir: str, work_dir: str):

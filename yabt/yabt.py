@@ -96,6 +96,8 @@ def cmd_build(conf: Config):
         target = build_context.targets[target_name]
         build(target)
 
+    build_context.write_artifacts_metadata()
+
 
 def cmd_tree(conf: Config):
     """Print out a neat targets dependency tree based on requested targets."""

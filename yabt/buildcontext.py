@@ -23,9 +23,11 @@ yabt Build context module
 
 
 from collections import defaultdict
+import json
 import os
 from os.path import join
 import platform
+import threading
 
 from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
@@ -79,6 +81,9 @@ class BuildContext:
         # # A *thread-safe* map from BuildEnv name to qualified Docker image
         # #  name for that BuildEnv
         # self.buildenv_images = {}
+        # A dictionary for collecting metadata on build artifacts
+        self.artifacts_metadata = {}
+        self.context_lock = threading.Lock()
 
     def get_workspace(self, *parts) -> str:
         """Return a path to a private workspace dir.
@@ -238,3 +243,18 @@ class BuildContext:
         else:
             logger.warning('Skipping {} builder function for target {} (no '
                            'function registered)', target.builder_name, target)
+
+    def register_target_artifact_metadata(self, target: str, metadata: dict):
+        """Register the artifact metadata dictionary for a built target."""
+        with self.context_lock:
+            target.props.docker_image_id = metadata['image_id']
+            self.artifacts_metadata[target.name] = metadata
+
+    def write_artifacts_metadata(self):
+        """Write out a JSON file with all built targets artifact metadata,
+           if such output file is specified."""
+        if self.conf.artifacts_metadata_file:
+            logger.info('Writing artifacts metadata to file "%s"',
+                        self.conf.artifacts_metadata_file)
+            with open(self.conf.artifacts_metadata_file, 'w') as fp:
+                json.dump(self.artifacts_metadata, fp)
