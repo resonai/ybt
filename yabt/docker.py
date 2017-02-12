@@ -181,7 +181,7 @@ def handle_build_cache(
     if pull_if_cached or (pull_if_not_cached and
                           get_cached_image_id(remote_image) is None):
         try:
-            pull_docker_image(remote_image, build_context.conf.dokcer_pull_cmd)
+            pull_docker_image(remote_image, build_context.conf.docker_pull_cmd)
         except CalledProcessError:
             pass
     local_image = '{}:{}'.format(name, tag)
