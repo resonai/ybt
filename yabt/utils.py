@@ -109,14 +109,16 @@ def link_artifacts(artifacts: set, workspace_src_dir: str,
         if base_dir != common_parent:
             raise ValueError('{} is not the common parent of all target '
                              'sources and data'.format(common_parent))
-        logger.debug('Rebasing files in image relative to common parent dir {}'
-                     .format(base_dir))
+        logger.debug(
+            'Rebasing files in image relative to common parent dir {}',
+            base_dir)
     else:
         base_dir = ''
     num_linked = 0
     for src in artifacts:
         abs_src = join(conf.project_root, src)
-        abs_dest = join(workspace_src_dir, relpath(src, base_dir))
+        abs_dest = join(conf.project_root, workspace_src_dir,
+                        relpath(src, base_dir))
         link_node(abs_src, abs_dest)
         num_linked += 1
     return num_linked
