@@ -39,6 +39,8 @@ register_builder_sig(
     [('cmd'),
      ('in_buildenv', PT.Target, None),
      ('cmd_env', None),
+     ('work_dir', PT.str, None),
+     ('auto_uid', PT.bool, True),
      ])
 
 
@@ -46,7 +48,8 @@ register_builder_sig(
 def ext_command_builder(build_context, target):
     yprint(build_context.conf, 'Build (run) ExtCommand', target)
     build_context.run_in_buildenv(
-        target.props.in_buildenv, target.props.cmd, target.props.cmd_env)
+        target.props.in_buildenv, target.props.cmd, target.props.cmd_env,
+        target.props.work_dir, target.props.auto_uid)
     # TODO(itamar): way to describe the artifacts of the external command,
     # so it can be used by dependent targets, and cached in some smart way
 

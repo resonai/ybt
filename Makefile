@@ -20,7 +20,7 @@ quicktest:
 	py.test --pep8 --cov=yabt
 
 tox:
-	TOXENV=py34,py35 tox
+	TOXENV=py34,py35,py36 tox
 
 lint:
 	pylint yabt
