@@ -43,10 +43,14 @@ register_builder_sig(
     'Proto',
     [('sources', PT.FileList),
      ('in_buildenv', PT.Target),
+     ('proto_cmd', PT.list, 'protoc'),
      ('gen_python', PT.bool, True),
      ('gen_cpp', PT.bool, True),
      ('gen_python_rpcz', PT.bool, False),
      ('gen_cpp_rpcz', PT.bool, False),
+     ('gen_python_grpc', PT.bool, False),
+     ('gen_cpp_grpc', PT.bool, False),
+     ('grpc_plugin_path', PT.str, '/usr/local/bin/grpc_cpp_plugin'),
      ('copy_generated_to', PT.File, None),
      ('cmd_env', None),
      ])
@@ -68,11 +72,18 @@ def proto_builder(build_context, target):
     link_artifacts(protos, proto_dir, None, build_context.conf)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
-    protoc_cmd = ['protoc', '--proto_path', buildenv_workspace]
+    protoc_cmd = target.props.proto_cmd + ['--proto_path', buildenv_workspace]
     if target.props.gen_cpp:
         protoc_cmd.extend(('--cpp_out', buildenv_workspace))
     if target.props.gen_python:
         protoc_cmd.extend(('--python_out', buildenv_workspace))
+    if target.props.gen_cpp_grpc:
+        protoc_cmd.extend(
+            ('--grpc_out', buildenv_workspace,
+             '--plugin=protoc-gen-grpc={}'
+             .format(target.props.grpc_plugin_path)))
+    if target.props.gen_python_grpc:
+        protoc_cmd.extend(('--grpc_python_out', buildenv_workspace))
     if target.props.gen_cpp_rpcz:
         protoc_cmd.extend(('--cpp_rpcz_out', buildenv_workspace))
     if target.props.gen_python_rpcz:
@@ -115,6 +126,10 @@ def proto_builder(build_context, target):
             process_generated(src_base, ('_rpcz.py',), True)
         if target.props.gen_cpp_rpcz:
             process_generated(src_base, ('.rpcz.cc', '.rpcz.h'), False)
+        if target.props.gen_python_grpc:
+            process_generated(src_base, ('_pb2_grpc.py',), True)
+        if target.props.gen_cpp_grpc:
+            process_generated(src_base, ('.grpc.pb.cc', '.grpc.pb.h'), False)
 
     # Create __init__.py files in all generated directories with Python files
     if target.props.gen_python or target.props.gen_python_rpcz:
