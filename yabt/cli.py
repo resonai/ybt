@@ -186,8 +186,14 @@ def init_and_get_conf(argv: list=None) -> Config:
         if hasattr(settings_module, 'extend_config'):
             settings_module.extend_config(config, args)
         config.settings = settings_module
-        delattr(config.settings, 'extend_cli')
-        delattr(config.settings, 'extend_config')
+        try:
+            delattr(config.settings, 'extend_cli')
+        except AttributeError:
+            pass
+        try:
+            delattr(config.settings, 'extend_config')
+        except AttributeError:
+            pass
     else:
         config.settings = None
     return config
