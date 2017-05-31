@@ -26,7 +26,7 @@ from collections import defaultdict
 from os.path import join, normpath, relpath
 import types
 
-from neobunch import Bunch
+from munch import Munch
 from ostrich.utils.text import get_safe_path
 
 from .compat import walk
@@ -145,7 +145,7 @@ def generate_build_modules(top: str, conf: Config):
 class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
 
     def __init__(self, builder_name):
-        super().__init__(name=None, builder_name=builder_name, props=Bunch(),
+        super().__init__(name=None, builder_name=builder_name, props=Munch(),
                          deps=None, buildenv=None, tags=set(),
                          artifacts=defaultdict(list))
 

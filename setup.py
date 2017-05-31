@@ -54,7 +54,7 @@ setup(
         'colorama',
         'ConfigArgParse',
         'GitPython',
-        'neobunch',
+        'munch',
         'networkx',
         'ostrichlib',
         'requests',
