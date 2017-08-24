@@ -200,7 +200,8 @@ def build_docker_image(
         entrypoint: list=None, cmd: list=None, full_path_cmd: bool=False,
         distro: dict=None, image_caching_behavior: dict=None,
         runtime_params: dict=None, ybt_bin_path: str=None,
-        build_user: str=None, run_user: str=None, no_artifacts: bool=False):
+        build_user: str=None, run_user: str=None, labels: dict=None,
+        no_artifacts: bool=False):
     """Build Docker image, and return a (image_id, image_name:tag) tuple of
        built image, if built successfully.
 
@@ -526,6 +527,10 @@ def build_docker_image(
                 build_context.conf)
         if num_linked > 0:
             dockerfile.append('COPY src /usr/src\n')
+
+    if labels:
+        for label, value in sorted(labels.items()):
+            dockerfile.append('LABEL "{}"="{}"\n'.format(label, value))
 
     def format_docker_cmd(docker_cmd):
         return ('"{}"'.format(cmd) for cmd in docker_cmd)

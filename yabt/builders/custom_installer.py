@@ -25,6 +25,7 @@ yabt Custom Installer Builder
 
 
 from collections import namedtuple
+from itertools import zip_longest
 import os
 from os.path import basename, isfile, join, relpath, splitext
 import shutil
@@ -49,10 +50,11 @@ logger = make_logger(__name__)
 
 register_builder_sig(
     'CustomInstaller',
-    [('uri', PT.str),
+    [('uri', PT.StrList),
      ('script', PT.File),
      ('local_data', PT.FileList, None),
-     ('uri_type', PT.str, None),
+     ('uri_type', PT.StrList, None),
+     ('caching', PT.bool, True),
      ])
 
 
@@ -99,7 +101,7 @@ def make_tar(target):
                         dereference=True)
 
 
-def git_handler(unused_build_context, target, package_dir):
+def git_handler(unused_build_context, target, uri, package_dir, tar):
     """Handle remote Git repository URI.
 
     Clone the repository under the private builder workspace (unless already
@@ -115,12 +117,9 @@ def git_handler(unused_build_context, target, package_dir):
     try:
         repo = git.Repo(package_dir)
     except (InvalidGitRepositoryError, NoSuchPathError):
-        repo = git.Repo.clone_from(target.props.uri, package_dir)
+        repo = git.Repo.clone_from(uri, package_dir)
     assert repo.working_tree_dir == package_dir
-
-    tar = make_tar(target)
     tar.add(package_dir, arcname=target_name, filter=gitfilter)
-    return tar
 
 
 def fetch_url(url, dest, parent_to_remove_before_fetch):
@@ -142,7 +141,7 @@ def fetch_url(url, dest, parent_to_remove_before_fetch):
                 fetch_file.write(chunk)
 
 
-def archive_handler(unused_build_context, target, package_dir):
+def archive_handler(unused_build_context, target, uri, package_dir, tar):
     """Handle remote downloadable archive URI.
 
     Download the archive and cache it under the private builer workspace
@@ -152,9 +151,9 @@ def archive_handler(unused_build_context, target, package_dir):
     TODO(itamar): Support re-downloading if remote changed compared to local.
     TODO(itamar): Support more archive formats (currently only tarballs).
     """
-    package_dest = join(package_dir, basename(urlparse(target.props.uri).path))
+    package_dest = join(package_dir, basename(urlparse(uri).path))
     package_content_dir = join(package_dir, 'content')
-    fetch_url(target.props.uri, package_dest, package_dir)
+    fetch_url(uri, package_dest, package_dir)
 
     # TODO(itamar): Avoid repetition of splitting extension here and above
     # TODO(itamar): Don't use `extractall` on potentially untrsuted archives
@@ -167,13 +166,10 @@ def archive_handler(unused_build_context, target, package_dir):
             zipf.extractall(package_content_dir)
     else:
         raise ValueError('Unsupported extension {}'.format(ext))
-
-    tar = make_tar(target)
     tar.add(package_content_dir, arcname=split_name(target.name))
-    return tar
 
 
-def fetch_file_handler(unused_build_context, target, package_dir):
+def fetch_file_handler(unused_build_context, target, uri, package_dir, tar):
     """Handle remote downloadable file URI.
 
     Download the file and cache it under the private builer workspace
@@ -182,17 +178,12 @@ def fetch_file_handler(unused_build_context, target, package_dir):
     TODO(itamar): Support re-downloading if remote changed compared to local.
     """
     fetch_url(
-        target.props.uri,
-        join(package_dir, basename(urlparse(target.props.uri).path)),
-        package_dir)
-
-    tar = make_tar(target)
+        uri, join(package_dir, basename(urlparse(uri).path)), package_dir)
     tar.add(package_dir, arcname=split_name(target.name))
-    return tar
 
 
-def local_handler(build_context, target, package_dir):
-    return make_tar(target)
+def local_handler(build_context, target, uri, package_dir, tar):
+    pass
 
 
 @register_build_func('CustomInstaller')
@@ -206,7 +197,7 @@ def custom_installer_builder(build_context, target):
     package_tarball = '{}.tar.gz'.format(join(workspace_dir, target_name))
     target.props.installer_desc = CustomInstaller(
         name=target_name, package=package_tarball, install_script=script_name)
-    if isfile(package_tarball):
+    if target.props.caching and isfile(package_tarball):
         logger.debug('Custom installer package {} is cached', package_tarball)
         return
 
@@ -217,11 +208,13 @@ def custom_installer_builder(build_context, target):
         'single': fetch_file_handler,
         'local': local_handler,
     }
-    uri_type = guess_uri_type(target.props.uri, target.props.uri_type)
-    logger.debug('CustomInstaller URI {} typed guessed to be {}',
-                 target.props.uri, uri_type)
-    tar = handlers[uri_type](build_context, target,
-                             join(workspace_dir, target_name))
+    tar = make_tar(target)
+    for uri, uri_type in zip_longest(target.props.uri, target.props.uri_type):
+        uri_type = guess_uri_type(uri, uri_type)
+        logger.debug('CustomInstaller URI {} typed guessed to be {}',
+                     uri, uri_type)
+        handlers[uri_type](
+            build_context, target, uri, join(workspace_dir, target_name), tar)
     # Add local data to installer package, if specified
     for local_node in target.props.local_data:
         tar.add(join(build_context.conf.project_root, local_node),

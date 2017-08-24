@@ -71,6 +71,7 @@ register_builder_sig(
      ('ybt_bin_path', PT.str, None),
      ('build_user', PT.str, None),
      ('run_user', PT.str, None),
+     ('docker_labels', PT.dict, None),
      ])
 
 
@@ -100,5 +101,6 @@ def docker_image_builder(build_context, target):
         runtime_params=target.props.runtime_params,
         ybt_bin_path=target.props.ybt_bin_path,
         build_user=target.props.build_user,
-        run_user=target.props.run_user)
+        run_user=target.props.run_user,
+        labels=target.props.docker_labels)
     build_context.register_target_artifact_metadata(target, metadata)
