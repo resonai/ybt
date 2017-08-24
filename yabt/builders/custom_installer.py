@@ -54,6 +54,7 @@ register_builder_sig(
      ('script', PT.File),
      ('local_data', PT.FileList, None),
      ('uri_type', PT.StrList, None),
+     ('caching', PT.bool, True),
      ])
 
 
@@ -196,7 +197,7 @@ def custom_installer_builder(build_context, target):
     package_tarball = '{}.tar.gz'.format(join(workspace_dir, target_name))
     target.props.installer_desc = CustomInstaller(
         name=target_name, package=package_tarball, install_script=script_name)
-    if isfile(package_tarball):
+    if target.props.caching and isfile(package_tarball):
         logger.debug('Custom installer package {} is cached', package_tarball)
         return
 
