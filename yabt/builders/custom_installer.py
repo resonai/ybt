@@ -25,7 +25,6 @@ yabt Custom Installer Builder
 
 
 from collections import namedtuple
-from itertools import zip_longest
 import os
 from os.path import basename, isfile, join, relpath, splitext
 import shutil
@@ -159,8 +158,8 @@ def archive_handler(unused_build_context, target, uri, package_dir, tar):
     # TODO(itamar): Don't use `extractall` on potentially untrsuted archives
     ext = splitext(package_dest)[-1].lower()
     if ext in ('.gz', '.bz2', '.tgz'):
-        with tarfile.open(package_dest, 'r:*') as tar:
-            tar.extractall(package_content_dir)
+        with tarfile.open(package_dest, 'r:*') as src_tar:
+            src_tar.extractall(package_content_dir)
     elif ext in ('.zip',):
         with ZipFile(package_dest, 'r') as zipf:
             zipf.extractall(package_content_dir)
@@ -197,9 +196,15 @@ def custom_installer_builder(build_context, target):
     package_tarball = '{}.tar.gz'.format(join(workspace_dir, target_name))
     target.props.installer_desc = CustomInstaller(
         name=target_name, package=package_tarball, install_script=script_name)
-    if target.props.caching and isfile(package_tarball):
-        logger.debug('Custom installer package {} is cached', package_tarball)
-        return
+    if isfile(package_tarball):
+        if target.props.caching:
+            logger.debug('Custom installer package {} is cached',
+                         package_tarball)
+            return
+        logger.info('Removing cached custom installer workspace {}',
+                    workspace_dir)
+        shutil.rmtree(workspace_dir)
+        os.makedirs(workspace_dir)
 
     logger.debug('Making custom installer package {}', package_tarball)
     handlers = {
@@ -208,13 +213,25 @@ def custom_installer_builder(build_context, target):
         'single': fetch_file_handler,
         'local': local_handler,
     }
+    uris = target.props.uri
+    uri_types = target.props.uri_type
+    # for multiple URI's:
+    # 1. either uri_type is empty - so "guess" for all
+    # 2. or uri_type has one value - use same value for all URI's
+    # 3. or uri_type has multiple values - must be of same length!
+    if len(uri_types) == 0 and len(uris) > 0:
+        uri_types = [None]
+    if len(uris) > 1 and len(uri_types) == 1:
+        uri_types = [uri_types[0]] * len(uris)
+    assert len(uris) == len(uri_types)
     tar = make_tar(target)
-    for uri, uri_type in zip_longest(target.props.uri, target.props.uri_type):
+    for i, (uri, uri_type) in enumerate(zip(uris, uri_types)):
         uri_type = guess_uri_type(uri, uri_type)
         logger.debug('CustomInstaller URI {} typed guessed to be {}',
                      uri, uri_type)
-        handlers[uri_type](
-            build_context, target, uri, join(workspace_dir, target_name), tar)
+        package_dir = join(workspace_dir, target_name,
+                           '{}-{}'.format(uri_type, i))
+        handlers[uri_type](build_context, target, uri, package_dir, tar)
     # Add local data to installer package, if specified
     for local_node in target.props.local_data:
         tar.add(join(build_context.conf.project_root, local_node),

@@ -19,7 +19,8 @@ CustomInstaller(
     'upgrade-pip',
     uri='',
     script='upgrade-pip.sh',
-    deps=[':pip', ':setuptools']
+    deps=[':pip', ':setuptools'],
+    caching=False
 )
 
 TargetGroup(
