@@ -253,6 +253,7 @@ def build_docker_image(
     gen_artifacts = {}
     apt_repo_deps = []
     effective_env = {}
+    effective_labels = {}
     KNOWN_RUNTIME_PARAMS = frozenset((
         'ports', 'volumes', 'container_name', 'daemonize', 'interactive',
         'term', 'auto_it', 'rm', 'env', 'work_dir', 'impersonate'))
@@ -309,6 +310,14 @@ def build_docker_image(
                     .format(op_kind, vars_source, docker_image,
                             ', '.join(overridden_vars)))
 
+    def check_label_overrides(new_labels: set, labels_source: str):
+        overridden_labels = new_labels.intersection(effective_labels.keys())
+        if overridden_labels:
+            raise ValueError(
+                'Following labels set from {} override previously set labels '
+                'during build of Docker image "{}": {}'.format(
+                    labels_source, docker_image, ', '.join(overridden_labels)))
+
     def update_runtime_params(new_rt_param: dict, params_source: str):
         invalid_keys = set(
             new_rt_param.keys()).difference(KNOWN_RUNTIME_PARAMS)
@@ -349,7 +358,8 @@ def build_docker_image(
                 else:
                     all_artifacts[kind].update(artifacts)
 
-        PACKAGING_PARAMS = frozenset(('set_env', 'semicolon_join_env'))
+        PACKAGING_PARAMS = frozenset(
+            ('set_env', 'semicolon_join_env', 'set_label'))
         invalid_keys = set(
             dep.props.packaging_params.keys()).difference(PACKAGING_PARAMS)
         if invalid_keys:
@@ -370,6 +380,11 @@ def build_docker_image(
                     key, ['${{{}}}'.format(key)])
                 if value not in env_manip:
                     env_manip.append(value)
+        if 'set_label' in dep.props.packaging_params:
+            dep_labels = dep.props.packaging_params['set_label']
+            check_label_overrides(
+                set(dep_labels.keys()), 'dependency {}'.format(dep.name))
+            effective_labels.update(dep_labels)
 
         if 'apt-repository' in dep.tags:
             apt_repo_deps.append(dep)
@@ -528,9 +543,15 @@ def build_docker_image(
         if num_linked > 0:
             dockerfile.append('COPY src /usr/src\n')
 
+    # Add labels (one layer)
     if labels:
-        for label, value in sorted(labels.items()):
-            dockerfile.append('LABEL "{}"="{}"\n'.format(label, value))
+        check_label_overrides(set(labels.keys()), 'the target')
+        effective_labels.update(labels)
+    if effective_labels:
+        dockerfile.append(
+            'LABEL {}\n'.format(
+                ' '.join('"{}"="{}"'.format(key, value)
+                         for key, value in sorted(effective_labels.items()))))
 
     def format_docker_cmd(docker_cmd):
         return ('"{}"'.format(cmd) for cmd in docker_cmd)

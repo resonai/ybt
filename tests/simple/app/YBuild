@@ -2,6 +2,11 @@ Python(
     'flask-hello-app',
     sources='app.py',
     deps='//3rdparty:flask',
+    packaging_params={
+        'set_label': {
+            'com.ybt.foo': 'bar',
+        },
+    },
     runtime_params={
         'ports': '5555:5000',
     }
@@ -15,7 +20,6 @@ DockerImage(
     image_tag=SCM.get_revision(),
     truncate_common_parent='app',
     docker_labels={
-        'com.ybt.foo': 'bar',
         'com.ybt.here': 'there',
     }
 )
