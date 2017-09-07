@@ -151,7 +151,7 @@ def archive_handler(unused_build_context, target, fetch, package_dir, tar):
     package_content_dir = join(package_dir, 'content')
     extract_dir = (join(package_content_dir, fetch.name)
                    if fetch.name else package_content_dir)
-    fetch_url(uri, package_dest, package_dir)
+    fetch_url(fetch.uri, package_dest, package_dir)
 
     # TODO(itamar): Avoid repetition of splitting extension here and above
     # TODO(itamar): Don't use `extractall` on potentially untrsuted archives
@@ -176,7 +176,9 @@ def fetch_file_handler(unused_build_context, target, fetch, package_dir, tar):
     TODO(itamar): Support re-downloading if remote changed compared to local.
     """
     dl_dir = join(package_dir, fetch.name) if fetch.name else package_dir
-    fetch_url(uri, join(dl_dir, basename(urlparse(uri).path)), dl_dir)
+    fetch_url(fetch.uri,
+              join(dl_dir, basename(urlparse(fetch.uri).path)),
+              dl_dir)
     tar.add(package_dir, arcname=split_name(target.name))
 
 
@@ -227,9 +229,9 @@ def custom_installer_builder(build_context, target):
         return FetchDesc(uri=fetch_arg, type=None, name='')
 
     fetches = ([to_fetch_desc(fetch) for fetch in target.props.fetch]
-                if target.props.fetch
-                else [FetchDesc(name='', uri=target.props.uri,
-                                type=target.props.uri_type)])
+               if target.props.fetch
+               else [FetchDesc(name='', uri=target.props.uri,
+                               type=target.props.uri_type)])
     if len(fetches) > 1 and any(fetch.name is None for fetch in fetches):
         raise ValueError('{}: Implicit empty name not allowed with multiple '
                          'fetches. To fetch a URI under the top dir, '
