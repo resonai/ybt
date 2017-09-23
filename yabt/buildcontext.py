@@ -122,7 +122,7 @@ class BuildContext:
         for target_name in target_names:
             yield self.targets[target_name]
             yield from self.walk_target_graph(
-                self.target_graph.neighbors_iter(target_name))
+                self.target_graph.neighbors(target_name))
 
     def walk_target_deps_topological_order(self, target: Target):
         all_deps = get_descendants(self.target_graph, target.name)

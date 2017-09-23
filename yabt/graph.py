@@ -84,7 +84,7 @@ def stable_reverse_topological_sort(graph):
     seen = set()
     explored = set()
 
-    for v in sorted(graph.nodes_iter()):
+    for v in sorted(graph.nodes()):
         if v in explored:
             continue
         fringe = [v]  # nodes yet to look at
