@@ -25,7 +25,6 @@ yabt Custom Installer Builder
 
 
 from collections import namedtuple
-from itertools import zip_longest
 import os
 from os.path import basename, isfile, join, relpath, splitext
 import shutil
@@ -50,16 +49,18 @@ logger = make_logger(__name__)
 
 register_builder_sig(
     'CustomInstaller',
-    [('uri', PT.StrList),
-     ('script', PT.File),
+    [('script', PT.File),
+     ('fetch', PT.list, None),
      ('local_data', PT.FileList, None),
-     ('uri_type', PT.StrList, None),
      ('caching', PT.bool, True),
+     ('uri', PT.str, None),  # deprecated
+     ('uri_type', PT.str, None),  # deprecated
      ])
 
 
 CustomInstaller = namedtuple('CustomInstaller',
                              ['name', 'package', 'install_script'])
+FetchDesc = namedtuple('FetchDesc', ['uri', 'type', 'name'])
 
 
 KNOWN_ARCHIVES = frozenset(('.gz', '.bz2', '.tgz', '.zip'))
@@ -95,13 +96,7 @@ def gitfilter(tarinfo):
     return tarinfo
 
 
-def make_tar(target):
-    """Return an open tar object, for writing compressed gz archive."""
-    return tarfile.open(target.props.installer_desc.package, 'w:gz',
-                        dereference=True)
-
-
-def git_handler(unused_build_context, target, uri, package_dir, tar):
+def git_handler(unused_build_context, target, fetch, package_dir, tar):
     """Handle remote Git repository URI.
 
     Clone the repository under the private builder workspace (unless already
@@ -114,11 +109,12 @@ def git_handler(unused_build_context, target, uri, package_dir, tar):
     """
     target_name = split_name(target.name)
     # clone the repository under a private builder workspace
+    repo_dir = join(package_dir, fetch.name) if fetch.name else package_dir
     try:
-        repo = git.Repo(package_dir)
+        repo = git.Repo(repo_dir)
     except (InvalidGitRepositoryError, NoSuchPathError):
-        repo = git.Repo.clone_from(uri, package_dir)
-    assert repo.working_tree_dir == package_dir
+        repo = git.Repo.clone_from(fetch.uri, repo_dir)
+    assert repo.working_tree_dir == repo_dir
     tar.add(package_dir, arcname=target_name, filter=gitfilter)
 
 
@@ -141,7 +137,7 @@ def fetch_url(url, dest, parent_to_remove_before_fetch):
                 fetch_file.write(chunk)
 
 
-def archive_handler(unused_build_context, target, uri, package_dir, tar):
+def archive_handler(unused_build_context, target, fetch, package_dir, tar):
     """Handle remote downloadable archive URI.
 
     Download the archive and cache it under the private builer workspace
@@ -151,25 +147,27 @@ def archive_handler(unused_build_context, target, uri, package_dir, tar):
     TODO(itamar): Support re-downloading if remote changed compared to local.
     TODO(itamar): Support more archive formats (currently only tarballs).
     """
-    package_dest = join(package_dir, basename(urlparse(uri).path))
+    package_dest = join(package_dir, basename(urlparse(fetch.uri).path))
     package_content_dir = join(package_dir, 'content')
-    fetch_url(uri, package_dest, package_dir)
+    extract_dir = (join(package_content_dir, fetch.name)
+                   if fetch.name else package_content_dir)
+    fetch_url(fetch.uri, package_dest, package_dir)
 
     # TODO(itamar): Avoid repetition of splitting extension here and above
     # TODO(itamar): Don't use `extractall` on potentially untrsuted archives
     ext = splitext(package_dest)[-1].lower()
     if ext in ('.gz', '.bz2', '.tgz'):
-        with tarfile.open(package_dest, 'r:*') as tar:
-            tar.extractall(package_content_dir)
+        with tarfile.open(package_dest, 'r:*') as src_tar:
+            src_tar.extractall(extract_dir)
     elif ext in ('.zip',):
         with ZipFile(package_dest, 'r') as zipf:
-            zipf.extractall(package_content_dir)
+            zipf.extractall(extract_dir)
     else:
         raise ValueError('Unsupported extension {}'.format(ext))
     tar.add(package_content_dir, arcname=split_name(target.name))
 
 
-def fetch_file_handler(unused_build_context, target, uri, package_dir, tar):
+def fetch_file_handler(unused_build_context, target, fetch, package_dir, tar):
     """Handle remote downloadable file URI.
 
     Download the file and cache it under the private builer workspace
@@ -177,12 +175,14 @@ def fetch_file_handler(unused_build_context, target, uri, package_dir, tar):
 
     TODO(itamar): Support re-downloading if remote changed compared to local.
     """
-    fetch_url(
-        uri, join(package_dir, basename(urlparse(uri).path)), package_dir)
+    dl_dir = join(package_dir, fetch.name) if fetch.name else package_dir
+    fetch_url(fetch.uri,
+              join(dl_dir, basename(urlparse(fetch.uri).path)),
+              dl_dir)
     tar.add(package_dir, arcname=split_name(target.name))
 
 
-def local_handler(build_context, target, uri, package_dir, tar):
+def local_handler(build_context, target, fetch, package_dir, tar):
     pass
 
 
@@ -191,15 +191,26 @@ def custom_installer_builder(build_context, target):
     # TODO(itamar): Handle cached package invalidation
     yprint(build_context.conf,
            'Fetch and cache custom installer package', target)
+    if target.props.fetch and (target.props.uri or target.props.uri_type):
+        raise AttributeError(
+            '{}: `uri` & `uri_type` are deprecated - use `fetch` instead'
+            .format(target.name))
+
     workspace_dir = build_context.get_workspace('CustomInstaller', target.name)
     target_name = split_name(target.name)
     script_name = basename(target.props.script)
     package_tarball = '{}.tar.gz'.format(join(workspace_dir, target_name))
     target.props.installer_desc = CustomInstaller(
         name=target_name, package=package_tarball, install_script=script_name)
-    if target.props.caching and isfile(package_tarball):
-        logger.debug('Custom installer package {} is cached', package_tarball)
-        return
+    if isfile(package_tarball):
+        if target.props.caching:
+            logger.debug('Custom installer package {} is cached',
+                         package_tarball)
+            return
+        logger.info('Removing cached custom installer workspace {}',
+                    workspace_dir)
+        shutil.rmtree(workspace_dir)
+        os.makedirs(workspace_dir)
 
     logger.debug('Making custom installer package {}', package_tarball)
     handlers = {
@@ -208,13 +219,38 @@ def custom_installer_builder(build_context, target):
         'single': fetch_file_handler,
         'local': local_handler,
     }
-    tar = make_tar(target)
-    for uri, uri_type in zip_longest(target.props.uri, target.props.uri_type):
-        uri_type = guess_uri_type(uri, uri_type)
+
+    def to_fetch_desc(fetch_arg):
+        if isinstance(fetch_arg, dict):
+            return FetchDesc(
+                uri=fetch_arg['uri'], type=fetch_arg.get('type', None),
+                name=fetch_arg.get('name', None))
+        assert isinstance(fetch_arg, str)
+        return FetchDesc(uri=fetch_arg, type=None, name='')
+
+    fetches = ([to_fetch_desc(fetch) for fetch in target.props.fetch]
+               if target.props.fetch
+               else [FetchDesc(name='', uri=target.props.uri,
+                               type=target.props.uri_type)])
+    if len(fetches) > 1 and any(fetch.name is None for fetch in fetches):
+        raise ValueError('{}: Implicit empty name not allowed with multiple '
+                         'fetches. To fetch a URI under the top dir, '
+                         'explicitly set the name to \'\''.format(target.name))
+    used_names = set()
+    for fetch in fetches:
+        if fetch.name in used_names:
+            raise ValueError('{}: Duplicate fetch name "{}"'.format(
+                target.name, fetch.name))
+        used_names.add(fetch.name)
+    tar = tarfile.open(target.props.installer_desc.package, 'w:gz',
+                       dereference=True)
+    for fetch in fetches:
+        uri_type = guess_uri_type(fetch.uri, fetch.type)
         logger.debug('CustomInstaller URI {} typed guessed to be {}',
-                     uri, uri_type)
-        handlers[uri_type](
-            build_context, target, uri, join(workspace_dir, target_name), tar)
+                     fetch.uri, uri_type)
+        package_dir = join(workspace_dir, target_name,
+                           fetch.name or '_unnamed_')
+        handlers[uri_type](build_context, target, fetch, package_dir, tar)
     # Add local data to installer package, if specified
     for local_node in target.props.local_data:
         tar.add(join(build_context.conf.project_root, local_node),

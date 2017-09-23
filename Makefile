@@ -33,6 +33,10 @@ clean:
 	rm -rf $(BASEDIR)/build $(BASEDIR)/dist
 	@echo "Finished cleaning build & dist output dirs"
 
+cleancache:
+	find tests \( -name yabtwork -o -name ybt_bin \) -type d -exec rm -rf "{}" \;
+	@echo "Finished deleting all yabtwork & ybt_bin dirs"
+
 pypi: clean dist
 	twine upload dist/*
 	@echo "Finished uploading version to PyPI"
