@@ -107,7 +107,7 @@ def cmd_tree(conf: Config):
     def print_target_with_deps(target, depth=2):
         print('{: >{}}{}'.format('+-', depth, target.name))
         for dep in sorted(
-                build_context.target_graph.neighbors_iter(target.name)):
+                build_context.target_graph.neighbors(target.name)):
             print_target_with_deps(build_context.targets[dep], depth + 2)
 
     if conf.targets:
