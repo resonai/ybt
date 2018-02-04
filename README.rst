@@ -40,13 +40,12 @@ Initial virtualenv setup with virtualenvwrapper
     sudo apt-get install -y python3-dev python3-pip
     mkvirtualenv --python="$(type -P python3)" yabt
     cd $WORKON_HOME/yabt
-    git clone git@bitbucket.org:yowza3d/yabt.git
-    cd yabt
+    git clone git@github.com:resonai/ybt.git
+    cd ybt
     # install development requirements
     pip install -r requirements.txt
-    # install YABT itself in local dev mode (in the virtualenv)
+    # install YaBT itself in local dev mode (in the virtualenv)
     pip install -e .
-
 
 You should be good to go now.
 
