@@ -1,11 +1,24 @@
+sudo: required
+
+services:
+  - docker
+
+addons:
+  apt:
+    packages:
+      - docker-ce
+
 language: python
+
 python:
   - "3.4"
   - "3.5"
   - "3.6"
+
 # command to install dependencies
 install:
   - pip install -r requirements.txt
+
 # command to run tests
 script:
-  - py.test --pep8
+  - make test
