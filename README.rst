@@ -11,6 +11,7 @@ Install
 Requires Python 3.4 or above, so make sure you have it (``type -P python3 && python3 -V``).
 
 .. code-block:: shell
+
     sudo apt-get install -y python3-dev python3-pip
     sudo pip3 install --upgrade pip
     sudo pip3 install ybt
@@ -19,6 +20,7 @@ Requires Python 3.4 or above, so make sure you have it (``type -P python3 && pyt
 To configure bash tab-completion, add the following line to your `.bashrc`:
 
 .. code-block:: shell
+
     eval "$(register-python-argcomplete ybt)"
 
 
@@ -33,6 +35,7 @@ Initial virtualenv setup with virtualenvwrapper
 (when no virtualenv is active, run ``deactivate`` to make sure):
 
 .. code-block:: shell
+
     sudo apt-get install -y python3-dev python3-pip
     mkvirtualenv --python="$(type -P python3)" yabt
     cd $WORKON_HOME/yabt
