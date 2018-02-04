@@ -1,8 +1,9 @@
-=======================
-YABT: Yaweza Build Tool
-=======================
+.. image:: https://travis-ci.org/resonai/ybt.svg?branch=master
+    :target: https://travis-ci.org/resonai/ybt
 
-AKA: Yet Another Build Tool (the open source project).
+============================
+YaBT: Yet another Build Tool
+============================
 
 
 Install
