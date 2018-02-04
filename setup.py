@@ -3,7 +3,7 @@
 """
 yabt setup
 
-:copyright: (c) 2016 Yowza by Itamar Ostricher
+:copyright: (c) 2016 Resonai by Itamar Ostricher
 :license: MIT, see LICENSE for more details.
 """
 
