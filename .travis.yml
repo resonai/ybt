@@ -14,6 +14,7 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
+  - "nightly"
 
 # command to install dependencies
 install:
