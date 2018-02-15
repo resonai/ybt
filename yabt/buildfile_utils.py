@@ -22,11 +22,12 @@ yabt Build File utils
 """
 
 
-from os.path import normpath, relpath, split
-
+from pathlib import Path
 from .config import Config
 
 
 def to_build_module(build_file_path: str, conf: Config) -> str:
     """Return a normalized build module name for `build_file_path`."""
-    return split(normpath(relpath(build_file_path, conf.project_root)))[0]
+    build_file = Path(build_file_path)
+    root = Path(conf.project_root)
+    return build_file.resolve().relative_to(root).parent.as_posix().strip('.')

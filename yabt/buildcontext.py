@@ -25,7 +25,7 @@ yabt Build context module
 from collections import defaultdict
 import json
 import os
-from os.path import join
+from pathlib import PurePath
 import platform
 import threading
 
@@ -98,8 +98,7 @@ class BuildContext:
                                      *(get_safe_path(part)
                                        for part in parts))
         if not os.path.isdir(workspace_dir):
-            # exist_ok=True in case of concurrent creation of the same
-            # workspace
+            # exist_ok=True in case of concurrent creation of the same dir
             os.makedirs(workspace_dir, exist_ok=True)
         return workspace_dir
 
@@ -110,7 +109,7 @@ class BuildContext:
         """
         bin_dir = os.path.join(self.conf.get_bin_path(), build_module)
         if not os.path.isdir(bin_dir):
-            # exist_ok=True in case of concurrent creation of the same bin dir
+            # exist_ok=True in case of concurrent creation of the same dir
             os.makedirs(bin_dir, exist_ok=True)
         return bin_dir
 
@@ -212,10 +211,14 @@ class BuildContext:
             docker_run.append('-t')
         project_vol = (self.conf.docker_volume if self.conf.docker_volume else
                        self.conf.project_root)
+        container_work_dir = PurePath('/project')
+        if work_dir:
+            container_work_dir /= work_dir
         docker_run.extend([
             '--rm',
             '-v', project_vol + ':/project',
-            '-w', join('/project', work_dir) if work_dir else '/project',
+            # TODO: windows containers?
+            '-w', container_work_dir.as_posix(),
         ])
         if cmd_env:
             for key, value in cmd_env.items():
@@ -223,9 +226,8 @@ class BuildContext:
                 docker_run.extend(['-e', '{}={}'.format(key, value)])
         if platform.system() == 'Linux' and auto_uid:
             # Fix permissions for bind-mounted project dir
-            # The fix is not needed when using Docker machine on OS X with
-            # VirtualBox or xhyve, because it is somehow taken care of by
-            # the shared folder thingie...
+            # The fix is not needed when using Docker For Mac / Windows,
+            # because it is somehow taken care of by the sharing mechanics
             docker_run.extend(['-u', '{}:{}'.format(os.getuid(), os.getgid())])
         docker_run.append(format_qualified_image_name(buildenv_target))
         docker_run.extend(cmd)

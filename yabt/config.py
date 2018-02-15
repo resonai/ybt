@@ -23,6 +23,7 @@ yabt config
 
 
 import os
+from pathlib import Path
 
 from .extend import Plugin
 from .logging import configure_logging
@@ -73,10 +74,15 @@ class Config:
         return os.path.join(self.project_root, BUILD_PROJ_FILE)
 
     def get_build_file_path(self, build_module) -> str:
-        is_root_module = os.path.abspath(build_module) == self.project_root
-        return os.path.join(
-            self.project_root, build_module,
-            BUILD_PROJ_FILE if is_root_module else self.build_file_name)
+        """Return a full path to the build file of `build_module`.
+
+        The returned path will always be OS-native, regardless of the format
+        of project_root (native) and build_module (always with '/').
+        """
+        project_root = Path(self.project_root)
+        return str(project_root / build_module /
+                   (BUILD_PROJ_FILE if project_root.samefile(build_module)
+                    else self.build_file_name))
 
     def get_workspace_path(self) -> str:
         return os.path.join(self.project_root, self.builders_workspace_dir)
@@ -85,6 +91,8 @@ class Config:
         return os.path.join(self.project_root, self.bin_output_dir)
 
     def host_to_buildenv_path(self, host_path: str) -> str:
-        return os.path.join(
+        host_path, project_root = Path(host_path), Path(self.project_root)
+        # TODO: windows-containers?
+        return '/'.join([
             '/project',
-            os.path.relpath(os.path.abspath(host_path), self.project_root))
+            host_path.resolve().relative_to(project_root).as_posix()])
