@@ -23,7 +23,6 @@ yabt target extraction module
 
 
 from numbers import Number
-from os.path import join, normpath
 import types
 
 from ostrich.utils.collections import listify
