@@ -28,7 +28,7 @@ from pathlib import Path
 from .extend import Plugin
 from .logging import configure_logging
 from .scm import ScmManager
-from .utils import search_for_parent_dir
+from .utils import norm_proj_path, search_for_parent_dir
 
 
 BUILD_PROJ_FILE = 'YRoot'
@@ -77,11 +77,12 @@ class Config:
         """Return a full path to the build file of `build_module`.
 
         The returned path will always be OS-native, regardless of the format
-        of project_root (native) and build_module (always with '/').
+        of project_root (native) and build_module (with '/').
         """
         project_root = Path(self.project_root)
+        build_module = norm_proj_path(build_module, self.project_root)
         return str(project_root / build_module /
-                   (BUILD_PROJ_FILE if project_root.samefile(build_module)
+                   (BUILD_PROJ_FILE if '' == build_module
                     else self.build_file_name))
 
     def get_workspace_path(self) -> str:

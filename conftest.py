@@ -55,6 +55,11 @@ def in_dag_project():
 
 
 @yield_fixture
+def in_yapi_dir():
+    yield from yabt_project_fixture(os.path.join('dag', 'yapi'))
+
+
+@yield_fixture
 def in_pkgmgrs_project():
     yield from yabt_project_fixture('pkgmgrs')
 

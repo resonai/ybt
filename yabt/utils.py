@@ -128,7 +128,7 @@ def norm_proj_path(path, build_module):
     """Return a normalized path for the `path` observed in `build_module`.
 
     The normalized path is "normalized" (in the `os.path.normpath` sense),
-    and relative from the project root directory.
+    relative from the project root directorym, and OS-native.
 
     Supports making references from project root directory by prefixing the
     path with "//".
@@ -148,20 +148,21 @@ def norm_proj_path(path, build_module):
         raise ValueError("Invalid path: `{}' - use '//' to start from "
                          "project root".format(path))
 
+    if build_module == '//':
+        build_module = ''
     norm = normpath(join(build_module, path))
-    if norm == '.':
-        return ''
     if norm.startswith('..'):
         raise ValueError(
             "Invalid path `{}' - must remain inside project sandbox"
             .format(path))
-    return norm
+    return norm.strip('.')
 
 
 def search_for_parent_dir(start_at: str=None, with_files: set=None,
                           with_dirs: set=None) -> str:
     """Return absolute path of first parent directory of `start_at` that
-       contains a file named `BUILD_PROJ_FILE` (including `start_at`).
+       contains all files `with_files` and all dirs `with_dirs`
+       (including `start_at`).
 
     If `start_at` not specified, start at current working directory.
 

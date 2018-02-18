@@ -23,7 +23,8 @@ yabt target utils module
 
 
 from collections import defaultdict
-from os.path import join, normpath, relpath
+from os.path import join, normpath
+from pathlib import PurePath
 import types
 
 from munch import Munch
@@ -72,22 +73,23 @@ def norm_name(build_module: str, target_name: str):
 
     A normalized canonical target name is of the form "<build module>:<name>",
     where <build module> is the relative normalized path from the project root
-    to the target build module, and <name> is a valid target name
+    to the target build module (POSIX), and <name> is a valid target name
     (see `validate_name()`).
     """
     if ':' not in target_name:
         raise ValueError(
             "Must provide fully-qualified target name (with `:') to avoid "
             "possible ambiguity - `{}' not valid".format(target_name))
-        # return '{}:{}'.format(build_module, validate_name(target_name))
 
     mod, name = split(target_name)
-    return '{}:{}'.format(norm_proj_path(mod, build_module),
-                          validate_name(name))
+    return '{}:{}'.format(
+        PurePath(norm_proj_path(mod, build_module)).as_posix().strip('.'),
+        validate_name(name))
 
 
 def expand_target_selector(target_selector: str, conf: Config):
-    """
+    """Return a normalized target name (where `**:*` is the normalized form of
+       itself).
 
     Target specifier can be:
 
@@ -102,44 +104,21 @@ def expand_target_selector(target_selector: str, conf: Config):
         means to build the specified named target in the specified build
         module.
     - in cases where a relative path can be specified, it should be given using
-        standard POSIX relative path construction. in addition, it is possible
-        to prefix the path with `@` as a shortcut to the root of the project,
-        so when the project root is at `~/foo`, and the working directory is
-        `~/foo/bar`, then `@/baz:boom` would refer to a target named "boom" in
-        the build module at `~/foo/baz` (just like `../baz:boom`).
-
-    Return a normalized `(build_module_dir, target_name)` tuple.
-
-    # In case if `**:*`, the returned tuple is `('**', '*')`
-    #
-    # Return a normalized target name (where `**:*` is the normalized form of
-    # itself).
+        standard POSIX relative path construction.
     """
     if target_selector == '**:*':
         return target_selector
     if ':' not in target_selector:
         target_selector += ':*'
     build_module, target_name = split(target_selector)
-    if build_module.startswith('@'):
-        build_module = normpath(relpath(
-            build_module.replace('@', conf.project_root, 1),
-            conf.project_root))
-    else:
-        build_module = normpath(join(conf.get_rel_work_dir(), build_module))
-    return '{}:{}'.format('' if build_module == '.' else build_module,
+    build_module = normpath(join(conf.get_rel_work_dir(), build_module))
+    return '{}:{}'.format(PurePath(build_module).as_posix().strip('.'),
                           validate_name(target_name))
 
 
 def parse_target_selectors(target_selectors: list, conf: Config):
     return [expand_target_selector(target_selector, conf)
             for target_selector in target_selectors]
-
-
-def generate_build_modules(top: str, conf: Config):
-    # TODO(itamar): add ignore marker files / flags
-    for root, unused_dirs, files in walk(top):
-        if conf.build_file_name in files:
-            yield expand_target_selector(root, conf)
 
 
 class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods

@@ -160,9 +160,9 @@ class BuildContext:
         """
         if target_name in self.targets:
             del self.targets[target_name]
-        if split_build_module(target_name) in self.targets_by_module:
-            self.targets_by_module[split_build_module(target_name)].remove(
-                target_name)
+        build_module = split_build_module(target_name)
+        if build_module in self.targets_by_module:
+            self.targets_by_module[build_module].remove(target_name)
 
     def get_target_extraction_context(self, build_file_path: str) -> dict:
         """Return a build file parser target extraction context.
