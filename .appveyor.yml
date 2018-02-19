@@ -24,4 +24,4 @@ install:
 
 test_script:
   # Run the project tests
-  - "build.cmd %PYTHON%\\python.exe setup.py test"
+  - "%PYTHON%\\python.exe setup.py test"
