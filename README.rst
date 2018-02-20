@@ -1,5 +1,7 @@
 .. image:: https://travis-ci.org/resonai/ybt.svg?branch=master
     :target: https://travis-ci.org/resonai/ybt
+.. image:: https://ci.appveyor.com/api/projects/status/12kdeqf4u0egjwq5/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/itamaro/ybt
 
 ============================
 YaBT: Yet another Build Tool
