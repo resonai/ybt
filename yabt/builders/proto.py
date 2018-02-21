@@ -24,7 +24,7 @@ yabt ProtoBuf builder
 
 import os
 from os.path import dirname, isfile, join, relpath, splitext
-from pathlib import Path
+from pathlib import Path, PurePath
 
 from ostrich.utils.path import commonpath
 
@@ -88,7 +88,7 @@ def proto_builder(build_context, target):
         protoc_cmd.extend(('--cpp_rpcz_out', buildenv_workspace))
     if target.props.gen_python_rpcz:
         protoc_cmd.extend(('--python_rpcz_out', buildenv_workspace))
-    protoc_cmd.extend(join(buildenv_workspace, 'proto', src)
+    protoc_cmd.extend((PurePath(buildenv_workspace) / 'proto' / src).as_posix()
                       for src in target.props.sources)
     build_context.run_in_buildenv(
         target.props.in_buildenv, protoc_cmd, target.props.cmd_env)
