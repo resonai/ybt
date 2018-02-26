@@ -22,7 +22,7 @@ yabt Target extraction tests
 """
 
 
-from os.path import join
+from os import path
 
 import pytest
 
@@ -182,7 +182,7 @@ def test_typed_args_valid_non_default():
     assert target.props == {'name': 'spams:my-spam', 'foo': 'foo',
                             'bar': 'bar', 'deps': ['hams:my-ham'],
                             'cats': ['my cat', 'other cat'],
-                            'cat_list': join('lists', 'from-vet-4'),
+                            'cat_list': path.join('lists', 'from-vet-4'),
                             'packaging_params': {}, 'runtime_params': {}}
 
 
@@ -195,5 +195,5 @@ def test_file_arg_from_project_root():
     handle_typed_args(target, Plugin.builders['Spam'], 'spams')
     assert target.props == {'name': 'spams:my-spam', 'foo': 'foo',
                             'bar': 'bar', 'deps': [], 'cats': [],
-                            'cat_list': join('lists', 'from-vet-4'),
+                            'cat_list': path.join('lists', 'from-vet-4'),
                             'packaging_params': {}, 'runtime_params': {}}
