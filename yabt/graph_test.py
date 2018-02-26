@@ -35,17 +35,17 @@ def test_target_graph(basic_conf):
     build_context = BuildContext(basic_conf)
     populate_targets_graph(build_context, basic_conf)
     assert (
-        set(['yapi/server:users', ':flask', ':gunicorn', 'common:logging',
+        set(('yapi/server:users', ':flask', ':gunicorn', 'common:logging',
              'fe:fe', 'yapi/server:yapi', 'yapi/server:yapi-gunicorn',
-             'common:base']) == set(build_context.target_graph.nodes()))
+             'common:base')) == set(build_context.target_graph.nodes()))
     assert (
-        set([('fe:fe', 'yapi/server:users'), ('fe:fe', ':flask'),
+        set((('fe:fe', 'yapi/server:users'), ('fe:fe', ':flask'),
              ('fe:fe', 'common:base'), ('yapi/server:yapi', ':flask'),
              ('yapi/server:yapi', 'common:base'),
              ('yapi/server:yapi-gunicorn', 'yapi/server:yapi'),
              ('yapi/server:yapi-gunicorn', 'common:base'),
              ('yapi/server:yapi-gunicorn', ':gunicorn'),
-             ('common:base', 'common:logging')]) ==
+             ('common:base', 'common:logging'))) ==
         set(build_context.target_graph.edges()))
     # Can't assert the list directly, because it is not stable / deterministic
     topo_sort = list(topological_sort(build_context.target_graph))
@@ -61,6 +61,47 @@ def test_target_graph(basic_conf):
     assert_dep_chain(':flask', 'fe:fe')
     assert_dep_chain('yapi/server:users', 'fe:fe')
     assert_dep_chain('common:logging', 'common:base', 'fe:fe')
+
+
+@pytest.mark.usefixtures('in_yapi_dir')
+def test_target_graph_worldglob(basic_conf):
+    """Test that building a graph with the world-glob specifier works."""
+    basic_conf.targets = ['**:*']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    assert (
+        set(('yapi/server:users', ':flask', ':gunicorn', 'common:logging',
+             'fe:fe', 'yapi/server:yapi', 'yapi/server:yapi-gunicorn',
+             'common:base')) == set(build_context.target_graph.nodes()))
+    assert (
+        set((('fe:fe', 'yapi/server:users'), ('fe:fe', ':flask'),
+             ('fe:fe', 'common:base'), ('yapi/server:yapi', ':flask'),
+             ('yapi/server:yapi', 'common:base'),
+             ('yapi/server:yapi-gunicorn', 'yapi/server:yapi'),
+             ('yapi/server:yapi-gunicorn', 'common:base'),
+             ('yapi/server:yapi-gunicorn', ':gunicorn'),
+             ('common:base', 'common:logging'))) ==
+        set(build_context.target_graph.edges()))
+
+
+@pytest.mark.usefixtures('in_yapi_dir')
+def test_target_graph_intenral_dir(basic_conf):
+    """Test that building graph from internal dir works as expected."""
+    basic_conf.targets = ['server']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    assert (
+        set(('yapi/server:users', ':flask', ':gunicorn', 'common:logging',
+             'yapi/server:yapi', 'yapi/server:yapi-gunicorn',
+             'common:base')) == set(build_context.target_graph.nodes()))
+    assert (
+        set((('yapi/server:yapi', ':flask'),
+             ('yapi/server:yapi', 'common:base'),
+             ('yapi/server:yapi-gunicorn', 'yapi/server:yapi'),
+             ('yapi/server:yapi-gunicorn', 'common:base'),
+             ('yapi/server:yapi-gunicorn', ':gunicorn'),
+             ('common:base', 'common:logging'))) ==
+        set(build_context.target_graph.edges()))
 
 
 def test_stable_topological_sort():

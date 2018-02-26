@@ -21,15 +21,17 @@ yabt target graph
 :author: Itamar Ostricher
 """
 
+from os.path import relpath
 
 import networkx
 from networkx.algorithms import dag
 
 from .buildfile_parser import process_build_file
+from .compat import walk
 from .config import Config
 from .logging import make_logger
-from .target_utils import generate_build_modules
 from .target_utils import parse_target_selectors
+from .target_utils import norm_name, split
 from .utils import yprint
 
 
@@ -118,6 +120,19 @@ def build_target_dep_graph(build_context, unused_conf: Config):
             build_context.target_graph.add_edge(target_name, dep)
 
 
+def norm_rel_target(target_spec, build_module):
+    if ':' not in target_spec:
+        target_spec += ':*'
+    return norm_name(build_module, target_spec)
+
+
+def generate_all_targets(conf: Config):
+    # TODO(itamar): add ignore marker files / flags
+    for root, unused_dirs, files in walk(conf.project_root):
+        if conf.build_file_name in files:
+            yield norm_rel_target(relpath(root, conf.project_root), '//')
+
+
 def populate_targets_graph(build_context, conf: Config):
     # Process project root build file
     process_build_file(conf.get_project_build_file(), build_context, conf)
@@ -154,9 +169,9 @@ def populate_targets_graph(build_context, conf: Config):
             if seed == '**:*':
                 # Adding all build modules under current working directory as
                 # seeds
-                seeds.extend(generate_build_modules('.', conf))
+                seeds.extend(generate_all_targets(conf))
                 continue
-            build_module, target_name = seed.split(':', 1)
+            build_module, target_name = split(seed)
             process_build_file(conf.get_build_file_path(build_module),
                                build_context, conf)
             # Parsed build file with this seed target - add its dependencies as

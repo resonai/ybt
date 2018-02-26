@@ -30,6 +30,7 @@ from collections import defaultdict, deque
 import os
 from os.path import (
     abspath, basename, dirname, isfile, join, relpath, samefile, split)
+from pathlib import PurePath
 import platform
 import shutil
 
@@ -472,7 +473,8 @@ def build_docker_image(
                 run_installers.extend([
                     'tar -xf {0}/{1} -C {0}'.format(tmp_install, package_tar),
                     'cd {}/{}'.format(tmp_install, custom_installer.name),
-                    './{}'.format(custom_installer.install_script),
+                    'cat {} | tr -d \'\\r\' | bash'.format(
+                        custom_installer.install_script),
                 ])
             dockerfile.extend([
                 'COPY {} {}\n'.format(packages_dir, tmp_install),
@@ -563,8 +565,10 @@ def build_docker_image(
     if entrypoint:
         # TODO(itamar): Consider adding tini as entrypoint also if given
         # Docker CMD without a Docker ENTRYPOINT?
+        entrypoint[0] = PurePath(entrypoint[0]).as_posix()
         if full_path_cmd:
-            entrypoint[0] = join('/usr/src/app', entrypoint[0])
+            entrypoint[0] = (PurePath('/usr/src/app') /
+                             entrypoint[0]).as_posix()
         if build_context.conf.with_tini_entrypoint:
             entrypoint = ['tini', '--'] + entrypoint
         dockerfile.append(
@@ -573,8 +577,9 @@ def build_docker_image(
 
     # Add CMD (one layer)
     if cmd:
+        cmd[0] = PurePath(cmd[0]).as_posix()
         if full_path_cmd:
-            cmd[0] = join('/usr/src/app', cmd[0])
+            cmd[0] = (PurePath('/usr/src/app') / cmd[0]).as_posix()
         dockerfile.append(
             'CMD [{}]\n'.format(', '.join(format_docker_cmd(cmd))))
 
