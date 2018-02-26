@@ -473,7 +473,8 @@ def build_docker_image(
                 run_installers.extend([
                     'tar -xf {0}/{1} -C {0}'.format(tmp_install, package_tar),
                     'cd {}/{}'.format(tmp_install, custom_installer.name),
-                    './{}'.format(custom_installer.install_script),
+                    'cat {} | tr -d \'\\r\' | bash'.format(
+                        custom_installer.install_script),
                 ])
             dockerfile.extend([
                 'COPY {} {}\n'.format(packages_dir, tmp_install),
