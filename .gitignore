@@ -25,3 +25,7 @@ ybt_bin
 # Python Testing
 .tox
 .coverage
+.pytest_cache
+
+ybtenv/
+.vscode/
