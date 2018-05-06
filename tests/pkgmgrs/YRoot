@@ -115,7 +115,7 @@ DockerImage(
 AptRepository(
     'gcloud-repository',
     source='deb http://packages.cloud.google.com/apt cloud-sdk-jessie main',
-    key='3746C208A7317B0F'
+    key='6A030B21BA07F4FB'
 )
 
 AptPackage(
