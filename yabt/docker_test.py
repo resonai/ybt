@@ -40,9 +40,7 @@ slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
 def test_run_in_buildenv(basic_conf):
     build_context = BuildContext(basic_conf)
     populate_targets_graph(build_context, basic_conf)
-    for target_name in topological_sort(build_context.target_graph):
-        target = build_context.targets[target_name]
-        build_context.build_target(target)
+    build_context.build_graph()
     result = build_context.run_in_buildenv(
         'app:flask-hello', ['pip', 'freeze'], stdout=PIPE, stderr=PIPE)
     assert 0 == result.returncode
@@ -113,9 +111,7 @@ def test_generate_needed_lists(basic_conf):
     build_context = BuildContext(basic_conf)
     basic_conf.targets = [':another-image']
     populate_targets_graph(build_context, basic_conf)
-    for target_name in topological_sort(build_context.target_graph):
-        target = build_context.targets[target_name]
-        build_context.build_target(target)
+    build_context.build_graph()
     result = build_context.run_in_buildenv(
         ':another-image', ['ls', '/etc/apt/sources.list.d/'],
         stdout=PIPE, stderr=PIPE)

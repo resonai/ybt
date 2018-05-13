@@ -22,13 +22,15 @@ yabt Build context module
 """
 
 
-from collections import defaultdict
+from collections import defaultdict, deque
+from functools import reduce
 import json
 import os
 from pathlib import PurePath
 import platform
 import threading
 
+import networkx as nx
 from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
 
@@ -181,6 +183,93 @@ class BuildContext:
     #     """Register a named BuildEnv Docker image in this build context."""
     #     self.buildenv_images[name] = docker_image
 
+    def get_buildenv_graph(self):
+        """Return a graph induced by buildenv nodes"""
+        buildenvs = set(target.buildenv for target in self.targets.values()
+                        if target.buildenv)
+        return nx.DiGraph(self.target_graph.subgraph(reduce(
+            lambda x, y: x | set(y),
+            (get_descendants(self.target_graph, buildenv)
+             for buildenv in buildenvs), buildenvs)))
+
+    def ready_nodes_iter(self, graph_copy):
+        """Generate ready targets from the graph `graph_copy`.
+
+        The input graph is mutated by this method, so it has to be a mutable
+        copy of the graph (e.g. not original copy, or read-only view).
+        """
+
+        def is_ready(target_name):
+            """Return True if the node `target_name` is "ready" in the graph
+               `graph_copy`.
+
+            "Ready" means that the graph doesn't contain any more nodes that
+            `target_name` depends on (e.g. it has no successors).
+
+            Caller **must** call `done()` after processing every generated
+            target, so additional ready targets can be added to the queue.
+
+            The invariant: a target may be yielded from this generator only
+            after all its descendant targets were notified "done".
+            """
+            try:
+                next(graph_copy.successors(target_name))
+            except StopIteration:
+                return True
+            return False
+
+        ready_nodes = deque(sorted(
+            target_name for target_name in graph_copy.nodes
+            if is_ready(target_name)))
+
+        def make_done_callback(target: Target):
+            """Return a callable "done" notifier to
+               report a target as processed."""
+
+            def done_notifier():
+                """Mark target as done, adding new ready nodes to queue"""
+                if graph_copy.has_node(target.name):
+                    affected_nodes = list(sorted(
+                        graph_copy.predecessors(target.name)))
+                    graph_copy.remove_node(target.name)
+                    ready_nodes.extend(
+                        target_name for target_name in affected_nodes
+                        if is_ready(target_name))
+
+            return done_notifier
+
+        # TODO: block until ready or all nodes notified done
+        while True:
+            try:
+                next_node = ready_nodes.popleft()
+            except IndexError:
+                break
+            node = self.targets[next_node]
+            node.done = make_done_callback(node)
+            yield node
+
+    def target_iter(self):
+        """Generate ready targets from entire target graph.
+
+        Caller **must** call `done()` after processing every generated target,
+        so additional ready targets can be added to the queue.
+
+        The invariant: a target may be yielded from this generator only after
+        all its descendant targets were notified "done".
+        """
+        yield from self.ready_nodes_iter(self.target_graph.copy())
+
+    def buildenv_iter(self):
+        """Generate ready targets from subgraph of buildenvs.
+
+        Caller **must** call `done()` after processing every generated target,
+        so additional ready targets can be added to the queue.
+
+        The invariant: a target may be yielded from this generator only after
+        all its descendant targets were notified "done".
+        """
+        yield from self.ready_nodes_iter(self.get_buildenv_graph())
+
     def run_in_buildenv(
             self, buildenv_target_name: str, cmd: list, cmd_env: dict=None,
             work_dir: str=None, auto_uid: bool=True, **kwargs):
@@ -260,3 +349,21 @@ class BuildContext:
                         self.conf.artifacts_metadata_file)
             with open(self.conf.artifacts_metadata_file, 'w') as fp:
                 json.dump(self.artifacts_metadata, fp)
+
+    def build_graph(self):
+        built_targets = set()
+
+        def build(target: Target):
+            """Build `target` if it wasn't built already, and mark it built."""
+            if target.name not in built_targets:
+                self.build_target(target)
+                built_targets.add(target.name)
+            target.done()
+
+        # pre-pass: build detected buildenv targets and their dependencies
+        for target in self.buildenv_iter():
+            build(target)
+
+        # main pass: build
+        for target in self.target_iter():
+            build(target)
