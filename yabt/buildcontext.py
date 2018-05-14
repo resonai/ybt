@@ -185,6 +185,10 @@ class BuildContext:
 
     def get_buildenv_graph(self):
         """Return a graph induced by buildenv nodes"""
+        # This implementation first obtains all subsets of nodes that all
+        # buildenvs depend on, and then builds a subgraph induced by the union
+        # of these subsets. This can be very non-optimal.
+        # TODO(itamar): Reimplement efficient algo, or redesign buildenvs
         buildenvs = set(target.buildenv for target in self.targets.values()
                         if target.buildenv)
         return nx.DiGraph(self.target_graph.subgraph(reduce(
