@@ -208,6 +208,7 @@ class BuildContext:
         The invariant: a target may be yielded from this generator only
         after all its descendant targets were notified "done".
         """
+        # TODO(itamar): test multi-threaded DAG scanner
 
         def is_ready(target_name):
             """Return True if the node `target_name` is "ready" in the graph
