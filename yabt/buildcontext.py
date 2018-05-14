@@ -201,6 +201,12 @@ class BuildContext:
 
         The input graph is mutated by this method, so it has to be a mutable
         copy of the graph (e.g. not original copy, or read-only view).
+
+        Caller **must** call `done()` after processing every generated
+        target, so additional ready targets can be added to the queue.
+
+        The invariant: a target may be yielded from this generator only
+        after all its descendant targets were notified "done".
         """
 
         def is_ready(target_name):
@@ -209,12 +215,6 @@ class BuildContext:
 
             "Ready" means that the graph doesn't contain any more nodes that
             `target_name` depends on (e.g. it has no successors).
-
-            Caller **must** call `done()` after processing every generated
-            target, so additional ready targets can be added to the queue.
-
-            The invariant: a target may be yielded from this generator only
-            after all its descendant targets were notified "done".
             """
             try:
                 next(graph_copy.successors(target_name))
