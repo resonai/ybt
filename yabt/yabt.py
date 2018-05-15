@@ -72,30 +72,7 @@ def cmd_build(conf: Config):
     """Build requested targets, and their dependencies."""
     build_context = BuildContext(conf)
     populate_targets_graph(build_context, conf)
-    built_targets = set()
-
-    def build(target: Target):
-        """Build `target` if it wasn't built already, and mark it built."""
-        if target.name not in built_targets:
-            build_context.build_target(target)
-            built_targets.add(target.name)
-
-    # pre-pass: build detected buildenv targets and their dependencies
-    for name, target in build_context.targets.items():
-        if name in built_targets:
-            continue
-        if target.buildenv:
-            buildenv = build_context.targets[target.buildenv]
-            for dep in build_context.walk_target_deps_topological_order(
-                    buildenv):
-                build(dep)
-            build(buildenv)
-
-    # main pass: build
-    for target_name in topological_sort(build_context.target_graph):
-        target = build_context.targets[target_name]
-        build(target)
-
+    build_context.build_graph()
     build_context.write_artifacts_metadata()
 
 
