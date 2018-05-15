@@ -22,12 +22,66 @@ yabt target graph tests
 """
 
 
+import random
+
 import networkx
 import pytest
 
 from .buildcontext import BuildContext
-from .graph import populate_targets_graph, topological_sort
+from .graph import get_descendants, populate_targets_graph, topological_sort
 from .extend import Plugin
+
+
+slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
+                          reason='need --with-slow option to run')
+
+
+def generate_random_dag(num_nodes, min_rank=0, max_rank=10, edge_prob=0.3):
+    """Return a random DAG with `num_nodes` nodes.
+
+    Nodes values will be (0..num_nodes-1),
+    and edges can only go from i -> j if i < j (guaranteeing DAGness).
+    """
+    g = networkx.DiGraph()
+    g.add_nodes_from(range(num_nodes))
+    for j in range(1, num_nodes):
+        rank = random.randint(min_rank, min(j, max_rank))
+        g.add_edges_from((i, j) for i in random.sample(range(j), k=rank)
+                         if random.random() > edge_prob)
+    return g
+
+
+def random_dag_scan(num_nodes):
+    """Test that `target_iter` generates nodes in a correct order"""
+
+    class DummyTarget():
+        def __init__(self, n):
+            self.name = n
+
+    # Use random DAG to create a build context with dummy targets
+    g = generate_random_dag(num_nodes)
+    build_context = BuildContext(None)
+    build_context.target_graph = g
+    for n in g.nodes():
+        build_context.targets[n] = DummyTarget(n)
+    # for every generated node, assert that all the prerequisite nodes are
+    # already in the `done` set
+    done = set()
+    for target in build_context.target_iter():
+        assert done.issuperset(get_descendants(g, target.name))
+        target.done()
+        done.add(target.name)
+    # also assert that at the end, all nodes are "done"
+    assert done == set(g.nodes())
+
+
+def test_small_dag_scan():
+    random_dag_scan(500)
+
+
+@slow
+def test_big_dag_scan():
+    random_dag_scan(5000)
 
 
 @pytest.mark.usefixtures('in_dag_project')
