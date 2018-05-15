@@ -47,20 +47,10 @@ def test_target_graph(basic_conf):
              ('yapi/server:yapi-gunicorn', ':gunicorn'),
              ('common:base', 'common:logging'))) ==
         set(build_context.target_graph.edges()))
-    # Can't assert the list directly, because it is not stable / deterministic
-    topo_sort = list(topological_sort(build_context.target_graph))
-
-    def assert_dep_chain(*chain):
-        dep_chain = [topo_sort.index(target_name) for target_name in chain]
-        assert dep_chain == sorted(dep_chain)
-
-    assert_dep_chain('common:logging', 'common:base',
-                     'yapi/server:yapi', 'yapi/server:yapi-gunicorn')
-    assert_dep_chain(':flask', 'yapi/server:yapi')
-    assert_dep_chain(':gunicorn', 'yapi/server:yapi-gunicorn')
-    assert_dep_chain(':flask', 'fe:fe')
-    assert_dep_chain('yapi/server:users', 'fe:fe')
-    assert_dep_chain('common:logging', 'common:base', 'fe:fe')
+    assert ([':flask', ':gunicorn', 'common:logging', 'common:base',
+             'yapi/server:users', 'fe:fe', 'yapi/server:yapi',
+             'yapi/server:yapi-gunicorn'] ==
+            list(topological_sort(build_context.target_graph)))
 
 
 @pytest.mark.usefixtures('in_yapi_dir')
