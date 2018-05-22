@@ -196,7 +196,7 @@ class BuildContext:
             (get_descendants(self.target_graph, buildenv)
              for buildenv in buildenvs), buildenvs)))
 
-    def ready_nodes_iter(self, graph_copy):
+    def ready_nodes_iter(self, graph_copy, num_threads=1):
         """Generate ready targets from the graph `graph_copy`.
 
         The input graph is mutated by this method, so it has to be a mutable
@@ -208,7 +208,7 @@ class BuildContext:
         The invariant: a target may be yielded from this generator only
         after all its descendant targets were notified "done".
         """
-        # TODO(itamar): test multi-threaded DAG scanner
+        # TODO(itamar): implement multi-threaded DAG scanner
 
         def is_ready(target_name):
             """Return True if the node `target_name` is "ready" in the graph
@@ -253,7 +253,7 @@ class BuildContext:
             node.done = make_done_callback(node)
             yield node
 
-    def target_iter(self):
+    def target_iter(self, num_threads=1):
         """Generate ready targets from entire target graph.
 
         Caller **must** call `done()` after processing every generated target,
@@ -262,9 +262,9 @@ class BuildContext:
         The invariant: a target may be yielded from this generator only after
         all its descendant targets were notified "done".
         """
-        yield from self.ready_nodes_iter(self.target_graph.copy())
+        yield from self.ready_nodes_iter(self.target_graph.copy(), num_threads)
 
-    def buildenv_iter(self):
+    def buildenv_iter(self, num_threads=1):
         """Generate ready targets from subgraph of buildenvs.
 
         Caller **must** call `done()` after processing every generated target,
@@ -273,7 +273,8 @@ class BuildContext:
         The invariant: a target may be yielded from this generator only after
         all its descendant targets were notified "done".
         """
-        yield from self.ready_nodes_iter(self.get_buildenv_graph())
+        yield from self.ready_nodes_iter(self.get_buildenv_graph(),
+                                         num_threads)
 
     def run_in_buildenv(
             self, buildenv_target_name: str, cmd: list, cmd_env: dict=None,

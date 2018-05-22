@@ -22,6 +22,7 @@ yabt target graph tests
 """
 
 
+from functools import reduce
 import random
 
 import networkx
@@ -51,19 +52,28 @@ def generate_random_dag(num_nodes, min_rank=0, max_rank=10, edge_prob=0.3):
     return g
 
 
-def random_dag_scan(num_nodes):
-    """Test that `target_iter` generates nodes in a correct order"""
+def make_random_dag_build_context(
+        num_nodes, min_rank=0, max_rank=10, edge_prob=0.3):
+    """Return a build context based on a random DAG with `num_nodes` nodes."""
 
     class DummyTarget():
         def __init__(self, n):
             self.name = n
+            self.value = n
 
     # Use random DAG to create a build context with dummy targets
-    g = generate_random_dag(num_nodes)
+    g = generate_random_dag(num_nodes, min_rank, max_rank, edge_prob)
     build_context = BuildContext(None)
     build_context.target_graph = g
     for n in g.nodes():
         build_context.targets[n] = DummyTarget(n)
+
+    return g, build_context
+
+
+def random_dag_scan(num_nodes):
+    """Test that `target_iter` generates nodes in a correct order"""
+    g, build_context = make_random_dag_build_context(num_nodes)
     # for every generated node, assert that all the prerequisite nodes are
     # already in the `done` set
     done = set()
@@ -82,6 +92,67 @@ def test_small_dag_scan():
 @slow
 def test_big_dag_scan():
     random_dag_scan(5000)
+
+
+def multithreaded_dag_scanner(num_nodes, num_threads=8):
+    """Test that a multi-threaded `target_iter` with `num_nodes` nodes and
+       `num_threads` threads generates nodes in the correct order, by
+       comparing reduce-friendly operations between the multi-threaded method
+       and a topological-sort-based single-threaded method.
+    """
+
+    g, build_context = make_random_dag_build_context(num_nodes)
+    # set leaf nodes values to random (-3,3) numbers,
+    # and non-leaf nodes to "No value" (None)
+    for n, out_deg in g.out_degree():
+        build_context.targets[n].value = (random.randint(-3, 3)
+                                          if out_deg == 0 else None)
+
+    def func(target, values):
+        """Reducer-friendly operator"""
+        deps = list(g.successors(target.name))
+        for dep in deps:
+            assert values[dep] is not None
+        if len(deps) == 0:
+            # a leaf - just copy the value
+            values[target.name] = target.value
+        else:
+            assert values[target.name] is None
+            if len(deps) == 1:
+                # node with one dependency - use dep value + 1
+                values[target.name] = values[deps[0]] + 1
+            else:
+                # multi-dep node - apply reducer to dep values
+                # reducer either sum or mult, depending on node parity
+                reducer = ((lambda x, y: x + y) if target.name & 1
+                           else (lambda x, y: x * y))
+                values[target.name] = reduce(
+                    reducer, (values[dep] for dep in deps))
+
+    # Scan DAG in topological sort order, applying operator in order
+    topo_vals = [None] * num_nodes
+    for i in reversed(range(num_nodes)):
+        func(build_context.targets[i], topo_vals)
+
+    # Multi-threaded DAG scan using ready-queue
+    queue_vals = [None] * num_nodes
+    for node in build_context.target_iter(num_threads):
+        func(node, queue_vals)
+        node.done()
+
+    # Compare single vs. multi threaded results
+    for topo_val, q_val in zip(topo_vals, queue_vals):
+        assert topo_val is not None and q_val is not None
+        assert topo_val == q_val
+
+
+def test_small_multithreaded_dag_scan():
+    multithreaded_dag_scanner(1000)
+
+
+@slow
+def test_big_multithreaded_dag_scan():
+    multithreaded_dag_scanner(50000)
 
 
 @pytest.mark.usefixtures('in_dag_project')
