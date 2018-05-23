@@ -22,6 +22,7 @@ yabt target graph tests
 """
 
 
+from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
 import random
 
@@ -94,7 +95,7 @@ def test_big_dag_scan():
     random_dag_scan(5000)
 
 
-def multithreaded_dag_scanner(num_nodes, num_threads=8):
+def multithreaded_dag_scanner(num_nodes, num_threads=16):
     """Test that a multi-threaded `target_iter` with `num_nodes` nodes and
        `num_threads` threads generates nodes in the correct order, by
        comparing reduce-friendly operations between the multi-threaded method
@@ -136,9 +137,13 @@ def multithreaded_dag_scanner(num_nodes, num_threads=8):
 
     # Multi-threaded DAG scan using ready-queue
     queue_vals = [None] * num_nodes
-    for node in build_context.target_iter(num_threads):
-        func(node, queue_vals)
-        node.done()
+    with ThreadPoolExecutor(max_workers=num_threads) as executor:
+
+        def do_func(node):
+            func(node, queue_vals)
+            node.done()
+
+        executor.map(do_func, build_context.target_iter())
 
     # Compare single vs. multi threaded results
     for topo_val, q_val in zip(topo_vals, queue_vals):
