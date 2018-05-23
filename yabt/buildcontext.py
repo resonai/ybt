@@ -29,6 +29,7 @@ import os
 from pathlib import PurePath
 import platform
 import threading
+from time import sleep
 
 import networkx as nx
 from ostrich.utils.proc import run
@@ -208,7 +209,6 @@ class BuildContext:
         The invariant: a target may be yielded from this generator only
         after all its descendant targets were notified "done".
         """
-        # TODO(itamar): test multi-threaded DAG scanner
 
         def is_ready(target_name):
             """Return True if the node `target_name` is "ready" in the graph
@@ -226,6 +226,7 @@ class BuildContext:
         ready_nodes = deque(sorted(
             target_name for target_name in graph_copy.nodes
             if is_ready(target_name)))
+        produced_event = threading.Event()
 
         def make_done_callback(target: Target):
             """Return a callable "done" notifier to
@@ -240,15 +241,17 @@ class BuildContext:
                     ready_nodes.extend(
                         target_name for target_name in affected_nodes
                         if is_ready(target_name))
+                    produced_event.set()
 
             return done_notifier
 
-        # TODO: block until ready or all nodes notified done
         while True:
-            try:
-                next_node = ready_nodes.popleft()
-            except IndexError:
-                break
+            while len(ready_nodes) == 0:
+                if graph_copy.order() == 0:
+                    return
+                produced_event.wait(0.5)
+            produced_event.clear()
+            next_node = ready_nodes.popleft()
             node = self.targets[next_node]
             node.done = make_done_callback(node)
             yield node
