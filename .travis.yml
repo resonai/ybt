@@ -23,3 +23,13 @@ install:
 # command to run tests
 script:
   - make test
+
+deploy:
+  provider: pypi
+  user: resonai
+  password:
+    secure: e2V0IB6eqYyVCnQV/3LqV9CouCAkUfRcAj8cfG/vlkQtz3vWayIHWB+rCTeQIgU3hDYVJF7NfD91LyTjvrEUTx+ejQj8JZL55bDE/3/KpS71aE0/27fFetzA57JOD7MDGbjOszqb5cGCIwjb2z68sUxLct0VSXwJE2h7xRX4O6TcrlRF9YzY/DFGG61RwkkH9Sh9mN376x/yLrE4iqgAfjyX52ps7VNe1zBHIOYphrnYus9Nzn6zIQkkqPaIZn8u9GQtDVgKXYJZkSE9MOyUe2vcyXFtHQ7gVs1pQsa8kUvt0z/uKNQqAhj/2hk8ksMvo8z+t73Cv43qjlO0kAymN71VmPaR3iJSAxh9oJQQPEaewcCXlwlzFnR2sr/k4m2z8etfOrxziKUD/odEoQjhpuOv2CfkBh0ZYttFWTZwa+An8cCffjLF3JQtuvijg/IDuan9BQv+PGfsvWu4hO8xjrSxXAXW3+MGwECKYffHDfUl69UzgogdKhqUoM9CV+XUPHeWOpovh8VBR921o1opvslGyIFN1uEru+IwZjPlKkqzBhyxeBNEtO1vnFhDPO6mSHDzjS/ISJBhYrlL9pCpvleTSj8rY5fq+l4S/vf1nUUeF2r+8ys7hw9MUnqGH8gBq62KHGEU1UtLYgfhu0gX9qCdYb3FRMSD97/b/bqnNls=
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+    repo: resonai/ybt

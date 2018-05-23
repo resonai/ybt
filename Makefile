@@ -11,6 +11,7 @@ help:
 	@echo '   make dist       Build source & wheel distributions              '
 	@echo '   make clean      Clean build & dist output directories           '
 	@echo '   make pypi       Clean, build dist, and upload to PyPI (twine)   '
+	@echo '   make release    Bump version, tag & push (trigger Travis deploy)'
 	@echo '                                                                   '
 
 test:
@@ -41,4 +42,7 @@ pypi: clean dist
 	twine upload dist/*
 	@echo "Finished uploading version to PyPI"
 
-.PHONY: help test tox lint dist clean pypi
+release:
+	./scripts/release.sh
+
+.PHONY: help test tox lint dist clean pypi release
