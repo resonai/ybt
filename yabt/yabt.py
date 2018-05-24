@@ -30,7 +30,7 @@ from .buildcontext import BuildContext
 from .cli import init_and_get_conf
 from .config import Config, BUILD_PROJ_FILE
 from .extend import Plugin
-from .graph import populate_targets_graph, topological_sort
+from .graph import populate_targets_graph
 from .target_utils import parse_target_selectors, split, Target
 
 

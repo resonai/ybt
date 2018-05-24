@@ -28,7 +28,7 @@ import pytest
 
 from . import proto
 from ..buildcontext import BuildContext
-from ..graph import populate_targets_graph, topological_sort
+from ..graph import populate_targets_graph
 from ..utils import yprint
 
 
