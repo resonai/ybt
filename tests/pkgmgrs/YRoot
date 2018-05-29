@@ -17,7 +17,7 @@ AptPackage(
 
 CustomInstaller(
     'node',
-    uri='https://deb.nodesource.com/setup_4.x',
+    uri='https://deb.nodesource.com/setup_10.x',
     script='install-nodejs.sh',
     deps=':apt-transport-https',
     packaging_params={
@@ -27,21 +27,15 @@ CustomInstaller(
     }
 )
 
-AptRepository(
-    'ruby-ng-ppa',
-    source='ppa:brightbox/ruby-ng'
-)
-
 AptPackage(
     'ruby-run',
-    package='ruby2.2',
-    deps=[':node', ':ruby-ng-ppa']
+    package='ruby2.3',
+    deps=':node'
 )
 
 AptPackage(
     'ruby-dev',
-    package='ruby2.2-dev',
-    deps=':ruby-ng-ppa'
+    package='ruby2.3-dev'
 )
 
 TargetGroup(
@@ -60,7 +54,7 @@ TargetGroup(
 PythonPackage(
     'flask',
     package='flask',
-    version='0.12.2',
+    version='1.0.2',
     pip='pip',
     deps=':ruby',
     packaging_params={
@@ -114,7 +108,7 @@ DockerImage(
 # TODO: support dynamic distro-based construction of the source string
 AptRepository(
     'gcloud-repository',
-    source='deb http://packages.cloud.google.com/apt cloud-sdk-jessie main',
+    source='deb http://packages.cloud.google.com/apt cloud-sdk-stretch main',
     key='6A030B21BA07F4FB'
 )
 
@@ -127,5 +121,5 @@ AptPackage(
 DockerImage(
     'another-image',
     start_from=':the-image',
-    deps=[':ruby-ng-ppa',':gcloud']
+    deps=':gcloud'
 )
