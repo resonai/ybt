@@ -27,6 +27,7 @@ script:
 jobs:
   include:
     - stage: "Deploy to PyPI"
+      if: tag =~ ^v
       python: "3.6"
       script: skip
       deploy:
