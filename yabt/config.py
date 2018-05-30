@@ -40,10 +40,23 @@ class Config:
     """Runtime Config info class"""
 
     attrs_from_args = frozenset((
-        'bin_output_dir', 'build_file_name', 'default_target_name', 'cmd',
-        'targets', 'build_base_images', 'builders_workspace_dir', 'force_pull',
-        'offline', 'non_interactive', 'push', 'docker_volume', 'verbose',
-        'with_tini_entrypoint', 'artifacts_metadata_file',
+        'artifacts_metadata_file',
+        'bin_output_dir',
+        'build_base_images',
+        'build_file_name',
+        'builders_workspace_dir',
+        'cmd',
+        'default_target_name',
+        'docker_volume',
+        'force_pull',
+        'jobs',
+        'non_interactive',
+        'offline',
+        'push',
+        'targets',
+        'verbose',
+        'with_tini_entrypoint',
+        # logging-related
         'loglevel', 'logtostderr', 'logtostdout',
     ))
 

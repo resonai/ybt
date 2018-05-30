@@ -23,6 +23,7 @@ yabt Build context module
 
 
 from collections import defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
 import json
 import os
@@ -302,8 +303,8 @@ class BuildContext:
             stream_key in kwargs
             for stream_key in ('stdin', 'stdout', 'stderr', 'input'))
         docker_run = ['docker', 'run']
-        if not self.conf.non_interactive:
-            docker_run.append('-i')
+        # if not self.conf.non_interactive:
+        #     docker_run.append('-i')
         if not redirection:
             docker_run.append('-t')
         project_vol = (self.conf.docker_volume if self.conf.docker_volume else
@@ -369,9 +370,12 @@ class BuildContext:
             target.done()
 
         # pre-pass: build detected buildenv targets and their dependencies
-        for target in self.buildenv_iter():
-            build(target)
+        logger.info('Building buildenv targets using {} workers',
+                    self.conf.jobs)
+        with ThreadPoolExecutor(max_workers=self.conf.jobs) as executor:
+            executor.map(build, self.buildenv_iter())
 
         # main pass: build
-        for target in self.target_iter():
-            build(target)
+        logger.info('Building targets using {} workers', self.conf.jobs)
+        with ThreadPoolExecutor(max_workers=self.conf.jobs) as executor:
+            executor.map(build, self.target_iter())

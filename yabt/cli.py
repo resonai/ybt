@@ -83,6 +83,7 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         PARSER.add('--builders-workspace-dir', default='yabtwork')
         PARSER.add('--default-target-name', default='@default')
         PARSER.add('--force-pull', action='store_true')
+        PARSER.add('-j', '--jobs', type=int, default=1)
         # TODO(itamar): support auto-detection of interactivity-mode
         PARSER.add('--non-interactive', action='store_true')
         PARSER.add('--offline', action='store_true')
