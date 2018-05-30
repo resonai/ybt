@@ -78,9 +78,6 @@ def test_package_managers_install_order(basic_conf):
         'ARG DEBIAN_FRONTEND=noninteractive\n',
         'USER root\n',
         'ENV FOO="BAR" PATH="${PATH}:/foo/bar:/ham:/spam" TEST="1"\n',
-        'RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv '
-        '80F70E11F0F0D5F10CB20E62F5DA5F09C3173AA6\n',
-        'COPY the-image.list /etc/apt/sources.list.d/\n',
         'RUN apt-get update -y && apt-get install --no-install-recommends -y '
         'apt-transport-https curl wget && rm -rf /var/lib/apt/lists/*\n',
         'COPY packages1 /tmp/install1\n',
@@ -88,7 +85,7 @@ def test_package_managers_install_order(basic_conf):
         'cd /tmp/install1/node && cat install-nodejs.sh | tr -d \'\\r\' | bash'
         ' && cd / && rm -rf /tmp/install1\n',
         'RUN apt-get update -y && apt-get install --no-install-recommends -y '
-        'ruby2.2 ruby2.2-dev && rm -rf /var/lib/apt/lists/*\n',
+        'ruby2.3 ruby2.3-dev && rm -rf /var/lib/apt/lists/*\n',
         'COPY requirements_pip_1.txt /usr/src/\n',
         'RUN pip install --no-cache-dir --upgrade pip && '
         'pip install --no-cache-dir -r /usr/src/requirements_pip_1.txt\n',
@@ -118,6 +115,6 @@ def test_generate_needed_lists(basic_conf):
     assert 0 == result.returncode
     for file in [
             b'another-image.list',
-            b'the-image.list',
+            b'nodesource.list',
             ]:
         assert file in result.stdout
