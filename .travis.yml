@@ -28,6 +28,7 @@ jobs:
   include:
     - stage: "Deploy to PyPI"
       python: "3.6"
+      script: skip
       deploy:
         provider: pypi
         user: resonai
