@@ -292,7 +292,10 @@ def build_docker_image(
             if pkg_type != layer[0]:
                 layer = (pkg_type, list())
                 packaging_layers.append(layer)
-        layer[1].append(pkg_spec)
+        if isinstance(pkg_spec, list):
+            layer[1].extend(pkg_spec)
+        else:
+            layer[1].append(pkg_spec)
 
     def check_env_overrides(new_vars: set, op_kind: str, vars_source: str):
         overridden_vars = new_vars.intersection(effective_env.keys())
