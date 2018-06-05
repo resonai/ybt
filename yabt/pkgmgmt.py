@@ -37,9 +37,15 @@ VALID_SOURCE_TYPES = frozenset(('deb',))  # 'deb-src'
 
 
 def format_apt_specifier(target):
-    if target.props.version:
-        return '{0.package}={0.version}'.format(target.props)
-    return '{0.package}'.format(target.props)
+    if 'package' in target.props:
+        # AptPackage
+        if target.props.version:
+            return '{0.package}={0.version}'.format(target.props)
+        return target.props.package
+
+    # AptGroup
+    return ['='.join(pkg) if isinstance(pkg, tuple) else pkg
+            for pkg in target.props.packages]
 
 
 def expand_ppa(path: str, distro: dict):

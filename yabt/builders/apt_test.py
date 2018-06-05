@@ -25,6 +25,7 @@ yabt Apt builder tests
 import pytest
 
 from . import apt
+from ..pkgmgmt import parse_apt_repository
 from ..target_utils import Target
 
 
@@ -47,7 +48,7 @@ def test_apt_repository_simple_line():
     target.props.source = llvm_repo
     target.props.key = None
     target.props.keyserver = 'hkp://keyserver.ubuntu.com:80'
-    source_line, apt_key_cmd = apt.parse_apt_repository(None, target, DISTRO)
+    source_line, apt_key_cmd = parse_apt_repository(None, target, DISTRO)
     assert llvm_repo == source_line
     assert apt_key_cmd is None
 
@@ -58,7 +59,7 @@ def test_apt_repository_ppa_with_key():
     target.props.source = 'ppa:brightbox/ruby-ng'
     target.props.key = None
     target.props.keyserver = 'hkp://keyserver.ubuntu.com:80'
-    source_line, apt_key_cmd = apt.parse_apt_repository(None, target, DISTRO)
+    source_line, apt_key_cmd = parse_apt_repository(None, target, DISTRO)
     exp_ruby_ng_repo = ('deb http://ppa.launchpad.net/brightbox/ruby-ng/'
                         'ubuntu trusty main')
     exp_ruby_ng_key_cmd = (
