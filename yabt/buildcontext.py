@@ -31,6 +31,8 @@ from pathlib import PurePath
 import platform
 import threading
 from time import sleep
+from traceback import format_exc
+import sys
 
 import networkx as nx
 from ostrich.utils.proc import run
@@ -228,6 +230,7 @@ class BuildContext:
             target_name for target_name in graph_copy.nodes
             if is_ready(target_name)))
         produced_event = threading.Event()
+        failed_event = threading.Event()
 
         def make_done_callback(target: Target):
             """Return a callable "done" notifier to
@@ -250,11 +253,14 @@ class BuildContext:
             while len(ready_nodes) == 0:
                 if graph_copy.order() == 0:
                     return
+                if failed_event.is_set():
+                    return
                 produced_event.wait(0.5)
             produced_event.clear()
             next_node = ready_nodes.popleft()
             node = self.targets[next_node]
             node.done = make_done_callback(node)
+            node.fail = lambda: failed_event.set()
             yield node
 
     def target_iter(self):
@@ -365,17 +371,23 @@ class BuildContext:
         def build(target: Target):
             """Build `target` if it wasn't built already, and mark it built."""
             if target.name not in built_targets:
-                self.build_target(target)
+                try:
+                    self.build_target(target)
+                except Exception as ex:
+                    target.fail()
+                    logger.info(format_exc())
+                    print('Fatal `{}\': {}'.format(target.name, ex),
+                          file=sys.stderr)
+                    return
                 built_targets.add(target.name)
             target.done()
 
-        # pre-pass: build detected buildenv targets and their dependencies
-        logger.info('Building buildenv targets using {} workers',
-                    self.conf.jobs)
-        with ThreadPoolExecutor(max_workers=self.conf.jobs) as executor:
-            executor.map(build, self.buildenv_iter())
+        def build_in_pool(seq):
+            with ThreadPoolExecutor(max_workers=self.conf.jobs) as executor:
+                list(executor.map(build, seq))
 
-        # main pass: build
         logger.info('Building targets using {} workers', self.conf.jobs)
-        with ThreadPoolExecutor(max_workers=self.conf.jobs) as executor:
-            executor.map(build, self.target_iter())
+        # pre-pass: build detected buildenv targets and their dependencies
+        build_in_pool(self.buildenv_iter())
+        # main pass: build rest of the graph
+        build_in_pool(self.target_iter())
