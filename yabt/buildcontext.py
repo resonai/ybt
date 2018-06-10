@@ -135,6 +135,14 @@ class BuildContext:
             if dep_name in all_deps:
                 yield self.targets[dep_name]
 
+    def generate_direct_deps(self, target: Target):
+        yield from (self.targets[dep_name] for dep_name in target.deps)
+
+    def generate_all_deps(self, target: Target):
+        yield from (
+            self.targets[dep_name]
+            for dep_name in get_descendants(self.target_graph, target.name))
+
     def register_target(self, target: Target):
         """Register a `target` instance in this build context.
 

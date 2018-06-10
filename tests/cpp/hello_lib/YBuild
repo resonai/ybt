@@ -1,0 +1,16 @@
+CppLib(
+    'greet',
+    sources='hello-greet.cc',
+    headers='hello-greet.h',
+    in_buildenv='//:builder'
+)
+
+CppProg(
+    'hello',
+    binary='hello',
+    sources='hello-world.cc',
+    in_buildenv='//:builder',
+    deps=':greet'
+)
+
+CppApp('hello-app', base_image='//:ubuntu', main=':hello')

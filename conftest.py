@@ -70,6 +70,11 @@ def in_prototest_project():
 
 
 @yield_fixture
+def in_cpp_project():
+    yield from yabt_project_fixture('cpp')
+
+
+@yield_fixture
 def basic_conf():
     conf = init_and_get_conf(['--non-interactive'])
     yabt.extend.Plugin.load_plugins(conf)
