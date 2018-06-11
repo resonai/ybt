@@ -34,17 +34,9 @@ from .. import target_utils
 
 
 def register_app_builder_sig(builder_name, sig=None, docstring=None):
-    pre_sig = []
-    post_sig = []
-    for term in listify(sig):
-        if len(term) < 3:
-            pre_sig.append(term)
-        else:
-            post_sig.append(term)
     register_builder_sig(
         builder_name,
-        pre_sig + [
-            ('base_image', PT.Target),
+        [('base_image', PT.Target)] + listify(sig) + [
             ('image_name', PT.str, None),
             ('image_tag', PT.str, 'latest'),
             ('full_path_cmd', PT.bool, False),
@@ -56,7 +48,7 @@ def register_app_builder_sig(builder_name, sig=None, docstring=None):
             ('build_user', PT.str, None),
             ('run_user', PT.str, None),
             ('docker_labels', PT.dict, None),
-        ] + post_sig,
+        ],
         docstring)
 
 
