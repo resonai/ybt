@@ -1,5 +1,5 @@
 CppLib(
-    'time',
+    'hello-time',
     sources='hello-time.cc',
     headers='hello-time.h',
     in_buildenv='//:builder'
