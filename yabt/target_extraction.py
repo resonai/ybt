@@ -148,7 +148,8 @@ def handle_typed_args(target, builder, build_module):
         elif arg_type == PT.TargetName:
             target.props[arg_name] = handle_target_name(arg_name, value)
         elif arg_type == PT.Target:
-            target.props[arg_name] = handle_target_ref(arg_name, value)
+            target.props[arg_name] = (
+                None if value is None else handle_target_ref(arg_name, value))
         elif arg_type == PT.TargetList:
             target.props[arg_name] = [
                 handle_target_ref(arg_name, val) for val in listify(value)]
