@@ -22,8 +22,9 @@ yabt C++ Builder
 
 :author: Itamar Ostricher
 
-TODO: support injecting conpile/link flags for 3rd party libs
+TODO: support injecting compile/link flags for 3rd party libs
 TODO: support flavors
+TODO: CppSharedLib builder
 """
 
 
@@ -113,6 +114,8 @@ def compile_cc(build_context, buildenv, sources, workspace_dir,
             '-fcolor-diagnostics', '-O2', '-DDEBUG',
             '-I{}'.format(buildenv_workspace),
             join(buildenv_workspace, src)]
+        # TODO: capture and transform error messages from compiler so file
+        # paths match host paths for smooth(er) editor / IDE integration
         build_context.run_in_buildenv(buildenv, obj_cmd, cmd_env)
         objects.append(
             join(relpath(workspace_dir, build_context.conf.project_root),
