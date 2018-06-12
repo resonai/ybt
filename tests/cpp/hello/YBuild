@@ -1,0 +1,3 @@
+CppProg('hello', binary='hello', sources='hello.cc', in_buildenv='//:builder')
+
+CppApp('hello-app', base_image='//:ubuntu', main=':hello')

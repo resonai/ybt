@@ -36,8 +36,7 @@ from .. import target_utils
 def register_app_builder_sig(builder_name, sig=None, docstring=None):
     register_builder_sig(
         builder_name,
-        listify(sig) + [
-            ('base_image', PT.Target),
+        [('base_image', PT.Target)] + listify(sig) + [
             ('image_name', PT.str, None),
             ('image_tag', PT.str, 'latest'),
             ('full_path_cmd', PT.bool, False),
