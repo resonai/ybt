@@ -166,6 +166,23 @@ def get_user_settings_module(project_root: str):
             return settings_loader.load_module()
 
 
+def call_user_func(settings_module, func_name, *args, **kwargs):
+    """Call a user-supplied settings function and clean it up afterwards.
+
+    settings_module may be None, or the function may not exist.
+    If the function exists, it is called with the specified *args and **kwargs,
+    and the result is returned.
+    """
+    if settings_module:
+        if hasattr(settings_module, func_name):
+            func = getattr(settings_module, func_name)
+            try:
+                return func(*args, **kwargs)
+            finally:
+                # cleanup user function
+                delattr(settings_module, func_name)
+
+
 def init_and_get_conf(argv: list=None) -> Config:
     """Initialize a YABT CLI environment and return a Config instance.
 
@@ -177,24 +194,9 @@ def init_and_get_conf(argv: list=None) -> Config:
                                          with_files=set([BUILD_PROJ_FILE]))
     parser = make_parser(find_project_config_file(project_root))
     settings_module = get_user_settings_module(project_root)
-    if settings_module:
-        if hasattr(settings_module, 'extend_cli'):
-            settings_module.extend_cli(parser)
+    call_user_func(settings_module, 'extend_cli', parser)
     argcomplete.autocomplete(parser)
     args = parser.parse(argv)
-    config = Config(args, project_root, work_dir)
-    if settings_module:
-        if hasattr(settings_module, 'extend_config'):
-            settings_module.extend_config(config, args)
-        config.settings = settings_module
-        try:
-            delattr(config.settings, 'extend_cli')
-        except AttributeError:
-            pass
-        try:
-            delattr(config.settings, 'extend_config')
-        except AttributeError:
-            pass
-    else:
-        config.settings = None
+    config = Config(args, project_root, work_dir, settings_module)
+    call_user_func(config.settings, 'extend_config', config, args)
     return config

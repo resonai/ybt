@@ -60,7 +60,8 @@ class Config:
         'loglevel', 'logtostderr', 'logtostdout',
     ))
 
-    def __init__(self, args, project_root_dir: str, work_dir: str):
+    def __init__(self, args, project_root_dir: str, work_dir: str,
+                 settings_module=None):
         """
         :param project_root_dir: Absolute path to build project root directory.
         :param work_dir: Absolute path to working directory within project.
@@ -76,6 +77,7 @@ class Config:
         self.scm = ScmManager.get_provider(self.scm_provider, self)
         Plugin.load_plugins(self)
         self.deleted_dirs = set()
+        self.settings = settings_module
 
     def in_yabt_project(self) -> bool:
         return self.project_root is not None
