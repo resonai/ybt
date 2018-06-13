@@ -79,3 +79,10 @@ def basic_conf():
     conf = init_and_get_conf(['--non-interactive'])
     yabt.extend.Plugin.load_plugins(conf)
     yield conf
+
+
+@yield_fixture()
+def debug_conf():
+    conf = init_and_get_conf(['--non-interactive', '--flavor', 'debug'])
+    yabt.extend.Plugin.load_plugins(conf)
+    yield conf

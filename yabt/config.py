@@ -25,6 +25,9 @@ yabt config
 import os
 from pathlib import Path
 
+from ostrich.utils.collections import listify
+from ostrich.utils.text import get_safe_path
+
 from .extend import Plugin
 from .logging import configure_logging
 from .scm import ScmManager
@@ -48,6 +51,7 @@ class Config:
         'cmd',
         'default_target_name',
         'docker_volume',
+        'flavor',
         'force_pull',
         'jobs',
         'non_interactive',
@@ -78,6 +82,10 @@ class Config:
         Plugin.load_plugins(self)
         self.deleted_dirs = set()
         self.settings = settings_module
+        self.common_conf = {}
+        self.flavor_conf = {}
+        self.flavor_dir = get_safe_path('_all_' if self.flavor is None
+                                        else self.flavor)
 
     def in_yabt_project(self) -> bool:
         return self.project_root is not None
@@ -101,7 +109,8 @@ class Config:
                     else self.build_file_name))
 
     def get_workspace_path(self) -> str:
-        return os.path.join(self.project_root, self.builders_workspace_dir)
+        return os.path.join(
+            self.project_root, self.builders_workspace_dir, self.flavor_dir)
 
     def get_bin_path(self) -> str:
         return os.path.join(self.project_root, self.bin_output_dir)
@@ -112,3 +121,23 @@ class Config:
         return '/'.join([
             '/project',
             host_path.resolve().relative_to(project_root).as_posix()])
+
+    def get(self, param: str, fallback: str) -> str:
+        common_val, flavor_val = None, None
+        if self.common_conf:
+            common_val = self.common_conf.get(param)
+        if self.flavor_conf:
+            flavor_val = self.flavor_conf.get(param)
+        if common_val is None and flavor_val is None:
+            return fallback
+        if flavor_val is not None:
+            if isinstance(flavor_val, list):
+                val = []
+                for el in flavor_val:
+                    if el == '$*':
+                        val.extend(listify(common_val))
+                    else:
+                        val.append(el)
+                return val
+            return flavor_val
+        return common_val or fallback

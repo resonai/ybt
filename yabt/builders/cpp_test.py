@@ -20,6 +20,8 @@
 """
 
 
+from os.path import join
+import shutil
 from subprocess import check_output
 
 import pytest
@@ -33,14 +35,86 @@ slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
                           reason='need --with-slow option to run')
 
 
-TEST_TARGETS = (
-    'hello:hello-app', 'hello_lib:hello-app', 'hello_mod/main:hello-app')
+def clear_bin():
+    try:
+        shutil.rmtree('ybt_bin')
+    except FileNotFoundError:
+        pass
+
+
+@pytest.mark.usefixtures('in_cpp_project')
+@pytest.mark.parametrize(
+    'test_case',
+    (
+        ('compiler_config:defaults', 'clang++-5.0',
+         ['-std=c++11', '-Wall', '-fcolor-diagnostics', '-O2', '-DDEBUG']),
+        ('compiler_config:override-compiler', 'foobar',
+         ['-std=c++11', '-Wall', '-fcolor-diagnostics', '-O2', '-DDEBUG']),
+        ('compiler_config:override-flags', 'clang++-5.0', ['-foo', 'bar']),
+        # TODO: known failure - make it work...
+        # ('compiler_config:override-flags-empty', 'clang++-5.0', []),
+        ('compiler_config:post-extend-flags', 'clang++-5.0',
+         ['-std=c++11', '-Wall', '-fcolor-diagnostics',
+          '-O2', '-DDEBUG', '-foo', 'bar']),
+        ('compiler_config:pre-extend-flags', 'clang++-5.0',
+         ['-foo', 'bar', '-std=c++11', '-Wall', '-fcolor-diagnostics',
+          '-O2', '-DDEBUG']),
+    ))
+def test_compiler_config(basic_conf, test_case):
+    target_name, exp_compiler, exp_flags = test_case
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = [target_name]
+    populate_targets_graph(build_context, basic_conf)
+    target = build_context.targets[target_name]
+    cc = cpp.CompilerConfig(build_context.conf, target)
+    assert cc.compiler == exp_compiler
+    assert cc.compile_flags == exp_flags
+    # also check flavored workspace dir
+    assert (build_context.get_workspace('foo', 'bar:baz') ==
+            join(basic_conf.project_root,
+                 'yabtwork', 'release', 'foo', 'bar_baz'))
+
+
+@pytest.mark.usefixtures('in_cpp_project')
+@pytest.mark.parametrize(
+    'test_case',
+    (
+        ('compiler_config:defaults', 'clang++-5.0',
+         ['-std=c++11', '-Wall', '-fcolor-diagnostics', '-g', '-DDEBUG']),
+        ('compiler_config:override-compiler', 'foobar',
+         ['-std=c++11', '-Wall', '-fcolor-diagnostics', '-g', '-DDEBUG']),
+        ('compiler_config:override-flags', 'clang++-5.0', ['-foo', 'bar']),
+        # TODO: known failure - make it work...
+        # ('compiler_config:override-flags-empty', 'clang++-5.0', []),
+        ('compiler_config:post-extend-flags', 'clang++-5.0',
+         ['-std=c++11', '-Wall', '-fcolor-diagnostics',
+          '-g', '-DDEBUG', '-foo', 'bar']),
+        ('compiler_config:pre-extend-flags', 'clang++-5.0',
+         ['-foo', 'bar', '-std=c++11', '-Wall', '-fcolor-diagnostics',
+          '-g', '-DDEBUG']),
+    ))
+def test_compiler_config_debug(debug_conf, test_case):
+    target_name, exp_compiler, exp_flags = test_case
+    build_context = BuildContext(debug_conf)
+    debug_conf.targets = [target_name]
+    populate_targets_graph(build_context, debug_conf)
+    target = build_context.targets[target_name]
+    cc = cpp.CompilerConfig(build_context.conf, target)
+    assert cc.compiler == exp_compiler
+    assert cc.compile_flags == exp_flags
+    # also check flavored workspace dir
+    assert (build_context.get_workspace('foo', 'bar:baz') ==
+            join(debug_conf.project_root,
+                 'yabtwork', 'debug', 'foo', 'bar_baz'))
 
 
 @slow
-@pytest.mark.parametrize('target_name', TEST_TARGETS)
+@pytest.mark.parametrize(
+    'target_name',
+    ('hello:hello-app', 'hello_lib:hello-app', 'hello_mod/main:hello-app'))
 @pytest.mark.usefixtures('in_cpp_project')
 def test_cpp_builder(basic_conf, target_name):
+    clear_bin()
     build_context = BuildContext(basic_conf)
     basic_conf.targets = [target_name]
     populate_targets_graph(build_context, basic_conf)
@@ -48,3 +122,4 @@ def test_cpp_builder(basic_conf, target_name):
     hello_out = str(
         check_output(['ybt_bin/{}'.format(target_name.replace(':', '/'))]))
     assert 'Hello world' in hello_out
+    clear_bin()

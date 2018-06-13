@@ -101,8 +101,7 @@ class BuildContext:
         any intermediate parent directories.
         """
         workspace_dir = os.path.join(self.conf.get_workspace_path(),
-                                     *(get_safe_path(part)
-                                       for part in parts))
+                                     *(get_safe_path(part) for part in parts))
         if not os.path.isdir(workspace_dir):
             # exist_ok=True in case of concurrent creation of the same dir
             os.makedirs(workspace_dir, exist_ok=True)
@@ -400,7 +399,8 @@ class BuildContext:
                 for target in seq:
                     build(target)
 
-        logger.info('Building targets using {} workers', self.conf.jobs)
+        logger.info('Building {} flavor using {} workers',
+                    self.conf.flavor, self.conf.jobs)
         # pre-pass: build detected buildenv targets and their dependencies
         build_in_pool(self.buildenv_iter())
         # main pass: build rest of the graph

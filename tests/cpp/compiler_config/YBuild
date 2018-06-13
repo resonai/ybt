@@ -1,0 +1,16 @@
+CppLib('defaults', sources=[], in_buildenv='//:builder')
+
+CppLib('override-compiler', sources=[], in_buildenv='//:builder',
+       compiler='foobar')
+
+CppLib('override-flags', sources=[], in_buildenv='//:builder',
+       compile_flags=['-foo', 'bar'])
+
+CppLib('override-flags-empty', sources=[], in_buildenv='//:builder',
+       compile_flags=[])
+
+CppLib('post-extend-flags', sources=[], in_buildenv='//:builder',
+       compile_flags=['$*', '-foo', 'bar'])
+
+CppLib('pre-extend-flags', sources=[], in_buildenv='//:builder',
+       compile_flags=['-foo', 'bar', '$*'])

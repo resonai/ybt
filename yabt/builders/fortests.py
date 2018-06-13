@@ -24,7 +24,7 @@ yabt Builders for tests
 """
 
 
-from ..extend import PropType as PT, register_builder_sig
+from ..extend import register_builder_sig
 
 
 register_builder_sig('DepTester')
