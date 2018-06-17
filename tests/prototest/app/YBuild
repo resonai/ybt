@@ -1,16 +1,13 @@
 ExtDockerImage(
     'ubuntu',
     image='ubuntu',
-    tag='16.04'
+    tag='18.04'
 )
 
 DockerImage(
     'proto-builder',
     start_from=':ubuntu',
-    deps=[
-        '//3rdparty:upgrade-pip',
-        '//3rdparty:protobuf',
-    ]
+    deps='//3rdparty:protobuf'
 )
 
 Proto(
