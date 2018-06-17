@@ -386,13 +386,19 @@ class BuildContext:
                     logger.info(format_exc())
                     print('Fatal `{}\': {}'.format(target.name, ex),
                           file=sys.stderr)
-                    return
+                    sys.exit(1)
                 built_targets.add(target.name)
             target.done()
 
         def build_in_pool(seq):
-            with ThreadPoolExecutor(max_workers=self.conf.jobs) as executor:
-                list(executor.map(build, seq))
+            jobs = self.conf.jobs
+            # don't use thread pool in case of single worker
+            if jobs > 1:
+                with ThreadPoolExecutor(max_workers=jobs) as executor:
+                    list(executor.map(build, seq))
+            else:
+                for target in seq:
+                    build(target)
 
         logger.info('Building targets using {} workers', self.conf.jobs)
         # pre-pass: build detected buildenv targets and their dependencies

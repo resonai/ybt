@@ -1,5 +1,7 @@
+syntax = "proto3";
+
 package tests;
 
 message Hello {
-    optional string world = 1;
+    string world = 1;
 }
