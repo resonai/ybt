@@ -386,7 +386,7 @@ class BuildContext:
                     logger.info(format_exc())
                     print('Fatal `{}\': {}'.format(target.name, ex),
                           file=sys.stderr)
-                    return
+                    sys.exit(1)
                 built_targets.add(target.name)
             target.done()
 
