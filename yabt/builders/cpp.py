@@ -23,12 +23,13 @@ yabt C++ Builder
 :author: Itamar Ostricher
 
 TODO: support injecting compile/link flags for 3rd party libs
-TODO: support flavors
 TODO: CppSharedLib builder
 """
 
 
 from os.path import basename, dirname, join, relpath, splitext
+
+from ostrich.utils.collections import listify
 
 from .dockerapp import build_app_docker_and_bin, register_app_builder_sig
 from ..extend import (
@@ -40,6 +41,55 @@ from ..utils import link_artifacts, yprint
 
 
 logger = make_logger(__name__)
+
+
+class CompilerConfig:
+    """Helper class for managing compiler / linker options and flags"""
+
+    def __init__(self, config, target):
+        self.compiler = self.get('compiler', config, target, 'g++')
+        self.linker = self.get('linker', config, target, 'g++')
+        self.compile_flags = self.get('compile_flags', config, target, [])
+        self.link_flags = self.get('link_flags', config, target, [])
+        self.include_path = self.get('include_path', config, target, [])
+
+    def get(self, param, config, target, fallback):
+        """Return the value of `param`, according to priority / expansion.
+
+        First priority - the target itself.
+        Second priority - the project config.
+        Third priority - a global default ("fallback").
+
+        In list-params, a '$*' term processed as "expansion term", meaning
+        it is replaced with all terms from the config-level.
+        """
+        target_val = target.props.get(param)
+        config_val = config.get(param, fallback)
+        if not target_val:
+            return config_val
+        if isinstance(target_val, list):
+            val = []
+            for el in target_val:
+                if el == '$*':
+                    val.extend(listify(config_val))
+                else:
+                    val.append(el)
+            return val
+        return target_val
+
+
+# Common C++ builder signature terms
+CPP_SIG = [
+     ('sources', PT.FileList),
+     ('in_buildenv', PT.Target),
+     ('headers', PT.FileList, None),
+     ('cmd_env', None),
+     ('compiler', PT.str, None),
+     ('linker', PT.str, None),
+     ('compile_flags', PT.list, None),
+     ('link_flags', PT.list, None),
+     ('include_path', PT.list, None),
+]
 
 
 register_app_builder_sig(
@@ -82,15 +132,7 @@ def cpp_app_builder(build_context, target):
         build_context, target, entrypoint=entrypoint)
 
 
-register_builder_sig(
-    'CppProg',
-    [('binary', PT.File),
-     ('sources', PT.FileList),
-     ('in_buildenv', PT.Target),
-     ('headers', PT.FileList, None),
-     ('cmd_env', None),
-     # ('copy_bin_to', PT.File, None),
-     ])
+register_builder_sig('CppProg', CPP_SIG)
 
 
 @register_manipulate_target_hook('CppProg')
@@ -98,7 +140,7 @@ def cpp_prog_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
 
 
-def compile_cc(build_context, buildenv, sources, workspace_dir,
+def compile_cc(build_context, cc, buildenv, sources, workspace_dir,
                buildenv_workspace, cmd_env):
     """Compile list of C++ source files in a buildenv image
        and return list of generated object file.
@@ -107,13 +149,11 @@ def compile_cc(build_context, buildenv, sources, workspace_dir,
     for src in sources:
         obj_rel_path = '{}.o'.format(splitext(src)[0])
         obj_file = join(buildenv_workspace, obj_rel_path)
-        # TODO: compiler flags should come from target & project config
-        obj_cmd = [
-            CC, '-o', obj_file, '-c',
-            '-std=c++11', '-Wall', '-fvectorize', '-fslp-vectorize',
-            '-fcolor-diagnostics', '-O2', '-DDEBUG',
-            '-I{}'.format(buildenv_workspace),
-            join(buildenv_workspace, src)]
+        include_paths = [buildenv_workspace] + cc.include_path
+        obj_cmd = (
+            [cc.compiler, '-o', obj_file, '-c'] + cc.compile_flags +
+            ['-I{}'.format(path) for path in include_paths] +
+            [join(buildenv_workspace, src)])
         # TODO: capture and transform error messages from compiler so file
         # paths match host paths for smooth(er) editor / IDE integration
         build_context.run_in_buildenv(buildenv, obj_cmd, cmd_env)
@@ -123,15 +163,13 @@ def compile_cc(build_context, buildenv, sources, workspace_dir,
     return objects
 
 
-# TODO: make configurable
-CC = 'clang++-5.0'
-
-
 @register_build_func('CppProg')
 def cpp_prog_builder(build_context, target):
     """Build a C++ binary executable"""
     yprint(build_context.conf, 'Build CppProg', target)
     workspace_dir = build_context.get_workspace('CppProg', target.name)
+    cc = CompilerConfig(build_context.conf, target)
+    binary = join(*split(target.name))
     all_files = target.props.sources + target.props.headers
     # add headers of direct dependencies
     for dep in build_context.generate_direct_deps(target):
@@ -145,11 +183,10 @@ def cpp_prog_builder(build_context, target):
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     objects.extend(compile_cc(
-        build_context, target.props.in_buildenv, target.props.sources,
+        build_context, cc, target.props.in_buildenv, target.props.sources,
         workspace_dir, buildenv_workspace, target.props.cmd_env))
-    bin_file = join(buildenv_workspace, target.props.binary)
-    # TODO: linker flags should come from target & project conf
-    bin_cmd = [CC, '-o', bin_file] + objects
+    bin_file = join(buildenv_workspace, binary)
+    bin_cmd = [cc.linker, '-o', bin_file] + objects + cc.link_flags
     build_context.run_in_buildenv(
         target.props.in_buildenv, bin_cmd, target.props.cmd_env)
     target.artifacts['gen'] = {
@@ -157,20 +194,15 @@ def cpp_prog_builder(build_context, target):
         join(workspace_dir, *split(target.name))
     }
 
+    # TODO: remove?
     # # Copy binary artifacts to external destination
     # if target.props.copy_bin_to:
-    #     link_artifacts([join(workspace_dir, target.props.binary)],
+    #     link_artifacts([join(workspace_dir, binary)],
     #                    target.props.copy_bin_to,
     #                    workspace_dir, build_context.conf)
 
 
-register_builder_sig(
-    'CppLib',
-    [('sources', PT.FileList),
-     ('in_buildenv', PT.Target),
-     ('headers', PT.FileList, None),
-     ('cmd_env', None),
-     ])
+register_builder_sig('CppLib', CPP_SIG)
 
 
 @register_manipulate_target_hook('CppLib')
@@ -183,10 +215,11 @@ def cpp_lib_builder(build_context, target):
     """Build C++ object files"""
     yprint(build_context.conf, 'Build CppLib', target)
     workspace_dir = build_context.get_workspace('CppLib', target.name)
+    cc = CompilerConfig(build_context.conf, target)
     link_artifacts(target.props.sources + target.props.headers,
                    workspace_dir, None, build_context.conf)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     target.props.objects = compile_cc(
-        build_context, target.props.in_buildenv, target.props.sources,
+        build_context, cc, target.props.in_buildenv, target.props.sources,
         workspace_dir, buildenv_workspace, target.props.cmd_env)

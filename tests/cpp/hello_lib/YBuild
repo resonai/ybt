@@ -7,7 +7,6 @@ CppLib(
 
 CppProg(
     'hello',
-    binary='hello',
     sources='hello-world.cc',
     in_buildenv='//:builder',
     deps=':hello-greet'

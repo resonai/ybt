@@ -29,6 +29,8 @@ import argcomplete
 import colorama
 import configargparse
 
+from ostrich.utils.collections import listify
+
 from .config import BUILD_PROJ_FILE, Config, YCONFIG_FILE, YSETTINGS_FILE
 from .utils import search_for_parent_dir
 
@@ -82,6 +84,7 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         PARSER.add('--build-base-images', action='store_true')
         PARSER.add('--builders-workspace-dir', default='yabtwork')
         PARSER.add('--default-target-name', default='@default')
+        PARSER.add('-f', '--flavor', help='Choose build flavor (AKA profile)')
         PARSER.add('--force-pull', action='store_true')
         PARSER.add('-j', '--jobs', type=int, default=1)
         # TODO(itamar): support auto-detection of interactivity-mode
@@ -166,6 +169,36 @@ def get_user_settings_module(project_root: str):
             return settings_loader.load_module()
 
 
+def call_user_func(settings_module, func_name, *args, **kwargs):
+    """Call a user-supplied settings function and clean it up afterwards.
+
+    settings_module may be None, or the function may not exist.
+    If the function exists, it is called with the specified *args and **kwargs,
+    and the result is returned.
+    """
+    if settings_module:
+        if hasattr(settings_module, func_name):
+            func = getattr(settings_module, func_name)
+            try:
+                return func(*args, **kwargs)
+            finally:
+                # cleanup user function
+                delattr(settings_module, func_name)
+
+
+def get_build_flavor(settings_module, args):
+    """Update the flavor arg based on the settings API"""
+    known_flavors = listify(call_user_func(settings_module, 'known_flavors'))
+    if args.flavor:
+        if args.flavor not in known_flavors:
+            raise ValueError('Unknown build flavor: {}'.format(args.flavor))
+    else:
+        args.flavor = call_user_func(settings_module, 'default_flavor')
+        if args.flavor and args.flavor not in known_flavors:
+            raise ValueError(
+                'Unknown default build flavor: {}'.format(args.flavor))
+
+
 def init_and_get_conf(argv: list=None) -> Config:
     """Initialize a YABT CLI environment and return a Config instance.
 
@@ -177,24 +210,13 @@ def init_and_get_conf(argv: list=None) -> Config:
                                          with_files=set([BUILD_PROJ_FILE]))
     parser = make_parser(find_project_config_file(project_root))
     settings_module = get_user_settings_module(project_root)
-    if settings_module:
-        if hasattr(settings_module, 'extend_cli'):
-            settings_module.extend_cli(parser)
+    call_user_func(settings_module, 'extend_cli', parser)
     argcomplete.autocomplete(parser)
     args = parser.parse(argv)
-    config = Config(args, project_root, work_dir)
-    if settings_module:
-        if hasattr(settings_module, 'extend_config'):
-            settings_module.extend_config(config, args)
-        config.settings = settings_module
-        try:
-            delattr(config.settings, 'extend_cli')
-        except AttributeError:
-            pass
-        try:
-            delattr(config.settings, 'extend_config')
-        except AttributeError:
-            pass
-    else:
-        config.settings = None
+    get_build_flavor(settings_module, args)
+    config = Config(args, project_root, work_dir, settings_module)
+    config.common_conf = call_user_func(config.settings, 'get_common_config')
+    config.flavor_conf = call_user_func(config.settings, 'get_flavored_config',
+                                        config.flavor)
+    call_user_func(config.settings, 'extend_config', config, args)
     return config
