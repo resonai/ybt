@@ -118,29 +118,25 @@ class BuildContext:
             os.makedirs(bin_dir, exist_ok=True)
         return bin_dir
 
-    def walk_target_graph(self, target_names: iter):
-        """Generate entire target sub-tree for given `target_names` in order.
-
-        Yields target *instances* in the sub-tree, including the nodes given.
-        """
-        for target_name in target_names:
-            yield self.targets[target_name]
-            yield from self.walk_target_graph(
-                self.target_graph.neighbors(target_name))
-
     def walk_target_deps_topological_order(self, target: Target):
+        """Generate all dependencies of `target` by topological sort order."""
         all_deps = get_descendants(self.target_graph, target.name)
         for dep_name in topological_sort(self.target_graph):
             if dep_name in all_deps:
                 yield self.targets[dep_name]
 
     def generate_direct_deps(self, target: Target):
+        """Generate only direct dependencies of `target`."""
         yield from (self.targets[dep_name] for dep_name in target.deps)
 
+    def generate_dep_names(self, target: Target):
+        """Generate names of all dependencies (descendants) of `target`."""
+        yield from get_descendants(self.target_graph, target.name)
+
     def generate_all_deps(self, target: Target):
-        yield from (
-            self.targets[dep_name]
-            for dep_name in get_descendants(self.target_graph, target.name))
+        """Generate all dependencies of `target` (the target nodes)."""
+        yield from (self.targets[dep_name]
+                    for dep_name in self.generate_dep_names(target))
 
     def register_target(self, target: Target):
         """Register a `target` instance in this build context.
