@@ -343,8 +343,7 @@ def build_docker_image(
         deps = []
     # Get all base image deps, so when building this image we can skip adding
     # deps that already exist in the base image.
-    base_image_deps = set(dep.name for dep in
-                          build_context.walk_target_graph([base_image.name]))
+    base_image_deps = set(build_context.generate_dep_names(base_image))
     for dep in deps:
         if not distro and 'distro' in dep.props:
             distro = dep.props.distro
