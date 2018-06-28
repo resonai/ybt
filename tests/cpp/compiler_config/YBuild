@@ -14,3 +14,16 @@ CppLib('post-extend-flags', sources=[], in_buildenv='//:builder',
 
 CppLib('pre-extend-flags', sources=[], in_buildenv='//:builder',
        compile_flags=['-foo', 'bar', '$*'])
+
+AptPackage(
+    'foo',
+    package='foo',
+    build_params={
+        'extra_link_flags': ['-lfoo'],
+        'extra_compile_flags': [
+            '-DFOO=BAR',
+        ]
+    }
+)
+
+CppLib('dep-extend-flags', sources=[], in_buildenv='//:builder', deps=':foo')

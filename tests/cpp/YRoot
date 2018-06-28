@@ -21,3 +21,10 @@ AptGroup(
 )
 
 DockerImage('builder', start_from=':ubuntu-gpg', deps=':clang')
+
+AptPackage(
+    'boost-dev',
+    package='libboost1.65-all-dev'
+)
+
+DockerImage('boost-builder', start_from=':builder', deps=':boost-dev')
