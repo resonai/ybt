@@ -44,7 +44,25 @@ logger = make_logger(__name__)
 
 
 class CompilerConfig:
-    """Helper class for managing compiler / linker options and flags"""
+    """Helper class for managing compiler / linker options and flags.
+
+    Design note:
+    Notice the `extra_{compile,link}_flags` for target X are collected from
+    all the dependencies of target X, but are actually applied to a command
+    that is executed within the **build-env image** of target X, which can
+    have a completely unrelated subgraph!
+    It is the responsibility of the "user" to use these parameters correctly,
+    and make sure that the build-env-image contains the **build-time**
+    dependencies that are needed to make this parameters work *there*, while
+    the target itself has the correct **runtime** dependencies.
+    See an example of how this plays out in the YaBT tests - specifically,
+    check out the `cpp/hello_boost` test and examine how the build-env image
+    contains boost dev-lib (for build-time, including all boost sub-libs),
+    while the final target depends on boost-runtime, which installs only 3
+    boost shared objects that are needed for this specific application.
+
+    TODO: add this note to proper project docs (also - create proper docs...)
+    """
 
     def __init__(self, build_context, target):
         self.compiler = self.get(
