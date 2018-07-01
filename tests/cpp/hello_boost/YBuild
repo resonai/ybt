@@ -1,4 +1,4 @@
-CppProg('echo', sources='echo.cc', in_buildenv='//:boost-builder',
+CppProg('echo', sources='echo.cc', in_buildenv='//:builder-with-boost',
         deps=':boost-runtime')
 
 AptGroup(
