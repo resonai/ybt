@@ -47,28 +47,32 @@ def clear_bin():
     'test_case',
     (
         ('compiler_config:defaults', 'clang++-5.0',
-         ['-std=c++11', '-Wall', '-fcolor-diagnostics', '-O2', '-DDEBUG']),
+         ['-std=c++14', '-Wall', '-fcolor-diagnostics', '-O2', '-DDEBUG'], []),
         ('compiler_config:override-compiler', 'foobar',
-         ['-std=c++11', '-Wall', '-fcolor-diagnostics', '-O2', '-DDEBUG']),
-        ('compiler_config:override-flags', 'clang++-5.0', ['-foo', 'bar']),
+         ['-std=c++14', '-Wall', '-fcolor-diagnostics', '-O2', '-DDEBUG'], []),
+        ('compiler_config:override-flags', 'clang++-5.0', ['-foo', 'bar'], []),
         # TODO: known failure - make it work...
-        # ('compiler_config:override-flags-empty', 'clang++-5.0', []),
+        # ('compiler_config:override-flags-empty', 'clang++-5.0', [], []),
         ('compiler_config:post-extend-flags', 'clang++-5.0',
-         ['-std=c++11', '-Wall', '-fcolor-diagnostics',
-          '-O2', '-DDEBUG', '-foo', 'bar']),
+         ['-std=c++14', '-Wall', '-fcolor-diagnostics',
+          '-O2', '-DDEBUG', '-foo', 'bar'], []),
         ('compiler_config:pre-extend-flags', 'clang++-5.0',
-         ['-foo', 'bar', '-std=c++11', '-Wall', '-fcolor-diagnostics',
-          '-O2', '-DDEBUG']),
+         ['-foo', 'bar', '-std=c++14', '-Wall', '-fcolor-diagnostics',
+          '-O2', '-DDEBUG'], []),
+        ('compiler_config:dep-extend-flags', 'clang++-5.0',
+         ['-std=c++14', '-Wall', '-fcolor-diagnostics',
+          '-O2', '-DDEBUG', '-DFOO=BAR'], ['-lfoo']),
     ))
 def test_compiler_config(basic_conf, test_case):
-    target_name, exp_compiler, exp_flags = test_case
+    target_name, exp_compiler, exp_compile_flags, exp_link_flags = test_case
     build_context = BuildContext(basic_conf)
     basic_conf.targets = [target_name]
     populate_targets_graph(build_context, basic_conf)
     target = build_context.targets[target_name]
-    cc = cpp.CompilerConfig(build_context.conf, target)
+    cc = cpp.CompilerConfig(build_context, target)
     assert cc.compiler == exp_compiler
-    assert cc.compile_flags == exp_flags
+    assert cc.compile_flags == exp_compile_flags
+    assert cc.link_flags == exp_link_flags
     # also check flavored workspace dir
     assert (build_context.get_workspace('foo', 'bar:baz') ==
             join(basic_conf.project_root,
@@ -80,17 +84,17 @@ def test_compiler_config(basic_conf, test_case):
     'test_case',
     (
         ('compiler_config:defaults', 'clang++-5.0',
-         ['-std=c++11', '-Wall', '-fcolor-diagnostics', '-g', '-DDEBUG']),
+         ['-std=c++14', '-Wall', '-fcolor-diagnostics', '-g', '-DDEBUG']),
         ('compiler_config:override-compiler', 'foobar',
-         ['-std=c++11', '-Wall', '-fcolor-diagnostics', '-g', '-DDEBUG']),
+         ['-std=c++14', '-Wall', '-fcolor-diagnostics', '-g', '-DDEBUG']),
         ('compiler_config:override-flags', 'clang++-5.0', ['-foo', 'bar']),
         # TODO: known failure - make it work...
         # ('compiler_config:override-flags-empty', 'clang++-5.0', []),
         ('compiler_config:post-extend-flags', 'clang++-5.0',
-         ['-std=c++11', '-Wall', '-fcolor-diagnostics',
+         ['-std=c++14', '-Wall', '-fcolor-diagnostics',
           '-g', '-DDEBUG', '-foo', 'bar']),
         ('compiler_config:pre-extend-flags', 'clang++-5.0',
-         ['-foo', 'bar', '-std=c++11', '-Wall', '-fcolor-diagnostics',
+         ['-foo', 'bar', '-std=c++14', '-Wall', '-fcolor-diagnostics',
           '-g', '-DDEBUG']),
     ))
 def test_compiler_config_debug(debug_conf, test_case):
@@ -99,7 +103,7 @@ def test_compiler_config_debug(debug_conf, test_case):
     debug_conf.targets = [target_name]
     populate_targets_graph(build_context, debug_conf)
     target = build_context.targets[target_name]
-    cc = cpp.CompilerConfig(build_context.conf, target)
+    cc = cpp.CompilerConfig(build_context, target)
     assert cc.compiler == exp_compiler
     assert cc.compile_flags == exp_flags
     # also check flavored workspace dir

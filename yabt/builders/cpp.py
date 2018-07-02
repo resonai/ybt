@@ -44,14 +44,43 @@ logger = make_logger(__name__)
 
 
 class CompilerConfig:
-    """Helper class for managing compiler / linker options and flags"""
+    """Helper class for managing compiler / linker options and flags.
 
-    def __init__(self, config, target):
-        self.compiler = self.get('compiler', config, target, 'g++')
-        self.linker = self.get('linker', config, target, 'g++')
-        self.compile_flags = self.get('compile_flags', config, target, [])
-        self.link_flags = self.get('link_flags', config, target, [])
-        self.include_path = self.get('include_path', config, target, [])
+    Design note:
+    Notice the `extra_{compile,link}_flags` for target X are collected from
+    all the dependencies of target X, but are actually applied to a command
+    that is executed within the **build-env image** of target X, which can
+    have a completely unrelated subgraph!
+    It is the responsibility of the "user" to use these parameters correctly,
+    and make sure that the build-env-image contains the **build-time**
+    dependencies that are needed to make this parameters work *there*, while
+    the target itself has the correct **runtime** dependencies.
+    See an example of how this plays out in the YaBT tests - specifically,
+    check out the `cpp/hello_boost` test and examine how the build-env image
+    contains boost dev-lib (for build-time, including all boost sub-libs),
+    while the final target depends on boost-runtime, which installs only 3
+    boost shared objects that are needed for this specific application.
+
+    TODO: add this note to proper project docs (also - create proper docs...)
+    """
+
+    def __init__(self, build_context, target):
+        self.compiler = self.get(
+            'compiler', build_context.conf, target, 'g++')
+        self.linker = self.get(
+            'linker', build_context.conf, target, 'g++')
+        self.compile_flags = self.get(
+            'compile_flags', build_context.conf, target, [])
+        self.link_flags = self.get(
+            'link_flags', build_context.conf, target, [])
+        self.include_path = self.get(
+            'include_path', build_context.conf, target, [])
+        for dep in build_context.generate_all_deps(target):
+            build_params = dep.props.build_params
+            self.compile_flags.extend(
+                listify(build_params.get('extra_compile_flags')))
+            self.link_flags.extend(
+                listify(build_params.get('extra_link_flags')))
 
     def get(self, param, config, target, fallback):
         """Return the value of `param`, according to priority / expansion.
@@ -168,7 +197,7 @@ def cpp_prog_builder(build_context, target):
     """Build a C++ binary executable"""
     yprint(build_context.conf, 'Build CppProg', target)
     workspace_dir = build_context.get_workspace('CppProg', target.name)
-    cc = CompilerConfig(build_context.conf, target)
+    cc = CompilerConfig(build_context, target)
     binary = join(*split(target.name))
     all_files = target.props.sources + target.props.headers
     # add headers of direct dependencies
@@ -215,7 +244,7 @@ def cpp_lib_builder(build_context, target):
     """Build C++ object files"""
     yprint(build_context.conf, 'Build CppLib', target)
     workspace_dir = build_context.get_workspace('CppLib', target.name)
-    cc = CompilerConfig(build_context.conf, target)
+    cc = CompilerConfig(build_context, target)
     link_artifacts(target.props.sources + target.props.headers,
                    workspace_dir, None, build_context.conf)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(

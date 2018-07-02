@@ -1,0 +1,21 @@
+CppProg('echo', sources='echo.cc', in_buildenv='//:builder-with-boost',
+        deps=':boost-runtime')
+
+AptGroup(
+    'boost-runtime',
+    packages=[
+        'libboost-system1.65.1',
+        'libboost-coroutine1.65.1',
+        'libboost-context1.65.1'
+    ],
+    build_params={
+        'extra_compile_flags': [
+            '-DBOOST_COROUTINES_NO_DEPRECATION_WARNING=1',
+        ],
+        'extra_link_flags': [
+            '-lboost_system', '-lboost_context', '-lboost_coroutine'
+        ],
+    }
+)
+
+CppApp('echo-svc', base_image='//:ubuntu', main=':echo')

@@ -79,7 +79,8 @@ def evaluate_arg_spec(arg_spec):
     return arg_name, ArgSpec(arg_type, def_val)
 
 
-INJECTED_ARGS = frozenset(('deps', 'packaging_params'))
+INJECTED_ARGS = frozenset(
+    ('deps', 'packaging_params', 'runtime_params', 'build_params'))
 
 
 class Builder:
@@ -117,6 +118,8 @@ class Builder:
             (empty dict) is always after `deps`.
         4. A keyword arg `runtime_params` of type dict and default value {}
             (empty dict) is always after `packaging_params`.
+        5. A keyword arg `build_params` of type dict and default value {}
+            (empty dict) is always after `runtime_params`.
         """
         if self.sig is not None:
             raise KeyError('{} already registered a signature!'
@@ -143,6 +146,7 @@ class Builder:
         self.sig['deps'] = ArgSpec(PropType.TargetList, None)
         self.sig['packaging_params'] = ArgSpec(PropType.dict, {})
         self.sig['runtime_params'] = ArgSpec(PropType.dict, {})
+        self.sig['build_params'] = ArgSpec(PropType.dict, {})
 
 
 class Plugin:
