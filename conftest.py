@@ -76,13 +76,13 @@ def in_cpp_project():
 
 @yield_fixture
 def basic_conf():
-    conf = init_and_get_conf(['--non-interactive'])
+    conf = init_and_get_conf(['--non-interactive', 'build'])
     yabt.extend.Plugin.load_plugins(conf)
     yield conf
 
 
 @yield_fixture()
 def debug_conf():
-    conf = init_and_get_conf(['--non-interactive', '--flavor', 'debug'])
+    conf = init_and_get_conf(['--non-interactive', '-f', 'debug', 'build'])
     yabt.extend.Plugin.load_plugins(conf)
     yield conf

@@ -111,9 +111,7 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    help='Whether to log to STDOUT')
         PARSER.add('--loglevel', default='INFO', choices=LOG_LEVELS_CHOICES,
                    help='Log level threshold')
-        PARSER.add('cmd',
-                   choices=['build', 'tree', 'version', 'list-builders'],
-                   nargs='?', default='build')
+        PARSER.add('cmd', choices=['build', 'test', 'tree', 'version'])
         PARSER.add('targets', nargs='*')
     return PARSER
 
