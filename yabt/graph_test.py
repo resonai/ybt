@@ -92,7 +92,7 @@ def test_small_dag_scan():
 
 @slow
 def test_big_dag_scan():
-    random_dag_scan(5000)
+    random_dag_scan(2000)
 
 
 def multithreaded_dag_scanner(num_nodes, num_threads=16):
@@ -157,7 +157,7 @@ def test_small_multithreaded_dag_scan():
 
 @slow
 def test_big_multithreaded_dag_scan():
-    multithreaded_dag_scanner(50000)
+    multithreaded_dag_scanner(10000)
 
 
 @pytest.mark.usefixtures('in_dag_project')
