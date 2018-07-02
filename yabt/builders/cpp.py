@@ -64,7 +64,7 @@ class CompilerConfig:
     TODO: add this note to proper project docs (also - create proper docs...)
     """
 
-    def __init__(self, build_context, target):
+    def __init__(self, build_context, target, extra_params={}):
         self.compiler = self.get(
             'compiler', build_context.conf, target, 'g++')
         self.linker = self.get(
@@ -75,8 +75,14 @@ class CompilerConfig:
             'link_flags', build_context.conf, target, [])
         self.include_path = self.get(
             'include_path', build_context.conf, target, [])
-        for dep in build_context.generate_all_deps(target):
-            build_params = dep.props.build_params
+
+        def generate_extra_params():
+            yield from (dep.props.build_params
+                        for dep in build_context.generate_all_deps(target))
+            yield target.props.build_params
+            yield extra_params
+
+        for build_params in generate_extra_params():
             self.compile_flags.extend(
                 listify(build_params.get('extra_compile_flags')))
             self.link_flags.extend(
@@ -115,9 +121,9 @@ CPP_SIG = [
      ('cmd_env', None),
      ('compiler', PT.str, None),
      ('linker', PT.str, None),
-     ('compile_flags', PT.list, None),
-     ('link_flags', PT.list, None),
-     ('include_path', PT.list, None),
+     ('compile_flags', PT.StrList, None),
+     ('link_flags', PT.StrList, None),
+     ('include_path', PT.StrList, None),
 ]
 
 
@@ -179,13 +185,13 @@ def compile_cc(build_context, cc, buildenv, sources, workspace_dir,
         obj_rel_path = '{}.o'.format(splitext(src)[0])
         obj_file = join(buildenv_workspace, obj_rel_path)
         include_paths = [buildenv_workspace] + cc.include_path
-        obj_cmd = (
+        compile_cmd = (
             [cc.compiler, '-o', obj_file, '-c'] + cc.compile_flags +
             ['-I{}'.format(path) for path in include_paths] +
             [join(buildenv_workspace, src)])
         # TODO: capture and transform error messages from compiler so file
         # paths match host paths for smooth(er) editor / IDE integration
-        build_context.run_in_buildenv(buildenv, obj_cmd, cmd_env)
+        build_context.run_in_buildenv(buildenv, compile_cmd, cmd_env)
         objects.append(
             join(relpath(workspace_dir, build_context.conf.project_root),
                  obj_rel_path))
