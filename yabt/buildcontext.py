@@ -353,6 +353,17 @@ class BuildContext:
             logger.warning('Skipping {} builder function for target {} (no '
                            'function registered)', target.builder_name, target)
 
+    def test_target(self, target: Target):
+        """Invoke the tester function for a target."""
+        builder = Plugin.builders[target.builder_name]
+        if builder.test_func:
+            logger.info('About to invoke the {} tester function for {}',
+                        target.builder_name, target)
+            builder.test_func(self, target)
+        else:
+            logger.warning('Skipping {} tester function for target {} (no '
+                           'function registered)', target.builder_name, target)
+
     def register_target_artifact_metadata(self, target: str, metadata: dict):
         """Register the artifact metadata dictionary for a built target."""
         with self.context_lock:
@@ -368,12 +379,14 @@ class BuildContext:
             with open(self.conf.artifacts_metadata_file, 'w') as fp:
                 json.dump(self.artifacts_metadata, fp)
 
-    def build_graph(self):
+    def build_graph(self, run_tests: bool=False):
         built_targets = set()
 
         def build(target: Target):
             """Build `target` if it wasn't built already, and mark it built."""
-            if target.name not in built_targets:
+            if target.name in built_targets:
+                target.done()
+            else:
                 try:
                     self.build_target(target)
                 except Exception as ex:
@@ -383,7 +396,20 @@ class BuildContext:
                           file=sys.stderr)
                     sys.exit(1)
                 built_targets.add(target.name)
-            target.done()
+                target.done()
+                # TODO: retry flaky tests N times
+                # TODO: collect stats and print report at the end
+                # TODO: support both "fail fast" (exit on first failure) and
+                # run all tests (don't exit on first failure) modes
+                if run_tests and 'testable' in target.tags:
+                    try:
+                        self.test_target(target)
+                    except Exception as ex:
+                        target.fail()
+                        logger.info(format_exc())
+                        print('Fatal `{}\': {}'.format(target.name, ex),
+                              file=sys.stderr)
+                        sys.exit(1)
 
         def build_in_pool(seq):
             jobs = self.conf.jobs

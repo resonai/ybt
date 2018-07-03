@@ -68,12 +68,18 @@ def cmd_list(unused_conf: Config):
                   .format(hook_name, hook_func))
 
 
-def cmd_build(conf: Config):
+def cmd_build(conf: Config, run_tests: bool=False):
     """Build requested targets, and their dependencies."""
     build_context = BuildContext(conf)
     populate_targets_graph(build_context, conf)
-    build_context.build_graph()
+    build_context.build_graph(run_tests=run_tests)
     build_context.write_artifacts_metadata()
+
+
+def cmd_test(conf: Config):
+    """Build requested targets and their dependencies and run test nodes."""
+    # TODO: Automatic test discovery?
+    cmd_build(conf, run_tests=True)
 
 
 def cmd_tree(conf: Config):
@@ -106,6 +112,7 @@ def main():
     conf = init_and_get_conf()
     handlers = {
         'build': YabtCommand(func=cmd_build, requires_project=True),
+        'test': YabtCommand(func=cmd_test, requires_project=True),
         'tree': YabtCommand(func=cmd_tree, requires_project=True),
         'version': YabtCommand(func=cmd_version, requires_project=False),
         'list-builders': YabtCommand(func=cmd_list, requires_project=False),
