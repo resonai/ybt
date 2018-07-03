@@ -88,6 +88,7 @@ class Builder:
     def __init__(self):
         self.sig = None
         self.func = None
+        self.test_func = None
         self.docstring = None
         self.min_positional_args = 1  # the `name`
 
@@ -210,6 +211,22 @@ def register_build_func(builder_name):
         def builder_wrapper(*args, **kwrags):
             return build_func(*args, **kwrags)
         return builder_wrapper
+    return register_decorator
+
+
+def register_test_func(builder_name):
+    def register_decorator(test_func):
+        if Plugin.builders[builder_name].test_func:
+            raise KeyError('{} already registered a test function!'
+                           .format(builder_name))
+        Plugin.builders[builder_name].test_func = test_func
+        logger.debug('Registered {0} builder signature from '
+                     '{1.__module__}.{1.__name__}()', builder_name, test_func)
+
+        @wraps(test_func)
+        def tester_wrapper(*args, **kwrags):
+            return test_func(*args, **kwrags)
+        return tester_wrapper
     return register_decorator
 
 
