@@ -198,6 +198,29 @@ def compile_cc(build_context, cc, buildenv, sources, workspace_dir,
     return objects
 
 
+def link_cpp_artifacts(build_context, target, workspace_dir,
+                       include_objects: bool):
+    """Link required artifacts from dependencies under target workspace dir.
+       Return list of linked object files.
+
+    Includes:
+    - Header files from direct dependencies
+    - If `include_objects` is True, also object files from all dependencies
+    """
+    all_files = target.props.sources + target.props.headers
+    # add headers of direct dependencies
+    for dep in build_context.generate_direct_deps(target):
+        all_files.extend(dep.props.get('headers', []))
+    objects = []
+    if include_objects:
+        # add objects of all dependencies (direct & transitive)
+        for dep in build_context.generate_all_deps(target):
+            objects.extend(dep.props.get('objects', []))
+        all_files.extend(objects)
+    link_artifacts(all_files, workspace_dir, None, build_context.conf)
+    return objects
+
+
 @register_build_func('CppProg')
 def cpp_prog_builder(build_context, target):
     """Build a C++ binary executable"""
@@ -205,16 +228,7 @@ def cpp_prog_builder(build_context, target):
     workspace_dir = build_context.get_workspace('CppProg', target.name)
     cc = CompilerConfig(build_context, target)
     binary = join(*split(target.name))
-    all_files = target.props.sources + target.props.headers
-    # add headers of direct dependencies
-    for dep in build_context.generate_direct_deps(target):
-        all_files.extend(dep.props.get('headers', []))
-    # add objects of all dependencies (direct & transitive)
-    objects = []
-    for dep in build_context.generate_all_deps(target):
-        objects.extend(dep.props.get('objects', []))
-    all_files.extend(objects)
-    link_artifacts(all_files, workspace_dir, None, build_context.conf)
+    objects = link_cpp_artifacts(build_context, target, workspace_dir, True)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     objects.extend(compile_cc(
@@ -251,8 +265,7 @@ def cpp_lib_builder(build_context, target):
     yprint(build_context.conf, 'Build CppLib', target)
     workspace_dir = build_context.get_workspace('CppLib', target.name)
     cc = CompilerConfig(build_context, target)
-    link_artifacts(target.props.sources + target.props.headers,
-                   workspace_dir, None, build_context.conf)
+    link_cpp_artifacts(build_context, target, workspace_dir, False)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     target.props.objects = compile_cc(
