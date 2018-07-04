@@ -1,0 +1,22 @@
+CppLib(
+    'greet',
+    sources='greet.cc',
+    headers='greet.h',
+    in_buildenv='//:builder'
+)
+
+CppGTest(
+    'greet-test',
+    sources='greet_test.cc',
+    deps=':greet',
+    in_buildenv='//:builder-with-gtest',
+    # in_testenv='//:ubuntu'
+)
+
+CppGTest(
+    'greet-failing-test',
+    sources='greet_failing_test.cc',
+    deps=':greet',
+    in_buildenv='//:builder-with-gtest',
+    # in_testenv='//:ubuntu'
+)

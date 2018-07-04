@@ -1,0 +1,31 @@
+ExtDockerImage('ubuntu', image='ubuntu', tag='18.04')
+
+AptPackage('gnupg', package='gnupg')
+
+DockerImage('ubuntu-gpg', start_from=':ubuntu', deps=':gnupg')
+
+AptGroup(
+    'clang',
+    packages=[
+        'clang-5.0',
+        'libclang-common-5.0-dev',
+        'libclang-5.0-dev',
+        'libllvm5.0',
+        'lldb-5.0',
+        'llvm-5.0',
+        'llvm-5.0-dev',
+        'llvm-5.0-runtime',
+    ],
+    repository='deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-5.0 main',
+    repo_key='15CF4D18AF4F7421'
+)
+
+DockerImage('builder', start_from=':ubuntu-gpg', deps=':clang')
+
+CustomInstaller(
+    'gtest',
+    fetch='https://github.com/google/googletest/archive/release-1.8.0.tar.gz',
+    script='install-gtest.sh'
+)
+
+DockerImage('builder-with-gtest', start_from=':builder', deps=':gtest')
