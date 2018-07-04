@@ -191,8 +191,8 @@ def cpp_gtest_manipulate_target(build_context, target):
     # target.buildenvs.append(target.props.in_testenv)
 
 
-def compile_cc(build_context, cc, buildenv, sources, workspace_dir,
-               buildenv_workspace, cmd_env):
+def compile_cc(build_context, compiler_config, buildenv, sources,
+               workspace_dir, buildenv_workspace, cmd_env):
     """Compile list of C++ source files in a buildenv image
        and return list of generated object file.
     """
@@ -200,9 +200,10 @@ def compile_cc(build_context, cc, buildenv, sources, workspace_dir,
     for src in sources:
         obj_rel_path = '{}.o'.format(splitext(src)[0])
         obj_file = join(buildenv_workspace, obj_rel_path)
-        include_paths = [buildenv_workspace] + cc.include_path
+        include_paths = [buildenv_workspace] + compiler_config.include_path
         compile_cmd = (
-            [cc.compiler, '-o', obj_file, '-c'] + cc.compile_flags +
+            [compiler_config.compiler, '-o', obj_file, '-c'] +
+            compiler_config.compile_flags +
             ['-I{}'.format(path) for path in include_paths] +
             [join(buildenv_workspace, src)])
         # TODO: capture and transform error messages from compiler so file
@@ -237,16 +238,19 @@ def link_cpp_artifacts(build_context, target, workspace_dir,
     return objects
 
 
-def build_cpp(build_context, target, cc, workspace_dir):
+def build_cpp(build_context, target, compiler_config, workspace_dir):
     binary = join(*split(target.name))
     objects = link_cpp_artifacts(build_context, target, workspace_dir, True)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     objects.extend(compile_cc(
-        build_context, cc, target.props.in_buildenv, target.props.sources,
-        workspace_dir, buildenv_workspace, target.props.cmd_env))
+        build_context, compiler_config, target.props.in_buildenv,
+        target.props.sources, workspace_dir, buildenv_workspace,
+        target.props.cmd_env))
     bin_file = join(buildenv_workspace, binary)
-    link_cmd = [cc.linker, '-o', bin_file] + objects + cc.link_flags
+    link_cmd = (
+        [compiler_config.linker, '-o', bin_file] +
+        objects + compiler_config.link_flags)
     build_context.run_in_buildenv(
         target.props.in_buildenv, link_cmd, target.props.cmd_env)
     target.artifacts['gen'] = {
@@ -260,8 +264,8 @@ def cpp_prog_builder(build_context, target):
     """Build a C++ binary executable"""
     yprint(build_context.conf, 'Build CppProg', target)
     workspace_dir = build_context.get_workspace('CppProg', target.name)
-    cc = CompilerConfig(build_context, target)
-    build_cpp(build_context, target, cc, workspace_dir)
+    compiler_config = CompilerConfig(build_context, target)
+    build_cpp(build_context, target, compiler_config, workspace_dir)
 
     # TODO: remove?
     # # Copy binary artifacts to external destination
@@ -276,10 +280,10 @@ def cpp_gtest_builder(build_context, target):
     """Build a C++ test executable"""
     yprint(build_context.conf, 'Build CppGTest', target)
     workspace_dir = build_context.get_workspace('CppGTest', target.name)
-    cc = CompilerConfig(
+    compiler_config = CompilerConfig(
         build_context, target,
         extra_params=build_context.conf.get('gtest_params', {}))
-    build_cpp(build_context, target, cc, workspace_dir)
+    build_cpp(build_context, target, compiler_config, workspace_dir)
 
 
 @register_test_func('CppGTest')
@@ -312,10 +316,11 @@ def cpp_lib_builder(build_context, target):
     """Build C++ object files"""
     yprint(build_context.conf, 'Build CppLib', target)
     workspace_dir = build_context.get_workspace('CppLib', target.name)
-    cc = CompilerConfig(build_context, target)
+    compiler_config = CompilerConfig(build_context, target)
     link_cpp_artifacts(build_context, target, workspace_dir, False)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     target.props.objects = compile_cc(
-        build_context, cc, target.props.in_buildenv, target.props.sources,
-        workspace_dir, buildenv_workspace, target.props.cmd_env)
+        build_context, compiler_config, target.props.in_buildenv,
+        target.props.sources, workspace_dir, buildenv_workspace,
+        target.props.cmd_env)
