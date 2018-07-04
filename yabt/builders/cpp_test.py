@@ -127,3 +127,22 @@ def test_cpp_builder(basic_conf, target_name):
         check_output(['ybt_bin/{}'.format(target_name.replace(':', '/'))]))
     assert 'Hello world' in hello_out
     clear_bin()
+
+
+@slow
+@pytest.mark.usefixtures('in_tests_project')
+def test_cpp_tester_success(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['hello_gtest:greet-test']
+    populate_targets_graph(build_context, basic_conf)
+    build_context.build_graph(run_tests=True)
+
+
+@slow
+@pytest.mark.usefixtures('in_tests_project')
+def test_cpp_tester_fail(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['hello_gtest:greet-failing-test']
+    populate_targets_graph(build_context, basic_conf)
+    with pytest.raises(SystemExit):
+        build_context.build_graph(run_tests=True)

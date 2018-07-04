@@ -1,0 +1,28 @@
+def known_flavors():
+    return ['debug', 'release']
+
+def default_flavor():
+    return 'release'
+
+def get_common_config():
+    clang = 'clang++-5.0'
+    return {
+        'compiler': clang,
+        'linker': clang,
+        'compile_flags': ['-std=c++14', '-Wall', '-fcolor-diagnostics'],
+        'gtest_params': {
+            'extra_compile_flags': [],
+            'extra_link_flags': ['-lgtest', '-lpthread'],
+            'extra_exec_flags': [],
+        }
+    }
+
+def get_flavored_config(flavor):
+    return {
+        'release': {
+            'compile_flags': ['$*', '-O2'],
+        },
+        'debug': {
+            'compile_flags': ['$*', '-g', '-DDEBUG'],
+        },
+    }.get(flavor, {})

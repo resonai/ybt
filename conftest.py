@@ -75,6 +75,11 @@ def in_cpp_project():
 
 
 @yield_fixture
+def in_tests_project():
+    yield from yabt_project_fixture('tests')
+
+
+@yield_fixture
 def basic_conf():
     conf = init_and_get_conf(['--non-interactive', 'build'])
     yabt.extend.Plugin.load_plugins(conf)

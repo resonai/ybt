@@ -34,7 +34,7 @@ from ostrich.utils.collections import listify
 from .dockerapp import build_app_docker_and_bin, register_app_builder_sig
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
-    register_manipulate_target_hook)
+    register_manipulate_target_hook, register_test_func)
 from ..logging import make_logger
 from ..target_utils import split
 from ..utils import link_artifacts, yprint
@@ -168,11 +168,27 @@ def cpp_app_builder(build_context, target):
 
 
 register_builder_sig('CppProg', CPP_SIG)
+register_builder_sig(
+    'CppGTest',
+    CPP_SIG + [
+        ('test_flags', PT.StrList, None),  # flags to append to test command
+        ('test_env', None),  # env vars to inject in test process
+        # TODO: support different testenv image for test execution
+        # ('in_testenv', PT.Target, None),
+    ]
+)
 
 
 @register_manipulate_target_hook('CppProg')
 def cpp_prog_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
+
+
+@register_manipulate_target_hook('CppGTest')
+def cpp_gtest_manipulate_target(build_context, target):
+    target.tags.add('testable')
+    target.buildenv = target.props.in_buildenv
+    # target.buildenvs.append(target.props.in_testenv)
 
 
 def compile_cc(build_context, cc, buildenv, sources, workspace_dir,
@@ -221,12 +237,7 @@ def link_cpp_artifacts(build_context, target, workspace_dir,
     return objects
 
 
-@register_build_func('CppProg')
-def cpp_prog_builder(build_context, target):
-    """Build a C++ binary executable"""
-    yprint(build_context.conf, 'Build CppProg', target)
-    workspace_dir = build_context.get_workspace('CppProg', target.name)
-    cc = CompilerConfig(build_context, target)
+def build_cpp(build_context, target, cc, workspace_dir):
     binary = join(*split(target.name))
     objects = link_cpp_artifacts(build_context, target, workspace_dir, True)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
@@ -235,13 +246,22 @@ def cpp_prog_builder(build_context, target):
         build_context, cc, target.props.in_buildenv, target.props.sources,
         workspace_dir, buildenv_workspace, target.props.cmd_env))
     bin_file = join(buildenv_workspace, binary)
-    bin_cmd = [cc.linker, '-o', bin_file] + objects + cc.link_flags
+    link_cmd = [cc.linker, '-o', bin_file] + objects + cc.link_flags
     build_context.run_in_buildenv(
-        target.props.in_buildenv, bin_cmd, target.props.cmd_env)
+        target.props.in_buildenv, link_cmd, target.props.cmd_env)
     target.artifacts['gen'] = {
         join('bin', *split(target.name)):
         join(workspace_dir, *split(target.name))
     }
+
+
+@register_build_func('CppProg')
+def cpp_prog_builder(build_context, target):
+    """Build a C++ binary executable"""
+    yprint(build_context.conf, 'Build CppProg', target)
+    workspace_dir = build_context.get_workspace('CppProg', target.name)
+    cc = CompilerConfig(build_context, target)
+    build_cpp(build_context, target, cc, workspace_dir)
 
     # TODO: remove?
     # # Copy binary artifacts to external destination
@@ -249,6 +269,34 @@ def cpp_prog_builder(build_context, target):
     #     link_artifacts([join(workspace_dir, binary)],
     #                    target.props.copy_bin_to,
     #                    workspace_dir, build_context.conf)
+
+
+@register_build_func('CppGTest')
+def cpp_gtest_builder(build_context, target):
+    """Build a C++ test executable"""
+    yprint(build_context.conf, 'Build CppGTest', target)
+    workspace_dir = build_context.get_workspace('CppGTest', target.name)
+    cc = CompilerConfig(
+        build_context, target,
+        extra_params=build_context.conf.get('gtest_params', {}))
+    build_cpp(build_context, target, cc, workspace_dir)
+
+
+@register_test_func('CppGTest')
+def cpp_gtest_tester(build_context, target):
+    """Run a C++ test executable"""
+    yprint(build_context.conf, 'Run CppGTest', target)
+    workspace_dir = build_context.get_workspace('CppGTest', target.name)
+    buildenv_workspace = build_context.conf.host_to_buildenv_path(
+        workspace_dir)
+    test_cmd = [join(buildenv_workspace, *split(target.name))]
+    # take gtest exec flags from the target & from project config
+    test_cmd.extend(target.props.test_flags)
+    test_cmd.extend(listify(
+        build_context.conf.get('gtest_params', {}).get('extra_exec_flags')))
+    build_context.run_in_buildenv(
+        # TODO: target.props.in_testenv,
+        target.props.in_buildenv, test_cmd, target.props.test_env)
 
 
 register_builder_sig('CppLib', CPP_SIG)
