@@ -213,8 +213,9 @@ def init_and_get_conf(argv: list=None) -> Config:
     args = parser.parse(argv)
     get_build_flavor(settings_module, args)
     config = Config(args, project_root, work_dir, settings_module)
-    config.common_conf = call_user_func(config.settings, 'get_common_config')
-    config.flavor_conf = call_user_func(config.settings, 'get_flavored_config',
-                                        config.flavor)
+    config.common_conf = call_user_func(
+        config.settings, 'get_common_config', config, args)
+    config.flavor_conf = call_user_func(
+        config.settings, 'get_flavored_config', config, args)
     call_user_func(config.settings, 'extend_config', config, args)
     return config

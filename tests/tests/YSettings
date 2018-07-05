@@ -4,7 +4,7 @@ def known_flavors():
 def default_flavor():
     return 'release'
 
-def get_common_config():
+def get_common_config(config, args):
     clang = 'clang++-5.0'
     return {
         'compiler': clang,
@@ -17,7 +17,7 @@ def get_common_config():
         }
     }
 
-def get_flavored_config(flavor):
+def get_flavored_config(config, args):
     return {
         'release': {
             'compile_flags': ['$*', '-O2'],
@@ -25,4 +25,4 @@ def get_flavored_config(flavor):
         'debug': {
             'compile_flags': ['$*', '-g', '-DDEBUG'],
         },
-    }.get(flavor, {})
+    }.get(config.flavor, {})
