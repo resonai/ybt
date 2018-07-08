@@ -65,8 +65,8 @@ def in_pkgmgrs_project():
 
 
 @yield_fixture
-def in_prototest_project():
-    yield from yabt_project_fixture('prototest')
+def in_proto_project():
+    yield from yabt_project_fixture('proto')
 
 
 @yield_fixture

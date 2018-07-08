@@ -1,3 +1,5 @@
+Alias('@default', 'app:*')
+
 ExtDockerImage(
     'ubuntu',
     image='ubuntu',
@@ -8,11 +10,4 @@ DockerImage(
     'proto-builder',
     start_from=':ubuntu',
     deps='//3rdparty:protobuf'
-)
-
-Proto(
-    'hello-proto',
-    in_buildenv=':proto-builder',
-    sources='hello.proto',
-    copy_generated_to='//build/gen'
 )

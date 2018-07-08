@@ -23,6 +23,7 @@
 import os
 from os.path import isdir, isfile, join
 import shutil
+from subprocess import PIPE
 
 import pytest
 
@@ -44,7 +45,7 @@ def clear_output():
 
 
 @slow
-@pytest.mark.usefixtures('in_prototest_project')
+@pytest.mark.usefixtures('in_proto_project')
 def test_proto_builder(basic_conf):
     clear_output()
     build_context = BuildContext(basic_conf)
@@ -64,3 +65,19 @@ def test_proto_builder(basic_conf):
     ]:
         assert isfile(join('build', 'gen', 'proto', 'app', exp_gen_fname))
     clear_output()
+
+
+@slow
+@pytest.mark.usefixtures('in_proto_project')
+def test_proto_cpp_prog(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['app:hello-prog']
+    populate_targets_graph(build_context, basic_conf)
+    build_context.build_graph()
+    work_dir = build_context.conf.host_to_buildenv_path(
+        build_context.get_workspace('CppProg', 'app:hello-prog'))
+    result = build_context.run_in_buildenv(
+        ':proto-builder', [join(work_dir, 'app', 'hello-prog')],
+        stdout=PIPE, stderr=PIPE)
+    assert 0 == result.returncode
+    assert b'Hello, World!' == result.stdout

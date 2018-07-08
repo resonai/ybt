@@ -94,20 +94,21 @@ def proto_builder(build_context, target):
         target.props.in_buildenv, protoc_cmd, target.props.cmd_env)
     generated_files = []
     target.artifacts['gen'] = {}
+    target.artifacts['cpp'] = {}
 
-    def add_artifact(file_path):
-        target.artifacts['gen'][relpath(file_path, workspace_dir)] = (
+    def add_artifact(file_path, artifact_kind):
+        target.artifacts[artifact_kind][relpath(file_path, workspace_dir)] = (
             relpath(file_path, build_context.conf.project_root))
 
-    def process_generated(src_base, gen_suffixes, is_artifact):
+    def process_generated(src_base, gen_suffixes, artifact_kind):
         gen_files = [src_base + gen_suffix for gen_suffix in gen_suffixes]
         if not all(isfile(gen_path) for gen_path in gen_files):
             logger.error('Missing expected generated files: {}',
                          ', '.join(gen_files))
         else:
-            if is_artifact:
+            if artifact_kind:
                 for gen_file in gen_files:
-                    add_artifact(gen_file)
+                    add_artifact(gen_file, artifact_kind)
             generated_files.extend(gen_files)
 
     def create_init_py(path: str):
@@ -119,17 +120,17 @@ def proto_builder(build_context, target):
     for src in target.props.sources:
         src_base = join(proto_dir, splitext(src)[0])
         if target.props.gen_python:
-            process_generated(src_base, ('_pb2.py',), True)
+            process_generated(src_base, ('_pb2.py',), 'gen')
         if target.props.gen_cpp:
-            process_generated(src_base, ('.pb.cc', '.pb.h'), False)
+            process_generated(src_base, ('.pb.cc', '.pb.h'), 'cpp')
         if target.props.gen_python_rpcz:
-            process_generated(src_base, ('_rpcz.py',), True)
+            process_generated(src_base, ('_rpcz.py',), 'gen')
         if target.props.gen_cpp_rpcz:
-            process_generated(src_base, ('.rpcz.cc', '.rpcz.h'), False)
+            process_generated(src_base, ('.rpcz.cc', '.rpcz.h'), 'cpp')
         if target.props.gen_python_grpc:
-            process_generated(src_base, ('_pb2_grpc.py',), True)
+            process_generated(src_base, ('_pb2_grpc.py',), 'gen')
         if target.props.gen_cpp_grpc:
-            process_generated(src_base, ('.grpc.pb.cc', '.grpc.pb.h'), False)
+            process_generated(src_base, ('.grpc.pb.cc', '.grpc.pb.h'), 'cpp')
 
     # Create __init__.py files in all generated directories with Python files
     if target.props.gen_python or target.props.gen_python_rpcz:
@@ -147,7 +148,7 @@ def proto_builder(build_context, target):
                 py_dirs.add(py_dir)
                 py_dir = dirname(py_dir)
         for py_dir in py_dirs:
-            add_artifact(create_init_py(join(proto_dir, py_dir)))
+            add_artifact(create_init_py(join(proto_dir, py_dir)), 'gen')
 
     # Copy generated files to external destination
     if target.props.copy_generated_to:
