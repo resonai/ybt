@@ -3,5 +3,5 @@ syntax = "proto3";
 package tests;
 
 message Hello {
-    string world = 1;
+    string message = 1;
 }

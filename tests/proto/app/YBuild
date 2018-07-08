@@ -1,0 +1,23 @@
+Proto(
+    'hello-proto',
+    in_buildenv='//:proto-builder',
+    sources='hello.proto',
+    copy_generated_to='//build/gen',
+    build_params={
+        'extra_link_flags': '-lprotobuf',
+    }
+)
+
+CppLib(
+    'hello-lib',
+    sources=[],
+    protos=':hello-proto',
+    in_buildenv='//:proto-builder'
+)
+
+CppProg(
+    'hello-prog',
+    sources='hello.cc',
+    deps=':hello-lib',
+    in_buildenv='//:proto-builder'
+)

@@ -37,7 +37,7 @@ from ..extend import (
     register_manipulate_target_hook, register_test_func)
 from ..logging import make_logger
 from ..target_utils import split
-from ..utils import link_artifacts, yprint
+from ..utils import link_artifacts, link_artifacts_map, rmtree, yprint
 
 
 logger = make_logger(__name__)
@@ -118,6 +118,7 @@ CPP_SIG = [
      ('sources', PT.FileList),
      ('in_buildenv', PT.Target),
      ('headers', PT.FileList, None),
+     ('protos', PT.TargetList, None),
      ('cmd_env', None),
      ('compiler', PT.str, None),
      ('linker', PT.str, None),
@@ -191,6 +192,14 @@ def cpp_gtest_manipulate_target(build_context, target):
     # target.buildenvs.append(target.props.in_testenv)
 
 
+def is_cc_file(filename: str) -> bool:
+    return splitext(filename)[-1].lower() in ('.cc', '.cpp', '.cxx', '.c++')
+
+
+def is_h_file(filename: str) -> bool:
+    return splitext(filename)[-1].lower() in ('.h', '.hpp', '.hh', '.hxx')
+
+
 def compile_cc(build_context, compiler_config, buildenv, sources,
                workspace_dir, buildenv_workspace, cmd_env):
     """Compile list of C++ source files in a buildenv image
@@ -221,31 +230,58 @@ def link_cpp_artifacts(build_context, target, workspace_dir,
        Return list of linked object files.
 
     Includes:
-    - Header files from direct dependencies
+    - Generated code from proto dependencies
+    - Header files from all dependencies
+    - Generated header files from all dependencies
     - If `include_objects` is True, also object files from all dependencies
     """
-    all_files = target.props.sources + target.props.headers
-    # add headers of direct dependencies
-    for dep in build_context.generate_direct_deps(target):
-        all_files.extend(dep.props.get('headers', []))
+    # include the source & header files of the current target
+    # add objects of all dependencies (direct & transitive), if needed
+    source_files = target.props.sources + target.props.headers
+    generated_srcs = {}
     objects = []
-    if include_objects:
-        # add objects of all dependencies (direct & transitive)
-        for dep in build_context.generate_all_deps(target):
+
+    # add headers & generated headers of direct dependencies
+    for dep in build_context.generate_all_deps(target):
+        source_files.extend(dep.props.get('headers', []))
+        generated_srcs.update(dep.props.get('generated_headers', {}))
+        if include_objects:
             objects.extend(dep.props.get('objects', []))
-        all_files.extend(objects)
-    link_artifacts(all_files, workspace_dir, None, build_context.conf)
+
+    link_artifacts(
+        source_files + objects, workspace_dir, None, build_context.conf)
+
+    # add generated code from proto dependencies
+    target.props.generated_sources = []
+    target.props.generated_headers = {}
+    for proto_dep in target.props.protos:
+        cpp_artifacts = build_context.targets[proto_dep].artifacts.get('cpp')
+        generated_srcs.update(cpp_artifacts)
+        for dst, src in cpp_artifacts.items():
+            if is_cc_file(dst):
+                target.props.generated_sources.append(dst)
+            elif is_h_file(dst):
+                target.props.generated_headers[dst] = src
+    link_artifacts_map(generated_srcs, workspace_dir, build_context.conf)
+
     return objects
 
 
+def get_source_files(target) -> list:
+    """Return list of source files for `target`."""
+    return (target.props.sources +
+            listify(target.props.get('generated_sources')))
+
+
 def build_cpp(build_context, target, compiler_config, workspace_dir):
+    """Compile and link a C++ binary for `target`."""
     binary = join(*split(target.name))
     objects = link_cpp_artifacts(build_context, target, workspace_dir, True)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     objects.extend(compile_cc(
         build_context, compiler_config, target.props.in_buildenv,
-        target.props.sources, workspace_dir, buildenv_workspace,
+        get_source_files(target), workspace_dir, buildenv_workspace,
         target.props.cmd_env))
     bin_file = join(buildenv_workspace, binary)
     link_cmd = (
@@ -309,6 +345,8 @@ register_builder_sig('CppLib', CPP_SIG)
 @register_manipulate_target_hook('CppLib')
 def cpp_lib_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
+    # proto targets are also direct dependencies
+    target.deps.extend(target.props.protos)
 
 
 @register_build_func('CppLib')
@@ -322,5 +360,5 @@ def cpp_lib_builder(build_context, target):
         workspace_dir)
     target.props.objects = compile_cc(
         build_context, compiler_config, target.props.in_buildenv,
-        target.props.sources, workspace_dir, buildenv_workspace,
+        get_source_files(target), workspace_dir, buildenv_workspace,
         target.props.cmd_env)
