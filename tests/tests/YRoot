@@ -1,5 +1,7 @@
 ExtDockerImage('ubuntu', image='ubuntu', tag='18.04')
 
+ExtDockerImage('python', image='python', tag='3.7')
+
 AptPackage('gnupg', package='gnupg')
 
 DockerImage('ubuntu-gpg', start_from=':ubuntu', deps=':gnupg')
