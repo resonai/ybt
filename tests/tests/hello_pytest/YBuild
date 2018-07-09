@@ -1,0 +1,7 @@
+Python('greet', sources='greet.py')
+
+PythonTest('greet-test', module='greet_test.py', deps=':greet',
+           test_flags='TestGreet', in_testenv='//:python')
+
+PythonTest('greet-failing-test', module='greet_test.py', deps=':greet',
+           test_flags='TestGreetFail', in_testenv='//:python')
