@@ -24,6 +24,8 @@ yabt Python Builders
 """
 
 
+from os.path import join, relpath
+
 from ostrich.utils.collections import listify
 
 from .dockerapp import build_app_docker_and_bin, register_app_builder_sig
@@ -31,7 +33,7 @@ from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook, register_test_func)
 from ..logging import make_logger
-from ..utils import yprint
+from ..utils import link_artifacts_map, rmtree, yprint
 
 
 logger = make_logger(__name__)
@@ -119,6 +121,17 @@ def pythontest_builder(build_context, target):
 def pythontest_tester(build_context, target):
     """Run a Python test"""
     yprint(build_context.conf, 'Run PythonTest', target)
+    workspace_dir = build_context.get_workspace('PythonTest', target.name)
+
+    # Link generated Python protos
+    gen_dir = join(workspace_dir, 'gen')
+    rmtree(gen_dir)
+    for dep in build_context.generate_all_deps(target):
+        gen_py = dep.artifacts.get('gen')
+        if gen_py:
+            link_artifacts_map(gen_py, gen_dir, build_context.conf)
+
+    # Run the test module
     pytest_params = build_context.conf.get('pytest_params', {})
     test_cmd = target.props.test_cmd
     if not test_cmd:
@@ -128,5 +141,7 @@ def pythontest_tester(build_context, target):
     test_cmd.extend(target.props.test_flags)
     test_cmd.extend(listify(pytest_params.get('extra_exec_flags')))
     test_env = target.props.test_env or {}
-    test_env.setdefault('PYTHONPATH', '.')
+    pypath = test_env.get('PYTHONPATH', '.').split(':')
+    pypath.append(relpath(gen_dir, build_context.conf.project_root))
+    test_env['PYTHONPATH'] = ':'.join(pypath)
     build_context.run_in_buildenv(target.props.in_testenv, test_cmd, test_env)

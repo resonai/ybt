@@ -37,7 +37,7 @@ from ..extend import (
     register_manipulate_target_hook, register_test_func)
 from ..logging import make_logger
 from ..target_utils import split
-from ..utils import link_artifacts, link_artifacts_map, rmtree, yprint
+from ..utils import link_artifacts, link_artifacts_map, yprint
 
 
 logger = make_logger(__name__)

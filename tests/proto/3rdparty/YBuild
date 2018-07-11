@@ -17,3 +17,10 @@ CustomInstaller(
     script='install-protobuf.sh',
     deps=':build-essentials-pack'
 )
+
+PythonPackage(
+    'py-protobuf',
+    package='protobuf',
+    version='3.5.1',
+    pip='pip'
+)

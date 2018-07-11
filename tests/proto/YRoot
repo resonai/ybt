@@ -6,8 +6,20 @@ ExtDockerImage(
     tag='18.04'
 )
 
+ExtDockerImage(
+    'python',
+    image='python',
+    tag='3.7'
+)
+
 DockerImage(
     'proto-builder',
     start_from=':ubuntu',
     deps='//3rdparty:protobuf'
+)
+
+DockerImage(
+    'proto-python',
+    start_from=':python',
+    deps='//3rdparty:py-protobuf'
 )

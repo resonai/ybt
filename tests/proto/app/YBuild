@@ -21,3 +21,16 @@ CppProg(
     deps=':hello-lib',
     in_buildenv='//:proto-builder'
 )
+
+Python(
+    'hello-py',
+    sources='hello.py',
+    deps=':hello-proto'
+)
+
+PythonTest(
+    'hello-test',
+    module='hello_test.py',
+    deps=':hello-py',
+    in_testenv='//:proto-python'
+)
