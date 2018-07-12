@@ -56,6 +56,7 @@ class Config:
         'jobs',
         'non_interactive',
         'offline',
+        'output_dot_file',
         'push',
         'targets',
         'verbose',

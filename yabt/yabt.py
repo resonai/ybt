@@ -30,7 +30,7 @@ from .buildcontext import BuildContext
 from .cli import init_and_get_conf
 from .config import Config, BUILD_PROJ_FILE
 from .extend import Plugin
-from .graph import populate_targets_graph
+from .graph import populate_targets_graph, write_dot
 from .target_utils import parse_target_selectors, split, Target
 
 
@@ -82,6 +82,22 @@ def cmd_test(conf: Config):
     cmd_build(conf, run_tests=True)
 
 
+def cmd_dot(conf: Config):
+    """Print out a neat targets dependency tree based on requested targets.
+
+    Use graphviz to render the dot file, e.g.:
+
+    > ybt dot :foo :bar | dot -Tpng -o graph.png
+    """
+    build_context = BuildContext(conf)
+    populate_targets_graph(build_context, conf)
+    if conf.output_dot_file is None:
+        write_dot(build_context, conf, sys.stdout)
+    else:
+        with open(conf.output_dot_file, 'w') as out_file:
+            write_dot(build_context, conf, out_file)
+
+
 def cmd_tree(conf: Config):
     """Print out a neat targets dependency tree based on requested targets."""
     build_context = BuildContext(conf)
@@ -112,6 +128,7 @@ def main():
     conf = init_and_get_conf()
     handlers = {
         'build': YabtCommand(func=cmd_build, requires_project=True),
+        'dot': YabtCommand(func=cmd_dot, requires_project=True),
         'test': YabtCommand(func=cmd_test, requires_project=True),
         'tree': YabtCommand(func=cmd_tree, requires_project=True),
         'version': YabtCommand(func=cmd_version, requires_project=False),

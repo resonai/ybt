@@ -90,6 +90,8 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         # TODO(itamar): support auto-detection of interactivity-mode
         PARSER.add('--non-interactive', action='store_true')
         PARSER.add('--offline', action='store_true')
+        PARSER.add('--output-dot-file', default=None,
+                   help='Output file for dot graph (default: stdin)')
         # TODO(itamar): this flag should come from the builder, not from here
         PARSER.add('--push', action='store_true')
         PARSER.add('--scm-provider')
@@ -111,7 +113,7 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    help='Whether to log to STDOUT')
         PARSER.add('--loglevel', default='INFO', choices=LOG_LEVELS_CHOICES,
                    help='Log level threshold')
-        PARSER.add('cmd', choices=['build', 'test', 'tree', 'version'])
+        PARSER.add('cmd', choices=['build', 'dot', 'test', 'tree', 'version'])
         PARSER.add('targets', nargs='*')
     return PARSER
 
