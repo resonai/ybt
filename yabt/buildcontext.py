@@ -31,8 +31,6 @@ from pathlib import PurePath
 import platform
 import threading
 from time import sleep
-from traceback import format_exc
-import sys
 
 import networkx as nx
 from ostrich.utils.proc import run
@@ -45,6 +43,7 @@ from .graph import get_descendants, topological_sort
 from .logging import make_logger
 from .target_extraction import extractor
 from .target_utils import split_build_module, Target
+from .utils import fatal
 
 
 logger = make_logger(__name__)
@@ -347,7 +346,7 @@ class BuildContext:
         builder = Plugin.builders[target.builder_name]
         if builder.func:
             logger.info('About to invoke the {} builder function for {}',
-                        target.builder_name, target)
+                        target.builder_name, target.name)
             builder.func(self, target)
         else:
             logger.warning('Skipping {} builder function for target {} (no '
@@ -358,7 +357,7 @@ class BuildContext:
         builder = Plugin.builders[target.builder_name]
         if builder.test_func:
             logger.info('About to invoke the {} tester function for {}',
-                        target.builder_name, target)
+                        target.builder_name, target.name)
             builder.test_func(self, target)
         else:
             logger.warning('Skipping {} tester function for target {} (no '
@@ -391,10 +390,7 @@ class BuildContext:
                     self.build_target(target)
                 except Exception as ex:
                     target.fail()
-                    logger.info(format_exc())
-                    print('Fatal `{}\': {}'.format(target.name, ex),
-                          file=sys.stderr)
-                    sys.exit(1)
+                    fatal('`{}\': {}', target.name, ex)
                 built_targets.add(target.name)
                 target.done()
                 # TODO: retry flaky tests N times
@@ -406,10 +402,7 @@ class BuildContext:
                         self.test_target(target)
                     except Exception as ex:
                         target.fail()
-                        logger.info(format_exc())
-                        print('Fatal `{}\': {}'.format(target.name, ex),
-                              file=sys.stderr)
-                        sys.exit(1)
+                        fatal('`{}\': {}', target.name, ex)
 
         def build_in_pool(seq):
             jobs = self.conf.jobs
@@ -421,9 +414,12 @@ class BuildContext:
                 for target in seq:
                     build(target)
 
-        logger.info('Building {} flavor using {} workers',
+        logger.info('Building {} flavor using {} workers -- BuildEnv PrePass',
                     self.conf.flavor, self.conf.jobs)
         # pre-pass: build detected buildenv targets and their dependencies
         build_in_pool(self.buildenv_iter())
+        logger.info('Building {} flavor using {} workers -- Main Pass',
+                    self.conf.flavor, self.conf.jobs)
         # main pass: build rest of the graph
         build_in_pool(self.target_iter())
+        logger.info('Finished building target graph successfully')

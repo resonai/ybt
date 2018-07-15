@@ -77,9 +77,11 @@ register_builder_sig(
 
 @register_manipulate_target_hook('DockerImage')
 def docker_image_manipulate_target(build_context, target):
-    logger.debug('Injecting "{}" to deps of {}',
-                 target.props.start_from, target)
-    target.deps.append(target.props.start_from)
+    # TODO: deprecate "start_from" and use "base_image" exclusively
+    target.props.base_image = target.props.start_from
+    logger.debug('Injecting {} to deps of {}',
+                 target.props.base_image, target.name)
+    target.deps.append(target.props.base_image)
 
 
 @register_build_func('DockerImage')

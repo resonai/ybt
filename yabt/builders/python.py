@@ -82,8 +82,8 @@ register_app_builder_sig('PythonApp', [('main', PT.File)])
 
 @register_manipulate_target_hook('PythonApp')
 def python_app_manipulate_target(build_context, target):
-    logger.debug('Injecting "{}" to deps of {}',
-                 target.props.base_image, target)
+    logger.debug('Injecting {} to deps of {}',
+                 target.props.base_image, target.name)
     target.deps.append(target.props.base_image)
 
 

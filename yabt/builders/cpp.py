@@ -134,12 +134,12 @@ register_app_builder_sig(
 
 @register_manipulate_target_hook('CppApp')
 def cpp_app_manipulate_target(build_context, target):
-    logger.debug('Injecting "{}" to deps of {}',
-                 target.props.base_image, target)
+    logger.debug('Injecting {} to deps of {}',
+                 target.props.base_image, target.name)
     target.deps.append(target.props.base_image)
     if target.props.main and target.props.main not in target.deps:
-        logger.debug('Injecting "{}" to deps of {}',
-                     target.props.main, target)
+        logger.debug('Injecting {} to deps of {}',
+                     target.props.main, target.name)
         target.deps.append(target.props.main)
 
 
