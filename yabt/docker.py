@@ -45,7 +45,7 @@ from .builders.nodejs import format_npm_specifier
 from .builders.ruby import format_gem_specifier
 from .pkgmgmt import (
     format_apt_specifier, format_pypi_specifier, parse_apt_repository)
-from . import target_utils
+from .target_utils import ImageCachingBehavior
 from .utils import link_artifacts, link_node, rmtree, yprint
 
 
@@ -102,12 +102,6 @@ def get_image_name(target):
             else get_safe_path(target.name.lstrip(':')))
 
 
-def get_remote_image_name(name: str, tag: str, image_caching_behavior: dict):
-    remote_image_name = image_caching_behavior.get('remote_image_name', name)
-    remote_image_tag = image_caching_behavior.get('remote_image_tag', tag)
-    return '{}:{}'.format(remote_image_name, remote_image_tag)
-
-
 def format_qualified_image_name(target):
     if target.builder_name == 'ExtDockerImage':
         if target.props.tag:
@@ -155,11 +149,11 @@ def tag_docker_image(src_image, tag_as_image):
 
 
 def handle_build_cache(
-        build_context, name: str, tag: str, image_caching_behavior: dict):
+        conf: Config, name: str, tag: str, icb: ImageCachingBehavior):
     """Handle Docker image build cache.
 
     Return image ID if image is cached, and there's no need to redo the build.
-    Return None if need to build the image (whether cahced locally or not).
+    Return None if need to build the image (whether cached locally or not).
     Raise RuntimeError if not allowed to build the image because of state of
     local cache.
 
@@ -169,28 +163,19 @@ def handle_build_cache(
     and non-trivial operations that are not usually expected from functions
     with such names.
     """
-    local_image = '{}:{}'.format(name, tag)
-    remote_image = get_remote_image_name(name, tag, image_caching_behavior)
-    pull_if_not_cached = image_caching_behavior.get(
-        'pull_if_not_cached', False)
-    pull_if_cached = image_caching_behavior.get(
-        'pull_if_cached', False)
-    allow_build_if_not_cached = image_caching_behavior.get(
-        'allow_build_if_not_cached', True)
-    skip_build_if_cached = image_caching_behavior.get(
-        'skip_build_if_cached', False)
-    if pull_if_cached or (pull_if_not_cached and
-                          get_cached_image_id(remote_image) is None):
+    if icb.pull_if_cached or (icb.pull_if_not_cached and
+                              get_cached_image_id(icb.remote_image) is None):
         try:
-            pull_docker_image(remote_image, build_context.conf.docker_pull_cmd)
+            pull_docker_image(icb.remote_image, conf.docker_pull_cmd)
         except CalledProcessError:
             pass
     local_image = '{}:{}'.format(name, tag)
-    if skip_build_if_cached and get_cached_image_id(remote_image) is not None:
-        tag_docker_image(remote_image, local_image)
+    if (icb.skip_build_if_cached and
+            get_cached_image_id(icb.remote_image) is not None):
+        tag_docker_image(icb.remote_image, local_image)
         return get_cached_image_id(local_image)
-    if ((not allow_build_if_not_cached) and
-            get_cached_image_id(remote_image) is None):
+    if ((not icb.allow_build_if_not_cached) and
+            get_cached_image_id(icb.remote_image) is None):
         raise RuntimeError('No cached image for {}'.format(local_image))
     return None
 
@@ -232,14 +217,6 @@ def build_docker_image(
     further in case anyone thinks it's a better idea than what I went with.
     """
     docker_image = '{}:{}'.format(name, tag)
-    if image_caching_behavior is None:
-        image_caching_behavior = {}
-    image_id = handle_build_cache(
-        build_context, name, tag, image_caching_behavior)
-    if image_id:
-        yprint(build_context.conf,
-               'Skipping build of cached Docker image', docker_image)
-        return {'image_id': image_id}
     # create directory for this target under a private builder workspace
     workspace_dir = build_context.get_workspace('DockerBuilder', docker_image)
     # generate Dockerfile and build it
@@ -602,12 +579,12 @@ def build_docker_image(
             'pushed': False,
         }],
     }
-    if image_caching_behavior.get('push_image_after_build', False):
-        remote_image = get_remote_image_name(name, tag, image_caching_behavior)
-        tag_docker_image(image_id, remote_image)
-        push_docker_image(remote_image, build_context.conf.docker_push_cmd)
+    icb = ImageCachingBehavior(name, tag, image_caching_behavior)
+    if icb.push_image_after_build:
+        tag_docker_image(image_id, icb.remote_image)
+        push_docker_image(icb.remote_image, build_context.conf.docker_push_cmd)
         metadata['images'].append({
-            'name': remote_image,
+            'name': icb.remote_image,
             'pushed': True,
         })
     # Generate ybt_bin scripts

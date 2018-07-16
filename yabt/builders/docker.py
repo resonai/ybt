@@ -86,23 +86,25 @@ def docker_image_manipulate_target(build_context, target):
 
 @register_build_func('DockerImage')
 def docker_image_builder(build_context, target):
-    metadata = build_docker_image(
-        build_context,
-        name=get_image_name(target),
-        tag=target.props.image_tag,
-        base_image=build_context.targets[target.props.start_from],
-        deps=build_context.walk_target_deps_topological_order(target),
-        env=target.props.env,
-        work_dir=target.props.work_dir,
-        truncate_common_parent=target.props.truncate_common_parent,
-        entrypoint=target.props.docker_entrypoint,
-        cmd=target.props.docker_cmd,
-        full_path_cmd=target.props.full_path_cmd,
-        distro=target.props.distro,
-        image_caching_behavior=target.props.image_caching_behavior,
-        runtime_params=target.props.runtime_params,
-        ybt_bin_path=target.props.ybt_bin_path,
-        build_user=target.props.build_user,
-        run_user=target.props.run_user,
-        labels=target.props.docker_labels)
+    metadata = (
+        {'image_id': target.image_id} if target.image_id else
+        build_docker_image(
+            build_context,
+            name=get_image_name(target),
+            tag=target.props.image_tag,
+            base_image=build_context.targets.get(target.props.base_image),
+            deps=build_context.walk_target_deps_topological_order(target),
+            env=target.props.env,
+            work_dir=target.props.work_dir,
+            truncate_common_parent=target.props.truncate_common_parent,
+            entrypoint=target.props.docker_entrypoint,
+            cmd=target.props.docker_cmd,
+            full_path_cmd=target.props.full_path_cmd,
+            distro=target.props.distro,
+            image_caching_behavior=target.props.image_caching_behavior,
+            runtime_params=target.props.runtime_params,
+            ybt_bin_path=target.props.ybt_bin_path,
+            build_user=target.props.build_user,
+            run_user=target.props.run_user,
+            labels=target.props.docker_labels))
     build_context.register_target_artifact_metadata(target, metadata)
