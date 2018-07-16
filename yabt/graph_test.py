@@ -30,6 +30,7 @@ import random
 import networkx
 import pytest
 
+from .caching import get_prebuilt_targets
 from .buildcontext import BuildContext
 from .graph import (
     get_descendants, populate_targets_graph, topological_sort, write_dot)
@@ -160,6 +161,53 @@ def test_small_multithreaded_dag_scan():
 @slow
 def test_big_multithreaded_dag_scan():
     multithreaded_dag_scanner(10000)
+
+
+@pytest.mark.usefixtures('in_caching_project')
+def test_prebuilt_targets_case1(basic_conf):
+    """Test pre-built case #1 - all base deps should be marked as pre-built.
+
+    See issue: https://github.com/resonai/ybt/issues/61
+    """
+    basic_conf.targets = [':builder']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    pre_built = get_prebuilt_targets(build_context)
+    assert set((':build-tools', ':tools', ':unzip', ':ubuntu')) == pre_built
+    assert (set((':builder', ':builder-base', ':build-tools',
+                 ':tools', ':unzip', ':ubuntu')) ==
+            set(build_context.target_graph.nodes))
+
+
+@pytest.mark.usefixtures('in_caching_project')
+def test_prebuilt_targets_case2(basic_conf):
+    """Test pre-built case #2 - nothing should be marked pre-built.
+
+    See issue: https://github.com/resonai/ybt/issues/61
+    """
+    basic_conf.targets = [':an-image']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    pre_built = get_prebuilt_targets(build_context)
+    assert set() == pre_built
+    assert (set((':an-image', ':unzip', ':ubuntu')) ==
+            set(build_context.target_graph.nodes))
+
+
+@pytest.mark.usefixtures('in_caching_project')
+def test_prebuilt_targets_case1(basic_conf):
+    """Test pre-built case #3 - unzip & ubuntu should NOT mark as prebuilt.
+
+    See issue: https://github.com/resonai/ybt/issues/61
+    """
+    basic_conf.targets = [':all-images']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    pre_built = get_prebuilt_targets(build_context)
+    assert set((':build-tools', ':tools')) == pre_built
+    assert (set((':all-images', ':an-image', ':builder', ':builder-base',
+                 ':build-tools', ':tools', ':unzip', ':ubuntu')) ==
+            set(build_context.target_graph.nodes))
 
 
 @pytest.mark.usefixtures('in_dag_project')

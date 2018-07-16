@@ -1,0 +1,38 @@
+from yabt.docker import base_image_caching_behavior
+
+AptGroup('tools', packages=['autoconf', 'automake', 'curl'])
+
+AptGroup('build-tools', packages=['g++', 'libtool', 'make'])
+
+AptPackage('unzip', package='unzip')
+
+ExtDockerImage('ubuntu', image='ubuntu', tag='18.04')
+
+DockerImage(
+    'builder-base',
+    start_from=':ubuntu',
+    deps=[':tools', ':build-tools', ':unzip'],
+    image_caching_behavior=base_image_caching_behavior(
+        conf,
+        remote_image_name='itamarost/builder-base-test',
+        remote_image_tag='v1')
+)
+
+DockerImage(
+    'builder',
+    start_from=':builder-base',
+    # testing that nodes in the base image are marked as pre-built correctly,
+    # even when there's an explicit edge from a non-base image
+    deps=':build-tools'
+)
+
+DockerImage(
+    'an-image',
+    start_from=':ubuntu',
+    # testing that a dep that exists in a base image is NOT marked as pre-built
+    # when building an image that is NOT based on a cached base image that
+    # contains the same deo
+    deps=':unzip'
+)
+
+TargetGroup('all-images', deps=[':an-image', ':builder', ':builder-base'])
