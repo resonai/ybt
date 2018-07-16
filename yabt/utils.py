@@ -26,7 +26,9 @@ import os
 from os.path import isdir, isfile, join, normpath, relpath, split
 import shutil
 import sys
+from traceback import format_exc
 
+from colorama import Fore, Style
 from ostrich.utils.path import commonpath
 
 from .compat import scandir
@@ -34,6 +36,19 @@ from .logging import make_logger
 
 
 logger = make_logger(__name__)
+
+
+def fatal(msg, *args, **kwargs):
+    """Print a red `msg` to STDERR and exit.
+
+    The message is formatted with `args` & `kwargs`.
+    """
+    exc_str = format_exc()
+    if exc_str.strip() != 'NoneType: None':
+        logger.info('{}', format_exc())
+    print(Fore.RED + 'Fatal: ' + msg.format(*args, **kwargs) + Style.RESET_ALL,
+          file=sys.stderr)
+    sys.exit(1)
 
 
 def rmtree(path: str):

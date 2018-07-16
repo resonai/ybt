@@ -30,8 +30,7 @@ from .buildfile_parser import process_build_file
 from .compat import walk
 from .config import Config
 from .logging import make_logger
-from .target_utils import parse_target_selectors
-from .target_utils import norm_name, split
+from .target_utils import norm_name, parse_target_selectors, split
 from .utils import yprint
 
 
@@ -138,12 +137,12 @@ def populate_targets_graph(build_context, conf: Config):
     process_build_file(conf.get_project_build_file(), build_context, conf)
     targets_to_prune = set(build_context.targets.keys())
     if conf.targets:
-        yprint(build_context.conf, 'targets:', conf.targets)
+        logger.debug('targets: {}', conf.targets)
         # TODO(itamar): Figure out how to support a target selector that is a
         #   parent directory which isn't a build module, but contains build
         #   modules (e.g., `ybt tree yapi` from the `dag` test root).
         seeds = parse_target_selectors(conf.targets, conf)
-        yprint(build_context.conf, 'seeds', seeds)
+        logger.debug('seeds: {}', seeds)
     else:
         default_target = ':{}'.format(conf.default_target_name)
         logger.info('searching for default target {}', default_target)
@@ -151,6 +150,12 @@ def populate_targets_graph(build_context, conf: Config):
             raise RuntimeError(
                 'No default target found, and no target selector specified')
         seeds = [default_target]
+
+    def extend_seeds(target_name):
+        target = build_context.targets[target_name]
+        seeds.extend(target.deps)
+        if target.buildenv:
+            seeds.append(target.buildenv)
 
     # Crawl rest of project from seeds
     seeds_used_for_extending = set()
@@ -161,9 +166,7 @@ def populate_targets_graph(build_context, conf: Config):
                 targets_to_prune.remove(seed)
             if seed not in seeds_used_for_extending:
                 # Avoid infinite loop in case of cyclic dependencies
-                seeds.extend(build_context.targets[seed].deps)
-                if build_context.targets[seed].buildenv:
-                    seeds.append(build_context.targets[seed].buildenv)
+                extend_seeds(seed)
                 seeds_used_for_extending.add(seed)
         else:
             if seed == '**:*':
@@ -181,11 +184,7 @@ def populate_targets_graph(build_context, conf: Config):
                 # (and skip adding to targets_to_prune altogether)
                 for module_target in (
                         build_context.targets_by_module[build_module]):
-                    seeds.extend(
-                        build_context.targets[module_target].deps)
-                    if build_context.targets[module_target].buildenv:
-                        seeds.append(
-                            build_context.targets[module_target].buildenv)
+                    extend_seeds(module_target)
             else:
                 if seed not in build_context.targets:
                     raise RuntimeError(
@@ -195,9 +194,7 @@ def populate_targets_graph(build_context, conf: Config):
                         build_context.targets_by_module[build_module]):
                     targets_to_prune.add(module_target)
                 targets_to_prune.remove(seed)
-                seeds.extend(build_context.targets[seed].deps)
-                if build_context.targets[seed].buildenv:
-                    seeds.append(build_context.targets[seed].buildenv)
+                extend_seeds(seed)
         # TODO(itamar): Write tests that pruning is *ALWAYS* correct!
         # e.g., not pruning things it shouldn't (like when targets are in prune
         # list when loaded initially, but should be removed later because a
@@ -214,6 +211,8 @@ def populate_targets_graph(build_context, conf: Config):
 
     build_target_dep_graph(build_context, conf)
     assert dag.is_directed_acyclic_graph(build_context.target_graph)
+    logger.info('Finished parsing build graph with {} nodes',
+                build_context.target_graph.size())
 
 
 def write_dot(build_context, conf: Config, out_f):

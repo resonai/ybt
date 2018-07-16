@@ -24,14 +24,16 @@ yabt
 
 
 from collections import namedtuple
-import sys
 
+from . import __oneliner__, __version__
 from .buildcontext import BuildContext
 from .cli import init_and_get_conf
 from .config import Config, BUILD_PROJ_FILE
 from .extend import Plugin
 from .graph import populate_targets_graph, write_dot
+from .logging import make_logger
 from .target_utils import parse_target_selectors, split, Target
+from .utils import fatal
 
 
 YabtCommand = namedtuple('YabtCommand', ['func', 'requires_project'])
@@ -40,7 +42,6 @@ YabtCommand = namedtuple('YabtCommand', ['func', 'requires_project'])
 def cmd_version(unused_conf):
     """Print out version information about YABT and detected builders."""
     import pkg_resources
-    from . import __oneliner__, __version__
     print('This is {} version {}, imported from {}'
           .format(__oneliner__, __version__, __file__))
     if len(Plugin.builders) > 0:
@@ -126,6 +127,8 @@ def cmd_tree(conf: Config):
 def main():
     """Main `ybt` console script entry point - run YABT from command-line."""
     conf = init_and_get_conf()
+    logger = make_logger(__name__)
+    logger.info('YaBT version {}', __version__)
     handlers = {
         'build': YabtCommand(func=cmd_build, requires_project=True),
         'dot': YabtCommand(func=cmd_dot, requires_project=True),
@@ -136,10 +139,12 @@ def main():
     }
     command = handlers[conf.cmd]
     if command.requires_project and not conf.in_yabt_project():
-        print('fatal: Not a YABT project (or any of the parent directories): '
-              '{}'.format(BUILD_PROJ_FILE))
-        sys.exit(1)
-    command.func(conf)
+        fatal('Not a YABT project (or any of the parent directories): {}',
+              BUILD_PROJ_FILE)
+    try:
+        command.func(conf)
+    except Exception as ex:
+        fatal('{}', ex)
 
 
 if __name__ == '__main__':

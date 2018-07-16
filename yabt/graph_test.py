@@ -169,7 +169,7 @@ def test_target_graph(basic_conf):
     assert (
         set(('yapi/server:users', ':flask', ':gunicorn', 'common:logging',
              'fe:fe', 'yapi/server:yapi', 'yapi/server:yapi-gunicorn',
-             'common:base')) == set(build_context.target_graph.nodes()))
+             'common:base')) == set(build_context.target_graph.nodes))
     assert (
         set((('fe:fe', 'yapi/server:users'), ('fe:fe', ':flask'),
              ('fe:fe', 'common:base'), ('yapi/server:yapi', ':flask'),
@@ -178,7 +178,7 @@ def test_target_graph(basic_conf):
              ('yapi/server:yapi-gunicorn', 'common:base'),
              ('yapi/server:yapi-gunicorn', ':gunicorn'),
              ('common:base', 'common:logging'))) ==
-        set(build_context.target_graph.edges()))
+        set(build_context.target_graph.edges))
     assert ([':flask', ':gunicorn', 'common:logging', 'common:base',
              'yapi/server:users', 'fe:fe', 'yapi/server:yapi',
              'yapi/server:yapi-gunicorn'] ==
@@ -194,7 +194,7 @@ def test_target_graph_worldglob(basic_conf):
     assert (
         set(('yapi/server:users', ':flask', ':gunicorn', 'common:logging',
              'fe:fe', 'yapi/server:yapi', 'yapi/server:yapi-gunicorn',
-             'common:base')) == set(build_context.target_graph.nodes()))
+             'common:base')) == set(build_context.target_graph.nodes))
     assert (
         set((('fe:fe', 'yapi/server:users'), ('fe:fe', ':flask'),
              ('fe:fe', 'common:base'), ('yapi/server:yapi', ':flask'),
@@ -203,7 +203,7 @@ def test_target_graph_worldglob(basic_conf):
              ('yapi/server:yapi-gunicorn', 'common:base'),
              ('yapi/server:yapi-gunicorn', ':gunicorn'),
              ('common:base', 'common:logging'))) ==
-        set(build_context.target_graph.edges()))
+        set(build_context.target_graph.edges))
 
 
 @pytest.mark.usefixtures('in_yapi_dir')
@@ -215,7 +215,7 @@ def test_target_graph_intenral_dir(basic_conf):
     assert (
         set(('yapi/server:users', ':flask', ':gunicorn', 'common:logging',
              'yapi/server:yapi', 'yapi/server:yapi-gunicorn',
-             'common:base')) == set(build_context.target_graph.nodes()))
+             'common:base')) == set(build_context.target_graph.nodes))
     assert (
         set((('yapi/server:yapi', ':flask'),
              ('yapi/server:yapi', 'common:base'),
@@ -223,7 +223,7 @@ def test_target_graph_intenral_dir(basic_conf):
              ('yapi/server:yapi-gunicorn', 'common:base'),
              ('yapi/server:yapi-gunicorn', ':gunicorn'),
              ('common:base', 'common:logging'))) ==
-        set(build_context.target_graph.edges()))
+        set(build_context.target_graph.edges))
 
 
 def test_stable_topological_sort():
