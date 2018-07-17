@@ -213,6 +213,25 @@ def test_prebuilt_targets_case1(basic_conf):
             set(build_context.target_graph.nodes))
 
 
+@slow
+@pytest.mark.usefixtures('in_caching_project')
+def test_prebuilt_targets_build_base_image(basic_conf):
+    """Test pre-built targets when building base images.
+
+    When `--build-base-images` is specified, all targets should be built,
+    regardless of base-image status.
+    """
+    basic_conf.build_base_images = True
+    basic_conf.targets = [':builder']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    pre_built = get_prebuilt_targets(build_context)
+    assert set() == pre_built
+    assert (set((':builder', ':builder-base', ':build-tools',
+                 ':tools', ':unzip', ':ubuntu')) ==
+            set(build_context.target_graph.nodes))
+
+
 @pytest.mark.usefixtures('in_dag_project')
 def test_target_graph(basic_conf):
     build_context = BuildContext(basic_conf)
