@@ -516,11 +516,13 @@ def build_docker_image(
             link_node(join(build_context.conf.project_root, src),
                       join(workspace_src_dir, 'gen', dest))
             num_linked += 1
-        # link "other" artifacts
-        for kind, artifacts in all_artifacts.items():
-            num_linked += link_artifacts(
-                artifacts, join(workspace_src_dir, kind), None,
-                build_context.conf)
+        # TODO: remove? (creates bugs with new kinds of artifacts)
+        # (probably need special handling for every kind that needs linking)
+        # # link "other" artifacts
+        # for kind, artifacts in all_artifacts.items():
+        #     num_linked += link_artifacts(
+        #         artifacts, join(workspace_src_dir, kind), None,
+        #         build_context.conf)
         if num_linked > 0:
             dockerfile.append('COPY src /usr/src\n')
 
