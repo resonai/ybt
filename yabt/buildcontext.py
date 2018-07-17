@@ -36,6 +36,7 @@ import networkx as nx
 from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
 
+from .caching import get_prebuilt_targets
 from .config import Config
 from .docker import format_qualified_image_name
 from .extend import Plugin
@@ -379,7 +380,7 @@ class BuildContext:
                 json.dump(self.artifacts_metadata, fp)
 
     def build_graph(self, run_tests: bool=False):
-        built_targets = set()
+        built_targets = set(get_prebuilt_targets(self))
 
         def build(target: Target):
             """Build `target` if it wasn't built already, and mark it built."""
@@ -413,6 +414,9 @@ class BuildContext:
             else:
                 for target in seq:
                     build(target)
+
+        logger.info('Marked {} targets as "pre-built" in cached base images',
+                    len(built_targets))
 
         logger.info('Building {} flavor using {} workers -- BuildEnv PrePass',
                     self.conf.flavor, self.conf.jobs)

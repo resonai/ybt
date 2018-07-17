@@ -70,6 +70,11 @@ def in_proto_project():
 
 
 @yield_fixture
+def in_caching_project():
+    yield from yabt_project_fixture('caching')
+
+
+@yield_fixture
 def in_cpp_project():
     yield from yabt_project_fixture('cpp')
 

@@ -132,3 +132,20 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         keys = ['name', 'builder_name', 'props', 'deps', 'tags', 'artifacts']
         items = ('{}={!r}'.format(k, self.__dict__[k]) for k in keys)
         return '{}({})'.format(type(self).__name__, ', '.join(items))
+
+
+class ImageCachingBehavior(types.SimpleNamespace):
+
+    def __init__(self, name, tag, behavior: dict = {}):
+        super().__init__(
+            remote_image='{}:{}'.format(
+                behavior.get('remote_image_name', name),
+                behavior.get('remote_image_tag', tag)),
+            pull_if_not_cached=behavior.get('pull_if_not_cached', False),
+            pull_if_cached=behavior.get('pull_if_cached', False),
+            allow_build_if_not_cached=behavior.get(
+                'allow_build_if_not_cached', True),
+            skip_build_if_cached=behavior.get('skip_build_if_cached', False),
+            push_image_after_build=behavior.get(
+                'push_image_after_build', False),
+        )
