@@ -28,6 +28,7 @@ from os.path import join
 
 from ostrich.utils.collections import listify
 
+from .docker import docker_builder
 from ..docker import build_docker_image, get_image_name
 from ..extend import PropType as PT, register_builder_sig
 from .. import target_utils
@@ -54,25 +55,5 @@ def register_app_builder_sig(builder_name, sig=None, docstring=None):
 
 def build_app_docker_and_bin(build_context, target, **kwargs):
     build_module, bin_name = target_utils.split(target.name)
-    ybt_bin_path = join(build_context.get_bin_dir(build_module), bin_name)
-    metadata = (
-        {'image_id': target.image_id} if target.image_id else
-        build_docker_image(
-            build_context,
-            name=get_image_name(target),
-            tag=target.props.image_tag,
-            base_image=build_context.targets.get(target.props.base_image),
-            deps=build_context.walk_target_deps_topological_order(target),
-            env=target.props.env,
-            work_dir=target.props.work_dir,
-            truncate_common_parent=target.props.truncate_common_parent,
-            entrypoint=kwargs.get('entrypoint'),
-            full_path_cmd=target.props.full_path_cmd,
-            distro=target.props.distro,
-            image_caching_behavior=target.props.image_caching_behavior,
-            runtime_params=target.props.runtime_params,
-            ybt_bin_path=ybt_bin_path,
-            build_user=target.props.build_user,
-            run_user=target.props.run_user,
-            labels=target.props.docker_labels))
-    build_context.register_target_artifact_metadata(target, metadata)
+    docker_builder(build_context, target, kwargs.get('entrypoint'),
+                   join(build_context.get_bin_dir(build_module), bin_name))

@@ -84,8 +84,11 @@ def docker_image_manipulate_target(build_context, target):
     target.deps.append(target.props.base_image)
 
 
-@register_build_func('DockerImage')
-def docker_image_builder(build_context, target):
+def docker_builder(build_context, target, entrypoint=None, ybt_bin_path=None):
+    if entrypoint is None:
+        entrypoint = target.props.get('docker_entrypoint')
+    if ybt_bin_path is None:
+        ybt_bin_path = target.props.get('ybt_bin_path')
     metadata = (
         {'image_id': target.image_id} if target.image_id else
         build_docker_image(
@@ -97,14 +100,19 @@ def docker_image_builder(build_context, target):
             env=target.props.env,
             work_dir=target.props.work_dir,
             truncate_common_parent=target.props.truncate_common_parent,
-            entrypoint=target.props.docker_entrypoint,
-            cmd=target.props.docker_cmd,
+            entrypoint=entrypoint,
+            cmd=target.props.get('docker_cmd'),
             full_path_cmd=target.props.full_path_cmd,
             distro=target.props.distro,
             image_caching_behavior=target.props.image_caching_behavior,
             runtime_params=target.props.runtime_params,
-            ybt_bin_path=target.props.ybt_bin_path,
+            ybt_bin_path=ybt_bin_path,
             build_user=target.props.build_user,
             run_user=target.props.run_user,
             labels=target.props.docker_labels))
     build_context.register_target_artifact_metadata(target, metadata)
+
+
+@register_build_func('DockerImage')
+def docker_image_builder(build_context, target):
+    docker_builder(build_context, target)
