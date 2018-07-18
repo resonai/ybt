@@ -76,7 +76,7 @@ def test_compiler_config(basic_conf, test_case):
     # also check flavored workspace dir
     assert (build_context.get_workspace('foo', 'bar:baz') ==
             join(basic_conf.project_root,
-                 'yabtwork', 'release', 'foo', 'bar_baz'))
+                 'yabtwork', 'release_flavor', 'foo', 'bar_baz'))
 
 
 @pytest.mark.usefixtures('in_cpp_project')
@@ -109,7 +109,7 @@ def test_compiler_config_debug(debug_conf, test_case):
     # also check flavored workspace dir
     assert (build_context.get_workspace('foo', 'bar:baz') ==
             join(debug_conf.project_root,
-                 'yabtwork', 'debug', 'foo', 'bar_baz'))
+                 'yabtwork', 'debug_flavor', 'foo', 'bar_baz'))
 
 
 @slow

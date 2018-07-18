@@ -85,8 +85,8 @@ class Config:
         self.settings = settings_module
         self.common_conf = {}
         self.flavor_conf = {}
-        self.flavor_dir = get_safe_path('_all_' if self.flavor is None
-                                        else self.flavor)
+        self.flavor_dir = get_safe_path('flavor__all__' if self.flavor is None
+                                        else '{}_flavor'.format(self.flavor))
 
     def in_yabt_project(self) -> bool:
         return self.project_root is not None
