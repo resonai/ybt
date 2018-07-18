@@ -97,8 +97,8 @@ def test_package_managers_install_order(basic_conf):
         'USER root\n',
         'CMD ["foo"]\n',
     ]
-    with open('yabtwork/_all_/DockerBuilder/the-image_latest/Dockerfile',
-              'r') as dockerfile:
+    with open('yabtwork/flavor__all__/DockerBuilder/the-image_latest/'
+              'Dockerfile', 'r') as dockerfile:
         assert exp_dockerfile == dockerfile.readlines()
 
 
