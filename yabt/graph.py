@@ -215,7 +215,8 @@ def populate_targets_graph(build_context, conf: Config):
             ' -> '.join(cycle)
             for cycle in networkx.simple_cycles(build_context.target_graph))
         raise RuntimeError('Detected cycles in build graph!\n' + cycles)
-    logger.info('Finished parsing build graph with {} nodes',
+    logger.info('Finished parsing build graph with {} nodes and {} edges',
+                build_context.target_graph.order(),
                 build_context.target_graph.size())
 
 
