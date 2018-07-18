@@ -1,0 +1,35 @@
+DepTester('logging', deps=':yapi')
+
+DepTester('base', deps=':logging')
+
+DepTester('flask', deps=':fe')
+
+DepTester('gunicorn')
+
+DepTester('users')
+
+DepTester(
+    'fe',
+    deps=[
+        ':users',
+        ':base',
+        ':flask',
+    ]
+)
+
+DepTester(
+    'yapi',
+    deps=[
+        ':base',
+        ':flask',
+    ]
+)
+
+DepTester(
+    'yapi-gunicorn',
+    deps=[
+        ':yapi',
+        ':base',
+        ':gunicorn',
+    ]
+)

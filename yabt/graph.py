@@ -210,7 +210,11 @@ def populate_targets_graph(build_context, conf: Config):
         build_context.remove_target(target_name)
 
     build_target_dep_graph(build_context, conf)
-    assert dag.is_directed_acyclic_graph(build_context.target_graph)
+    if not dag.is_directed_acyclic_graph(build_context.target_graph):
+        cycles = '\n'.join(
+            ' -> '.join(cycle)
+            for cycle in networkx.simple_cycles(build_context.target_graph))
+        raise RuntimeError('Detected cycles in build graph!\n' + cycles)
     logger.info('Finished parsing build graph with {} nodes',
                 build_context.target_graph.size())
 

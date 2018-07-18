@@ -353,6 +353,18 @@ def test_topological_sort4():
     assert list(topological_sort(graph)) == [2, 1]
 
 
+@pytest.mark.usefixtures('in_error_project')
+def test_graph_cycles(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['cycle']
+    with pytest.raises(RuntimeError) as excinfo:
+        populate_targets_graph(build_context, basic_conf)
+    ex_msg = str(excinfo.value)
+    assert 'Detected cycles in build graph!' in ex_msg
+    # expecting 3 cycles (so error message will have 4 lines)
+    assert 4 == len(ex_msg.split('\n'))
+
+
 @pytest.mark.usefixtures('in_dag_project')
 def test_graph_dot_generation(basic_conf):
     build_context = BuildContext(basic_conf)
