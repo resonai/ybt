@@ -24,15 +24,24 @@ yabt py.test conftest
 
 import os
 
+import configargparse
 import pytest
 from pytest import yield_fixture
 
 import yabt
-from yabt.cli import init_and_get_conf
+from yabt import cli
 
 
 def pytest_addoption(parser):
     parser.addoption('--with-slow', action='store_true', help='run slow tests')
+
+
+def reset_parser():
+    """Disgusting hack to work around configargparse singleton pattern that
+       creates cross-test contamination.
+    """
+    cli.PARSER = None
+    configargparse._parsers = {}
 
 
 def yabt_project_fixture(project):
@@ -91,13 +100,15 @@ def in_tests_project():
 
 @yield_fixture
 def basic_conf():
-    conf = init_and_get_conf(['--non-interactive', 'build'])
+    reset_parser()
+    conf = cli.init_and_get_conf(['--non-interactive', 'build'])
     yabt.extend.Plugin.load_plugins(conf)
     yield conf
 
 
 @yield_fixture()
 def debug_conf():
-    conf = init_and_get_conf(['--non-interactive', '-f', 'debug', 'build'])
+    reset_parser()
+    conf = cli.init_and_get_conf(['--non-interactive', '-f', 'debug', 'build'])
     yabt.extend.Plugin.load_plugins(conf)
     yield conf
