@@ -21,6 +21,8 @@ yabt buildfile parser tests
 :author: Itamar Ostricher
 """
 
+from os.path import join
+
 import pytest
 
 from .buildcontext import BuildContext
@@ -34,7 +36,8 @@ def test_parser_error(basic_conf, capsys):
     with pytest.raises(SystemExit):
         populate_targets_graph(build_context, basic_conf)
     _, err = capsys.readouterr()
-    assert 'tests/errors/parser-error/YBuild", line 6' in err
+    ybuild_path = join('tests', 'errors', 'parser-error', 'YBuild')
+    assert '{}", line 6'.format(ybuild_path) in err
     assert (
         "Fatal: Must provide fully-qualified target name (with `:') to "
         "avoid possible ambiguity - `users' not valid\n" in err)
