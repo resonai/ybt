@@ -135,6 +135,7 @@ def generate_all_targets(conf: Config):
 
 
 class SeedRef:
+    """Helper class for tracking references to targets"""
 
     def __init__(self):
         self.on_cli = False
@@ -144,6 +145,7 @@ class SeedRef:
 
 
 def raise_unresolved_targets(build_context, conf, unknown_seeds, seed_refs):
+    """Raise error about unresolved targets during graph parsing."""
 
     def format_target(target_name):
         build_module = split_build_module(target_name)
