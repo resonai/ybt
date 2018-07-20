@@ -1,0 +1,19 @@
+DepTester('logging')
+
+DepTester('base', deps=':loggin')  # <-- typo - wrong dep name
+
+DepTester('flask')
+
+DepTester(
+    'yapi',
+    deps=[
+        ':base',
+        ':blask',  # <-- typo - wrong dep name
+    ]
+)
+
+DepTester(
+    'foo',
+    deps=[':zapi', ':base'],  # <-- typo - wrong dep name
+    buildenv='//:builderz'  # <-- typo - wrong buildenv name
+)

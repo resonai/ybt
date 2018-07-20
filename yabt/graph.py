@@ -21,6 +21,7 @@ yabt target graph
 :author: Itamar Ostricher
 """
 
+from collections import defaultdict
 from os.path import relpath
 
 import networkx
@@ -30,7 +31,8 @@ from .buildfile_parser import process_build_file
 from .compat import walk
 from .config import Config
 from .logging import make_logger
-from .target_utils import norm_name, parse_target_selectors, split
+from .target_utils import (
+    norm_name, parse_target_selectors, split, split_build_module)
 from .utils import yprint
 
 
@@ -132,10 +134,59 @@ def generate_all_targets(conf: Config):
             yield norm_rel_target(relpath(root, conf.project_root), '//')
 
 
+class SeedRef:
+
+    def __init__(self):
+        self.on_cli = False
+        self.from_default = False
+        self.dep_of = set()
+        self.buildenv_of = set()
+
+
+def raise_unresolved_targets(build_context, conf, unknown_seeds, seed_refs):
+
+    def format_target(target_name):
+        build_module = split_build_module(target_name)
+        return '{} (in {})'.format(target_name,
+                                   conf.get_build_file_path(build_module))
+
+    def format_unresolved(seed):
+        if seed not in seed_refs:
+            return seed
+        seed_ref = seed_refs[seed]
+        reasons = []
+        if seed_ref.on_cli:
+            reasons.append('seen on command line')
+        if seed_ref.from_default:
+            reasons.append('specified as default target in {}'
+                           .format(conf.get_project_build_file))
+        if seed_ref.dep_of:
+            reasons.append(
+                'dependency of ' +
+                ', '.join(format_target(target_name)
+                          for target_name in sorted(seed_ref.dep_of)))
+        if seed_ref.buildenv_of:
+            reasons.append(
+                'buildenv of ' +
+                ', '.join(format_target(target_name)
+                          for target_name in sorted(seed_ref.buildenv_of)))
+
+        return '{} - {}'.format(seed, ', '.join(reasons))
+
+    unresolved_str = '\n'.join(format_unresolved(target_name)
+                               for target_name in sorted(unknown_seeds))
+    num_target_str = '{} target'.format(len(unknown_seeds))
+    if len(unknown_seeds) > 1:
+        num_target_str += 's'
+    raise ValueError('Could not resolve {}:\n{}'
+                     .format(num_target_str, unresolved_str))
+
+
 def populate_targets_graph(build_context, conf: Config):
     # Process project root build file
     process_build_file(conf.get_project_build_file(), build_context, conf)
     targets_to_prune = set(build_context.targets.keys())
+    seed_refs = defaultdict(SeedRef)
     if conf.targets:
         logger.debug('targets: {}', conf.targets)
         # TODO(itamar): Figure out how to support a target selector that is a
@@ -143,22 +194,30 @@ def populate_targets_graph(build_context, conf: Config):
         #   modules (e.g., `ybt tree yapi` from the `dag` test root).
         seeds = parse_target_selectors(conf.targets, conf)
         logger.debug('seeds: {}', seeds)
+        for cli_seed in seeds:
+            seed_refs[cli_seed].on_cli = True
     else:
         default_target = ':{}'.format(conf.default_target_name)
         logger.info('searching for default target {}', default_target)
         if default_target not in build_context.targets:
             raise RuntimeError(
-                'No default target found, and no target selector specified')
+                'No default target found in {}, and no target selector '
+                'specified'.format(conf.get_project_build_file()))
         seeds = [default_target]
+        seed_refs[default_target].from_default = True
 
     def extend_seeds(target_name):
         target = build_context.targets[target_name]
         seeds.extend(target.deps)
+        for dep in target.deps:
+            seed_refs[dep].dep_of.add(target_name)
         if target.buildenv:
             seeds.append(target.buildenv)
+            seed_refs[target.buildenv].buildenv_of.add(target_name)
 
     # Crawl rest of project from seeds
     seeds_used_for_extending = set()
+    unknown_seeds = set()
     for seed in seeds:
         if seed in build_context.targets:
             #
@@ -187,9 +246,8 @@ def populate_targets_graph(build_context, conf: Config):
                     extend_seeds(module_target)
             else:
                 if seed not in build_context.targets:
-                    raise RuntimeError(
-                        'Don\'t know how to make `{}\''.format(seed))
-                #
+                    unknown_seeds.add(seed)
+                    continue
                 for module_target in (
                         build_context.targets_by_module[build_module]):
                     targets_to_prune.add(module_target)
@@ -199,6 +257,9 @@ def populate_targets_graph(build_context, conf: Config):
         # e.g., not pruning things it shouldn't (like when targets are in prune
         # list when loaded initially, but should be removed later because a
         # target loaded later required them).
+
+    if unknown_seeds:
+        raise_unresolved_targets(build_context, conf, unknown_seeds, seed_refs)
 
     # Pruning, after parsing is done
     # (first, adding targets that are tagged as "prune-me" to prune list)

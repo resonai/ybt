@@ -55,13 +55,13 @@ def report_buildfile_error(buildfile_path, unused_conf: Config):
                 break
     print(colorama.Fore.RED, file=sys.stderr, end='')
     if exc_type == SyntaxError:
-        err('Syntax Error in build file {}, line {}:\n  {}\n  {: >{}}',
+        err('Fatal: Syntax error in build file {}, line {}:\n  {}\n  {: >{}}',
             buildfile_path, exc.lineno,
             # TODO(itamar): Fix issue with empty exc.text
             # (occurs when keyword arg repeats in call to build func)
             exc.text.strip('\n') if exc.text else '', '^', exc.offset)
     else:
-        err('YABT Error: {}', exc)
+        err('Fatal: {}', exc)
     print(colorama.Style.RESET_ALL, file=sys.stderr, end='')
     sys.exit(1)
 

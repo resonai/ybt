@@ -24,7 +24,14 @@ yabt Builders for tests
 """
 
 
-from ..extend import register_builder_sig
+from ..extend import (
+    PropType as PT, register_builder_sig, register_manipulate_target_hook)
 
 
-register_builder_sig('DepTester')
+register_builder_sig('DepTester', [('buildenv', PT.Target, None)])
+
+
+@register_manipulate_target_hook('DepTester')
+def dep_tester_manipulate_target(build_context, target):
+    if target.props.buildenv:
+        target.buildenv = target.props.buildenv

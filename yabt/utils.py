@@ -155,7 +155,7 @@ def norm_proj_path(path, build_module):
     """Return a normalized path for the `path` observed in `build_module`.
 
     The normalized path is "normalized" (in the `os.path.normpath` sense),
-    relative from the project root directorym, and OS-native.
+    relative from the project root directory, and OS-native.
 
     Supports making references from project root directory by prefixing the
     path with "//".
