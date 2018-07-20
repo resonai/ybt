@@ -148,6 +148,7 @@ def raise_unresolved_targets(build_context, conf, unknown_seeds, seed_refs):
     """Raise error about unresolved targets during graph parsing."""
 
     def format_target(target_name):
+        # TODO: suggest similar known target names
         build_module = split_build_module(target_name)
         return '{} (in {})'.format(target_name,
                                    conf.get_build_file_path(build_module))
