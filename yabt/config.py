@@ -104,7 +104,7 @@ class Config:
         of project_root (native) and build_module (with '/').
         """
         project_root = Path(self.project_root)
-        build_module = norm_proj_path(build_module, self.project_root)
+        build_module = norm_proj_path(build_module, '')
         return str(project_root / build_module /
                    (BUILD_PROJ_FILE if '' == build_module
                     else self.build_file_name))

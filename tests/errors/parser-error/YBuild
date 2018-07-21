@@ -1,0 +1,7 @@
+
+DepTester('users')
+
+DepTester(
+    'fe',
+    deps='users'  # <-- parser error - missing prefix `:`
+)

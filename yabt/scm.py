@@ -103,4 +103,5 @@ class NoSCM:
         pass
 
     def get_revision(self):
-        raise NotImplementedError('NoSCM')
+        raise NotImplementedError(
+            'SCM provider not specified or not configured correctly')

@@ -365,6 +365,23 @@ def test_graph_cycles(basic_conf):
     assert 4 == len(ex_msg.split('\n'))
 
 
+@pytest.mark.usefixtures('in_error_project')
+def test_dep_name_typo(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['typo', 'typo:bar']
+    with pytest.raises(ValueError) as excinfo:
+        populate_targets_graph(build_context, basic_conf)
+    ex_msg = str(excinfo.value)
+    assert 'Could not resolve 5 targets' in ex_msg
+    assert ':builderz - buildenv of typo:foo' in ex_msg
+    assert 'typo:bar - seen on command line' in ex_msg
+    assert 'typo:blask - dependency of typo:yapi' in ex_msg
+    assert 'typo:loggin - dependency of typo:base' in ex_msg
+    assert 'typo:zapi - dependency of typo:foo' in ex_msg
+    # # expecting 5 unresolved targets (so error message will have 6 lines)
+    assert 6 == len(ex_msg.split('\n'))
+
+
 @pytest.mark.usefixtures('in_dag_project')
 def test_graph_dot_generation(basic_conf):
     build_context = BuildContext(basic_conf)
