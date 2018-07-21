@@ -135,7 +135,30 @@ def generate_all_targets(conf: Config):
 
 
 class SeedRef:
-    """Helper class for tracking references to targets"""
+    """Helper class for tracking references to targets.
+
+    This class is used mainly for error reporting.
+    A single instance represents a single target observed during build graph
+    processing (AKA "seed"), in any context, whether valid or not (not
+    including syntax error, which are caught and reported during YBuild
+    parsing - see buildfile_parser module).
+
+    Currently supprted contexts:
+    - `on_cli` - whether this seed was specified on the command line (boolean).
+    - `from_default` - whether this seed was specified as one of the "default"
+      targets that seed the graph if nothing is specified on the command line.
+    - `dep_of` - a set of other seeds that referred to this seed as their
+      dependency.
+    - `buildenv_of` - a set of other seeds that referred to this seed as their
+      buildenv.
+
+    Usage: Through a defaultdict of SeedRefs (mapping from seed name to its
+    SeedRef instance) in populate_targets_graph - for every target processed,
+    need to add the processed target to all the seeds that that target refers
+    to (a reverse index).
+    When an error is found, the raise_unresolved_targets function may use the
+    mapping to report where an invalid seed was observed.
+    """
 
     def __init__(self):
         self.on_cli = False
