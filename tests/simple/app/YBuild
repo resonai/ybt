@@ -14,7 +14,7 @@ Python(
 
 DockerImage(
     'flask-hello',
-    start_from='//3rdparty:python{}'.format(conf.python_version),
+    base_image='//3rdparty:python{}'.format(conf.python_version),
     deps=':flask-hello-app',
     docker_cmd=['python3', 'app.py'],
     image_tag=SCM.get_revision(),

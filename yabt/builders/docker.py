@@ -57,7 +57,8 @@ def ext_docker_image_builder(build_context, target):
 
 register_builder_sig(
     'DockerImage',
-    [('start_from', PT.Target),
+    [('start_from', PT.Target, None),  # TODO: remove
+     ('base_image', PT.Target, None),  # TODO: make this required
      ('docker_entrypoint', PT.StrList, None),
      ('docker_cmd', PT.StrList, None),
      ('full_path_cmd', PT.bool, False),
@@ -77,7 +78,10 @@ register_builder_sig(
 @register_manipulate_target_hook('DockerImage')
 def docker_image_manipulate_target(build_context, target):
     # TODO: deprecate "start_from" and use "base_image" exclusively
-    target.props.base_image = target.props.start_from
+    if target.props.base_image is None:
+        assert target.props.start_from is not None
+        target.props.base_image = target.props.start_from
+    assert target.props.base_image is not None
     logger.debug('Injecting {} to deps of {}',
                  target.props.base_image, target.name)
     target.deps.append(target.props.base_image)

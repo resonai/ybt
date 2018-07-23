@@ -10,7 +10,7 @@ ExtDockerImage('ubuntu', image='ubuntu', tag='18.04')
 
 DockerImage(
     'builder-base',
-    start_from=':ubuntu',
+    base_image=':ubuntu',
     deps=[':tools', ':build-tools', ':unzip'],
     image_caching_behavior=base_image_caching_behavior(
         conf,
@@ -20,7 +20,7 @@ DockerImage(
 
 DockerImage(
     'builder',
-    start_from=':builder-base',
+    base_image=':builder-base',
     # testing that nodes in the base image are marked as pre-built correctly,
     # even when there's an explicit edge from a non-base image
     deps=':build-tools'
@@ -28,7 +28,7 @@ DockerImage(
 
 DockerImage(
     'an-image',
-    start_from=':ubuntu',
+    base_image=':ubuntu',
     # testing that a dep that exists in a base image is NOT marked as pre-built
     # when building an image that is NOT based on a cached base image that
     # contains the same deo

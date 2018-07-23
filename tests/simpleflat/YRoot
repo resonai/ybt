@@ -35,7 +35,7 @@ Python(
 
 docker_img(
     'flask-' + my_hello,
-    start_from='.:python-{}'.format(7/2),
+    base_image='.:python-{}'.format(7/2),
     deps=[
         '//:flask-hello-app'
     ],
