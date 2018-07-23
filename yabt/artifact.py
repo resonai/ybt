@@ -105,7 +105,7 @@ class ArtifactStore:
     def extend(self, artifact_type: ArtifactType, src_paths: list):
         """Add all `src_paths` as artifact of type `artifact_type`."""
         for src_path in src_paths:
-            self.add(artifact_type, src_paths, src_paths)
+            self.add(artifact_type, src_path, src_path)
 
     def get(self, artifact_type: ArtifactType) -> dict:
         """Return artifacts dict of type `artifact_type`."""
