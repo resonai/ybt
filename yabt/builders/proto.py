@@ -28,6 +28,7 @@ from pathlib import Path, PurePath
 
 from ostrich.utils.path import commonpath
 
+from ..artifact import ArtifactType as AT
 from ..compat import walk
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
@@ -93,23 +94,17 @@ def proto_builder(build_context, target):
     build_context.run_in_buildenv(
         target.props.in_buildenv, protoc_cmd, target.props.cmd_env)
     generated_files = []
-    target.artifacts['gen'] = {}
-    target.artifacts['cpp'] = {}
 
-    def add_artifact(file_path, artifact_kind):
-        target.artifacts[artifact_kind][relpath(file_path, workspace_dir)] = (
-            relpath(file_path, build_context.conf.project_root))
-
-    def process_generated(src_base, gen_suffixes, artifact_kind):
-        gen_files = [src_base + gen_suffix for gen_suffix in gen_suffixes]
-        if not all(isfile(gen_path) for gen_path in gen_files):
-            logger.error('Missing expected generated files: {}',
-                         ', '.join(gen_files))
-        else:
-            if artifact_kind:
-                for gen_file in gen_files:
-                    add_artifact(gen_file, artifact_kind)
-            generated_files.extend(gen_files)
+    def process_generated(gen_file: str, artifact_type: AT):
+        if not isfile(gen_file):
+            logger.error('Missing expected generated file: {}', gen_file)
+            return
+        # rel_gen_path = relpath(gen_file, workspace_dir)
+        target.artifacts.add(
+            artifact_type,
+            relpath(gen_file, build_context.conf.project_root),
+            relpath(gen_file, workspace_dir))
+        generated_files.append(gen_file)
 
     def create_init_py(path: str):
         init_py_path = join(path, '__init__.py')
@@ -120,17 +115,20 @@ def proto_builder(build_context, target):
     for src in target.props.sources:
         src_base = join(proto_dir, splitext(src)[0])
         if target.props.gen_python:
-            process_generated(src_base, ('_pb2.py',), 'gen')
+            process_generated(src_base + '_pb2.py', AT.gen_py)
         if target.props.gen_cpp:
-            process_generated(src_base, ('.pb.cc', '.pb.h'), 'cpp')
+            process_generated(src_base + '.pb.cc', AT.gen_cc)
+            process_generated(src_base + '.pb.h', AT.gen_h)
         if target.props.gen_python_rpcz:
-            process_generated(src_base, ('_rpcz.py',), 'gen')
+            process_generated(src_base + '_rpcz.py', AT.gen_py)
         if target.props.gen_cpp_rpcz:
-            process_generated(src_base, ('.rpcz.cc', '.rpcz.h'), 'cpp')
+            process_generated(src_base + '.rpcz.cc', AT.gen_cc)
+            process_generated(src_base + '.rpcz.h', AT.gen_h)
         if target.props.gen_python_grpc:
-            process_generated(src_base, ('_pb2_grpc.py',), 'gen')
+            process_generated(src_base + '_pb2_grpc.py', AT.gen_py)
         if target.props.gen_cpp_grpc:
-            process_generated(src_base, ('.grpc.pb.cc', '.grpc.pb.h'), 'cpp')
+            process_generated(src_base + '.grpc.pb.cc', AT.gen_cc)
+            process_generated(src_base + '.grpc.pb.h', AT.gen_h)
 
     # Create __init__.py files in all generated directories with Python files
     if target.props.gen_python or target.props.gen_python_rpcz:
@@ -148,18 +146,13 @@ def proto_builder(build_context, target):
                 py_dirs.add(py_dir)
                 py_dir = dirname(py_dir)
         for py_dir in py_dirs:
-            add_artifact(create_init_py(join(proto_dir, py_dir)), 'gen')
+            process_generated(create_init_py(join(proto_dir, py_dir)),
+                              AT.gen_py)
 
     # Copy generated files to external destination
     if target.props.copy_generated_to:
         link_artifacts(generated_files, target.props.copy_generated_to,
                        workspace_dir, build_context.conf)
-        if target.props.gen_python or target.props.gen_python_rpcz:
-            # Create __init__.py files in external destination dirs too
-            for root, dirs, unused_files in walk(
-                    target.props.copy_generated_to):
-                for proto_dir in dirs:
-                    create_init_py(join(root, proto_dir))
 
 
 @register_manipulate_target_hook('Proto')

@@ -31,13 +31,14 @@ from os.path import basename, dirname, join, relpath, splitext
 
 from ostrich.utils.collections import listify
 
+from ..artifact import ArtifactType as AT
 from .dockerapp import build_app_docker_and_bin, register_app_builder_sig
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook, register_test_func)
 from ..logging import make_logger
 from ..target_utils import split
-from ..utils import link_artifacts, link_artifacts_map, yprint
+from ..utils import link_artifacts, rmtree, yprint
 
 
 logger = make_logger(__name__)
@@ -155,13 +156,13 @@ def cpp_app_builder(build_context, target):
         raise KeyError(
             '`main` and `executable` arguments are mutually exclusive')
     if target.props.executable:
-        if target.props.executable not in target.artifacts['app']:
-            target.artifacts['app'].append(target.props.executable)
+        if target.props.executable not in target.artifacts.get(AT.app):
+            target.artifacts.add(AT.app, target.props.executable)
         entrypoint = [target.props.executable]
     elif target.props.main:
         prog = build_context.targets[target.props.main]
-        entrypoint = [join('/usr/src/gen',
-                           list(prog.artifacts['gen'].keys())[0])]
+        binary = list(prog.artifacts.get(AT.binary).keys())[0]
+        entrypoint = ['/usr/src/bin/' + binary]
     else:
         raise KeyError('Must specify either `main` or `executable` argument')
     build_app_docker_and_bin(
@@ -227,13 +228,14 @@ def compile_cc(build_context, compiler_config, buildenv, sources,
 def link_cpp_artifacts(build_context, target, workspace_dir,
                        include_objects: bool):
     """Link required artifacts from dependencies under target workspace dir.
-       Return list of linked object files.
+       Return list of object files of dependencies (if `include_objects`).
 
     Includes:
     - Generated code from proto dependencies
     - Header files from all dependencies
     - Generated header files from all dependencies
     - If `include_objects` is True, also object files from all dependencies
+      (these will be returned without linking)
     """
     # include the source & header files of the current target
     # add objects of all dependencies (direct & transitive), if needed
@@ -241,58 +243,55 @@ def link_cpp_artifacts(build_context, target, workspace_dir,
     generated_srcs = {}
     objects = []
 
-    # add headers & generated headers of direct dependencies
+    # add headers of dependencies
     for dep in build_context.generate_all_deps(target):
         source_files.extend(dep.props.get('headers', []))
-        generated_srcs.update(dep.props.get('generated_headers', {}))
-        if include_objects:
-            objects.extend(dep.props.get('objects', []))
 
-    link_artifacts(
-        source_files + objects, workspace_dir, None, build_context.conf)
+    link_artifacts(source_files, workspace_dir, None, build_context.conf)
+
+    # add generated headers and collect objects of dependencies
+    for dep in build_context.generate_all_deps(target):
+        dep.artifacts.link_types(workspace_dir, [AT.gen_h], build_context.conf)
+        if include_objects:
+            objects.extend(dep.artifacts.get(AT.object).values())
 
     # add generated code from proto dependencies
-    target.props.generated_sources = []
-    target.props.generated_headers = {}
-    for proto_dep in target.props.protos:
-        cpp_artifacts = build_context.targets[proto_dep].artifacts.get('cpp')
-        generated_srcs.update(cpp_artifacts)
-        for dst, src in cpp_artifacts.items():
-            if is_cc_file(dst):
-                target.props.generated_sources.append(dst)
-            elif is_h_file(dst):
-                target.props.generated_headers[dst] = src
-    link_artifacts_map(generated_srcs, workspace_dir, build_context.conf)
+    for proto_dep_name in target.props.protos:
+        proto_dep = build_context.targets[proto_dep_name]
+        proto_dep.artifacts.link_types(workspace_dir, [AT.gen_cc],
+                                       build_context.conf)
 
     return objects
 
 
-def get_source_files(target) -> list:
+def get_source_files(target, build_context) -> list:
     """Return list of source files for `target`."""
-    return (target.props.sources +
-            listify(target.props.get('generated_sources')))
+    all_sources = list(target.props.sources)
+    for proto_dep_name in target.props.protos:
+        proto_dep = build_context.targets[proto_dep_name]
+        all_sources.extend(proto_dep.artifacts.get(AT.gen_cc).keys())
+    return all_sources
 
 
 def build_cpp(build_context, target, compiler_config, workspace_dir):
     """Compile and link a C++ binary for `target`."""
+    rmtree(workspace_dir)
     binary = join(*split(target.name))
     objects = link_cpp_artifacts(build_context, target, workspace_dir, True)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     objects.extend(compile_cc(
         build_context, compiler_config, target.props.in_buildenv,
-        get_source_files(target), workspace_dir, buildenv_workspace,
-        target.props.cmd_env))
+        get_source_files(target, build_context), workspace_dir,
+        buildenv_workspace, target.props.cmd_env))
     bin_file = join(buildenv_workspace, binary)
     link_cmd = (
         [compiler_config.linker, '-o', bin_file] +
         objects + compiler_config.link_flags)
     build_context.run_in_buildenv(
         target.props.in_buildenv, link_cmd, target.props.cmd_env)
-    target.artifacts['gen'] = {
-        join('bin', *split(target.name)):
-        join(workspace_dir, *split(target.name))
-    }
+    target.artifacts.add(AT.binary, relpath(join(workspace_dir, binary),
+                         build_context.conf.project_root), binary)
 
 
 @register_build_func('CppProg')
@@ -354,11 +353,15 @@ def cpp_lib_builder(build_context, target):
     """Build C++ object files"""
     yprint(build_context.conf, 'Build CppLib', target)
     workspace_dir = build_context.get_workspace('CppLib', target.name)
+    workspace_src_dir = join(workspace_dir, 'src')
+    rmtree(workspace_src_dir)
     compiler_config = CompilerConfig(build_context, target)
-    link_cpp_artifacts(build_context, target, workspace_dir, False)
+    link_cpp_artifacts(build_context, target, workspace_src_dir, False)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
-        workspace_dir)
-    target.props.objects = compile_cc(
+        workspace_src_dir)
+    objects = compile_cc(
         build_context, compiler_config, target.props.in_buildenv,
-        get_source_files(target), workspace_dir, buildenv_workspace,
-        target.props.cmd_env)
+        get_source_files(target, build_context), workspace_src_dir,
+        buildenv_workspace, target.props.cmd_env)
+    for obj_file in objects:
+        target.artifacts.add(AT.object, obj_file)

@@ -23,17 +23,18 @@ yabt Python Builders
 :author: Itamar Ostricher
 """
 
-
+from itertools import chain
 from os.path import join, relpath
 
 from ostrich.utils.collections import listify
 
+from ..artifact import ArtifactType as AT
 from .dockerapp import build_app_docker_and_bin, register_app_builder_sig
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook, register_test_func)
 from ..logging import make_logger
-from ..utils import link_artifacts_map, rmtree, yprint
+from ..utils import rmtree, yprint
 
 
 logger = make_logger(__name__)
@@ -73,8 +74,8 @@ register_builder_sig(
 @register_build_func('Python')
 def python_app_builder(build_context, target):
     yprint(build_context.conf, 'Build Python', target)
-    target.artifacts['app'].extend(target.props.sources)
-    target.artifacts['app'].extend(target.props.data)
+    for src in chain(target.props.sources, target.props.data):
+        target.artifacts.add(AT.app, src)
 
 
 register_app_builder_sig('PythonApp', [('main', PT.File)])
@@ -90,8 +91,6 @@ def python_app_manipulate_target(build_context, target):
 @register_build_func('PythonApp')
 def python_app_builder(build_context, target):
     yprint(build_context.conf, 'Build PythonApp', target)
-    if target.props.main not in target.artifacts['app']:
-        target.artifacts['app'].append(target.props.main)
     build_app_docker_and_bin(
         build_context, target, entrypoint=[target.props.main])
 
@@ -127,9 +126,8 @@ def pythontest_tester(build_context, target):
     gen_dir = join(workspace_dir, 'gen')
     rmtree(gen_dir)
     for dep in build_context.generate_all_deps(target):
-        gen_py = dep.artifacts.get('gen')
-        if gen_py:
-            link_artifacts_map(gen_py, gen_dir, build_context.conf)
+        dep.artifacts.link_types(
+            workspace_dir, [AT.gen_py], build_context.conf)
 
     # Run the test module
     pytest_params = build_context.conf.get('pytest_params', {})
