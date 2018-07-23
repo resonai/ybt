@@ -2,7 +2,7 @@ ExtDockerImage('ubuntu', image='ubuntu', tag='18.04')
 
 AptPackage('gnupg', package='gnupg')
 
-DockerImage('ubuntu-gpg', start_from=':ubuntu', deps=':gnupg')
+DockerImage('ubuntu-gpg', base_image=':ubuntu', deps=':gnupg')
 
 AptGroup(
     'clang',
@@ -20,8 +20,8 @@ AptGroup(
     repo_key='15CF4D18AF4F7421'
 )
 
-DockerImage('builder', start_from=':ubuntu-gpg', deps=':clang')
+DockerImage('builder', base_image=':ubuntu-gpg', deps=':clang')
 
 AptPackage('boost-dev', package='libboost1.65-all-dev')
 
-DockerImage('builder-with-boost', start_from=':builder', deps=':boost-dev')
+DockerImage('builder-with-boost', base_image=':builder', deps=':boost-dev')

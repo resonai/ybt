@@ -14,12 +14,12 @@ ExtDockerImage(
 
 DockerImage(
     'proto-builder',
-    start_from=':ubuntu',
+    base_image=':ubuntu',
     deps='//3rdparty:protobuf'
 )
 
 DockerImage(
     'proto-python',
-    start_from=':python',
+    base_image=':python',
     deps='//3rdparty:py-protobuf'
 )

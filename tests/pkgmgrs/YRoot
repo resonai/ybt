@@ -86,7 +86,7 @@ ExtDockerImage(
 
 DockerImage(
     'the-image',
-    start_from=':python',
+    base_image=':python',
     docker_cmd='foo',
     build_user='root',
     run_user='root',
@@ -110,6 +110,6 @@ AptPackage(
 
 DockerImage(
     'another-image',
-    start_from=':the-image',
+    base_image=':the-image',
     deps=':gcloud'
 )
