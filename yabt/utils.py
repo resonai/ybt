@@ -139,18 +139,6 @@ def link_artifacts(artifacts: set, workspace_src_dir: str,
     return num_linked
 
 
-def link_artifacts_map(artifacts: dict, workspace_src_dir: str, conf):
-    """Sync the dictionary of files in `artifacts` to `workspace_src_dir`."""
-    num_linked = 0
-    for dst, src in artifacts.items():
-        abs_src = join(conf.project_root, src)
-        abs_dest = join(conf.project_root, workspace_src_dir, dst)
-        link_node(abs_src, abs_dest)
-        # print(f'ABABABAB {abs_src} -> {abs_dest}')
-        num_linked += 1
-    return num_linked
-
-
 def norm_proj_path(path, build_module):
     """Return a normalized path for the `path` observed in `build_module`.
 

@@ -45,7 +45,6 @@ def register_app_builder_sig(builder_name, sig=None, docstring=None):
             ('env', PT.dict, None),
             ('distro', PT.dict, None),
             ('image_caching_behavior', PT.dict, None),
-            ('truncate_common_parent', PT.str, None),
             ('build_user', PT.str, None),
             ('run_user', PT.str, None),
             ('docker_labels', PT.dict, None),

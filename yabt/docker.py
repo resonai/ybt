@@ -182,7 +182,7 @@ def handle_build_cache(
 
 def build_docker_image(
         build_context, name: str, tag: str, base_image, deps: list=None,
-        env: dict=None, work_dir: str=None, truncate_common_parent: str=None,
+        env: dict=None, work_dir: str=None,
         entrypoint: list=None, cmd: list=None, full_path_cmd: bool=False,
         distro: dict=None, image_caching_behavior: dict=None,
         runtime_params: dict=None, ybt_bin_path: str=None,
@@ -227,8 +227,9 @@ def build_docker_image(
     ]
     if build_user:
         dockerfile.append('USER {}\n'.format(build_user))
-    all_artifacts = defaultdict(set)
-    gen_artifacts = {}
+    workspace_src_dir = join(workspace_dir, 'src')
+    rmtree(workspace_src_dir)
+    num_linked = 0
     apt_repo_deps = []
     effective_env = {}
     effective_labels = {}
@@ -332,11 +333,8 @@ def build_docker_image(
             logger.debug('Skipping base image dep {}', dep.name)
             continue
         if not no_artifacts:
-            for kind, artifacts in dep.artifacts.items():
-                if kind == 'gen':
-                    gen_artifacts.update(artifacts)
-                else:
-                    all_artifacts[kind].update(artifacts)
+            num_linked += dep.artifacts.link_for_image(
+                workspace_src_dir, build_context.conf)
 
         PACKAGING_PARAMS = frozenset(
             ('set_env', 'semicolon_join_env', 'set_label'))
@@ -496,35 +494,8 @@ def build_docker_image(
     if work_dir:
         dockerfile.append('WORKDIR {}\n'.format(work_dir))
 
-    if not no_artifacts:
-        # Handle copying data to the image
-        # start with removing the workspace src dir, to avoid any spurious and
-        # leftover files in there - I think this is better than walking it and
-        # looking for files to remove - doesn't seem this would scale well
-        workspace_src_dir = join(workspace_dir, 'src')
-        rmtree(workspace_src_dir)
-        # sync artifacts between project and `workspace_src_dir`
-        num_linked = 0
-        # link app artifacts (with common parent truncation)
-        app_artifacts = all_artifacts.pop('app', None)
-        if app_artifacts:
-            num_linked += link_artifacts(
-                app_artifacts, join(workspace_src_dir, 'app'),
-                truncate_common_parent, build_context.conf)
-        # link generated artifacts
-        for dest, src in gen_artifacts.items():
-            link_node(join(build_context.conf.project_root, src),
-                      join(workspace_src_dir, 'gen', dest))
-            num_linked += 1
-        # TODO: remove? (creates bugs with new kinds of artifacts)
-        # (probably need special handling for every kind that needs linking)
-        # # link "other" artifacts
-        # for kind, artifacts in all_artifacts.items():
-        #     num_linked += link_artifacts(
-        #         artifacts, join(workspace_src_dir, kind), None,
-        #         build_context.conf)
-        if num_linked > 0:
-            dockerfile.append('COPY src /usr/src\n')
+    if num_linked > 0:
+        dockerfile.append('COPY src /usr/src\n')
 
     # Add labels (one layer)
     if labels:

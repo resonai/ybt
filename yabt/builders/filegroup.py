@@ -24,6 +24,7 @@ yabt File group builder
 """
 
 
+from ..artifact import ArtifactType as AT
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
@@ -40,4 +41,5 @@ register_builder_sig(
 @register_build_func('FileGroup')
 def file_group_builder(build_context, target):
     yprint(build_context.conf, 'Build FileGroup', target)
-    target.artifacts[target.props.kind].extend(target.props.files)
+    kind = getattr(AT, target.props.kind)
+    target.artifacts.extend(kind, target.props.files)

@@ -18,7 +18,6 @@ DockerImage(
     deps=':flask-hello-app',
     docker_cmd=['python3', 'app.py'],
     image_tag=SCM.get_revision(),
-    truncate_common_parent='app',
     docker_labels={
         'com.ybt.here': 'there',
     }
