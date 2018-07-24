@@ -117,11 +117,19 @@ class Config:
     def get_bin_path(self) -> str:
         return os.path.join(self.project_root, self.bin_output_dir)
 
-    def get_cache_dir(self, target) -> str:
-        # should this be shared across YBT projects on the same host?
+    def get_cache_dir(self, target, build_context) -> str:
+        # TODO: consider using host-level shared cache, so it can be shared
+        # between different copies of a project (multiple clones / users)
         # consider dockerized execution...
         return os.path.join(self.project_root, self.builders_workspace_dir,
-                            '.cache', target.hash())
+                            '.cache', 'targets', target.hash(build_context))
+
+    def get_cached_artifact_path(self, artifact_hash) -> str:
+        # TODO: consider using host-level shared cache, so it can be shared
+        # between different copies of a project (multiple clones / users)
+        # consider dockerized execution...
+        return os.path.join(self.project_root, self.builders_workspace_dir,
+                            '.cache', 'artifacts', artifact_hash)
 
     def host_to_buildenv_path(self, host_path: str) -> str:
         host_path, project_root = Path(host_path), Path(self.project_root)
