@@ -79,11 +79,19 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
             args_for_setting_config_path=['--config'],
             args_for_writing_out_config_file=['--write-out-config-file'])
         # PARSER.add('--config', is_config_file=True, help='Config file path')
+        PARSER.add('--artifacts-metadata-file',
+                   help='Output file to write artifacts metadata to')
         PARSER.add('--bin-output-dir', default='ybt_bin')
         PARSER.add('--build-file-name', default='YBuild')
         PARSER.add('--build-base-images', action='store_true')
         PARSER.add('--builders-workspace-dir', default='yabtwork')
         PARSER.add('--default-target-name', default='@default')
+        PARSER.add('--docker-pull-cmd', default='docker pull',
+                   help='Command to use for pulling images from registries')
+        PARSER.add('--docker-push-cmd', default='docker push',
+                   help='Command to use for pushing images to registries')
+        PARSER.add('--docker-volume',
+                   help='Use the specified docker volume as buildenv /project')
         PARSER.add('-f', '--flavor', help='Choose build flavor (AKA profile)')
         PARSER.add('--force-pull', action='store_true')
         PARSER.add('-j', '--jobs', type=int, default=1)
@@ -95,17 +103,11 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         # TODO(itamar): this flag should come from the builder, not from here
         PARSER.add('--push', action='store_true')
         PARSER.add('--scm-provider')
-        PARSER.add('--docker-volume',
-                   help='Use the specified docker volume as buildenv /project')
-        PARSER.add('--docker-pull-cmd', default='docker pull',
-                   help='Command to use for pulling images from registries')
-        PARSER.add('--docker-push-cmd', default='docker push',
-                   help='Command to use for pushing images to registries')
+        PARSER.add('--no-cache', action='store_true',
+                   help='Disable YBT build cache')
         PARSER.add('-v', '--verbose', action='store_true',
                    help='More verbose output to STDOUT')
         PARSER.add('--with-tini-entrypoint', action='store_true')
-        PARSER.add('--artifacts-metadata-file',
-                   help='Output file to write artifacts metadata to')
         # Logging flags
         PARSER.add('--logtostderr', action='store_true',
                    help='Whether to log to STDERR')

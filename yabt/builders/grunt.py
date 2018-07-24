@@ -43,7 +43,10 @@ register_builder_sig(
      ('grunt_tasks', PT.StrList, None),
      ('cmd_env', None),
      ('work_dir', None),
-     ])
+     ],
+    # not cachable by default, since in general this builder doesn't know how
+    # to keep track of its artifacts
+    cachable=False)
 
 
 @register_build_func('Grunt')

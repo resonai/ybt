@@ -59,6 +59,7 @@ class Config:
         'output_dot_file',
         'push',
         'targets',
+        'no_cache',
         'verbose',
         'with_tini_entrypoint',
         # logging-related
@@ -115,6 +116,20 @@ class Config:
 
     def get_bin_path(self) -> str:
         return os.path.join(self.project_root, self.bin_output_dir)
+
+    def get_cache_dir(self, target, build_context) -> str:
+        # TODO: consider using host-level shared cache, so it can be shared
+        # between different copies of a project (multiple clones / users)
+        # consider dockerized execution...
+        return os.path.join(self.project_root, self.builders_workspace_dir,
+                            '.cache', 'targets', target.hash(build_context))
+
+    def get_artifacts_cache_dir(self) -> str:
+        # TODO: consider using host-level shared cache, so it can be shared
+        # between different copies of a project (multiple clones / users)
+        # consider dockerized execution...
+        return os.path.join(self.project_root, self.builders_workspace_dir,
+                            '.cache', 'artifacts')
 
     def host_to_buildenv_path(self, host_path: str) -> str:
         host_path, project_root = Path(host_path), Path(self.project_root)
