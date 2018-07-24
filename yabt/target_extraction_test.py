@@ -51,7 +51,8 @@ def test_build_sig_args_to_props_valid_positional_args():
     args_to_props(target, Plugin.builders['Spam'],
                   args=['my-spam', 'foo', 'bar'], kwargs={})
     assert target.props == {'name': 'my-spam', 'foo': 'foo', 'bar': 'bar',
-                            'deps': None, 'cats': None, 'cat_list': None,
+                            'deps': None, 'cachable': True,
+                            'cats': None, 'cat_list': None,
                             'packaging_params': {}, 'runtime_params': {},
                             'build_params': {}}
 
@@ -92,7 +93,8 @@ def test_build_sig_args_to_props_valid_mix_pos_kwargs():
     args_to_props(target, Plugin.builders['Spam'],
                   args=['my-spam'], kwargs={'foo': 'foo', 'bar': 'bar'})
     assert target.props == {'name': 'my-spam', 'foo': 'foo', 'bar': 'bar',
-                            'deps': None, 'cats': None, 'cat_list': None,
+                            'deps': None, 'cachable': True,
+                            'cats': None, 'cat_list': None,
                             'packaging_params': {}, 'runtime_params': {},
                             'build_params': {}}
 
@@ -132,10 +134,10 @@ def test_build_sig_args_to_props_too_many_pos_args():
     target = Target(builder_name='Spam')
     with pytest.raises(TypeError) as excinfo:
         args_to_props(target, Plugin.builders['Spam'],
-                      args=['my-spam', 'foo', 'bar', None, None, None,
+                      args=['my-spam', 'foo', 'bar', None, None, None, None,
                             {}, {}, {}, 'w00t'],
                       kwargs={})
-    assert ('Spam() takes from 3 to 9 positional arguments, but 10 were given'
+    assert ('Spam() takes from 3 to 10 positional arguments, but 11 were given'
             in str(excinfo.value))
 
 
@@ -168,8 +170,9 @@ def test_typed_args_valid_defaults():
                   args=['my-spam', 'foo', 'bar'], kwargs={})
     handle_typed_args(target, Plugin.builders['Spam'], 'spams')
     assert target.props == {'name': 'spams:my-spam', 'foo': 'foo',
-                            'bar': 'bar', 'deps': [], 'cats': [],
-                            'cat_list': None, 'packaging_params': {},
+                            'bar': 'bar', 'deps': [], 'cachable': True,
+                            'cats': [], 'cat_list': None,
+                            'packaging_params': {},
                             'runtime_params': {}, 'build_params': {}}
 
 
@@ -183,7 +186,7 @@ def test_typed_args_valid_non_default():
     handle_typed_args(target, Plugin.builders['Spam'], 'spams')
     assert target.props == {'name': 'spams:my-spam', 'foo': 'foo',
                             'bar': 'bar', 'deps': ['hams:my-ham'],
-                            'cats': ['my cat', 'other cat'],
+                            'cachable': True, 'cats': ['my cat', 'other cat'],
                             'cat_list': path.join('lists', 'from-vet-4'),
                             'packaging_params': {}, 'runtime_params': {},
                             'build_params': {}}
@@ -197,7 +200,8 @@ def test_file_arg_from_project_root():
                   kwargs={'cat_list': '//lists/from-vet-4'})
     handle_typed_args(target, Plugin.builders['Spam'], 'spams')
     assert target.props == {'name': 'spams:my-spam', 'foo': 'foo',
-                            'bar': 'bar', 'deps': [], 'cats': [],
+                            'bar': 'bar', 'deps': [], 'cachable': True,
+                            'cats': [],
                             'cat_list': path.join('lists', 'from-vet-4'),
                             'packaging_params': {}, 'runtime_params': {},
                             'build_params': {}}

@@ -80,7 +80,7 @@ def evaluate_arg_spec(arg_spec):
 
 
 INJECTED_ARGS = frozenset(
-    ('deps', 'packaging_params', 'runtime_params', 'build_params'))
+    ('deps', 'cachable', 'packaging_params', 'runtime_params', 'build_params'))
 
 
 class Builder:
@@ -92,7 +92,8 @@ class Builder:
         self.docstring = None
         self.min_positional_args = 1  # the `name`
 
-    def register_sig(self, builder_name: str, sig: list, docstring: str):
+    def register_sig(self, builder_name: str, sig: list, docstring: str,
+                     cachable: bool=True):
         """Register a builder signature & docstring for `builder_name`.
 
         The input for the builder signature is a list of "sig-spec"s
@@ -115,12 +116,14 @@ class Builder:
         1. A positional arg `name` of type TargetName is always the first arg.
         2. A keyword arg `deps` of type TargetList and default value `None`
             (or empty list) is always the first after all builder args.
-        3. A keyword arg `packaging_params` of type dict and default value {}
-            (empty dict) is always after `deps`.
-        4. A keyword arg `runtime_params` of type dict and default value {}
-            (empty dict) is always after `packaging_params`.
-        5. A keyword arg `build_params` of type dict and default value {}
-            (empty dict) is always after `runtime_params`.
+        3. A keyword arg `cachable` of type bool and default value taken from
+           the signature registration call (`cachable` arg).
+        4. A keyword arg `packaging_params` of type dict and default value {}
+            (empty dict).
+        5. A keyword arg `runtime_params` of type dict and default value {}
+            (empty dict).
+        6. A keyword arg `build_params` of type dict and default value {}
+            (empty dict).
         """
         if self.sig is not None:
             raise KeyError('{} already registered a signature!'
@@ -145,6 +148,7 @@ class Builder:
             else:
                 kwargs_section = True
         self.sig['deps'] = ArgSpec(PropType.TargetList, None)
+        self.sig['cachable'] = ArgSpec(PropType.bool, cachable)
         self.sig['packaging_params'] = ArgSpec(PropType.dict, {})
         self.sig['runtime_params'] = ArgSpec(PropType.dict, {})
         self.sig['build_params'] = ArgSpec(PropType.dict, {})
@@ -193,8 +197,10 @@ class Plugin:
             hook_spec.pop(builder_name, None)
 
 
-def register_builder_sig(builder_name, sig=None, docstring=None):
-    Plugin.builders[builder_name].register_sig(builder_name, sig, docstring)
+def register_builder_sig(
+        builder_name, sig=None, docstring=None, cachable: bool=True):
+    Plugin.builders[builder_name].register_sig(
+        builder_name, sig, docstring, cachable)
     logger.debug('Registered {} builder signature'.format(builder_name))
 
 

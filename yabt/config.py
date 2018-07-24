@@ -59,6 +59,7 @@ class Config:
         'output_dot_file',
         'push',
         'targets',
+        'no_cache',
         'verbose',
         'with_tini_entrypoint',
         # logging-related
@@ -115,6 +116,12 @@ class Config:
 
     def get_bin_path(self) -> str:
         return os.path.join(self.project_root, self.bin_output_dir)
+
+    def get_cache_dir(self, target) -> str:
+        # should this be shared across YBT projects on the same host?
+        # consider dockerized execution...
+        return os.path.join(self.project_root, self.builders_workspace_dir,
+                            '.cache', target.hash())
 
     def host_to_buildenv_path(self, host_path: str) -> str:
         host_path, project_root = Path(host_path), Path(self.project_root)
