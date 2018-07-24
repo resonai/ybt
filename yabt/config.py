@@ -124,12 +124,12 @@ class Config:
         return os.path.join(self.project_root, self.builders_workspace_dir,
                             '.cache', 'targets', target.hash(build_context))
 
-    def get_cached_artifact_path(self, artifact_hash) -> str:
+    def get_artifacts_cache_dir(self) -> str:
         # TODO: consider using host-level shared cache, so it can be shared
         # between different copies of a project (multiple clones / users)
         # consider dockerized execution...
         return os.path.join(self.project_root, self.builders_workspace_dir,
-                            '.cache', 'artifacts', artifact_hash)
+                            '.cache', 'artifacts')
 
     def host_to_buildenv_path(self, host_path: str) -> str:
         host_path, project_root = Path(host_path), Path(self.project_root)
