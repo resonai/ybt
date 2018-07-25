@@ -23,6 +23,7 @@ yabt target utils module
 
 
 from collections import defaultdict
+from hashlib import md5
 import json
 from os.path import join, normpath
 from pathlib import PurePath
@@ -147,7 +148,7 @@ def process_prop(prop_type: PT, value, build_context):
 
 class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
 
-    _prop_json_blacklist = frozenset(('copy_generated_to',))
+    _prop_json_blacklist = frozenset(('copy_generated_to', 'cachable'))
 
     def __init__(self, builder_name):
         super().__init__(
@@ -192,18 +193,16 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
                 continue
             props[prop] = process_prop(sig_spec.type, self.props[prop],
                                        build_context)
-        self._json = json.dumps(
-            dict(
-                # note: name intentionally not part of JSON for target hashing
-                builder_name=self.builder_name,
-                deps=hashify_targets(self.deps, build_context),
-                props=props,
-                buildenv=hashify_targets(self.buildenv, build_context),
-                tags=sorted(list(self.tags)),
-                flavor=build_context.conf.flavor,  # TODO: any other conf args?
-            ),
-            indent=4,
-            sort_keys=True)
+        json_dict = dict(
+            # note: name intentionally not part of JSON for target hashing
+            builder_name=self.builder_name,
+            deps=hashify_targets(self.deps, build_context),
+            props=props,
+            buildenv=hashify_targets(self.buildenv, build_context),
+            tags=sorted(list(self.tags)),
+            flavor=build_context.conf.flavor,  # TODO: any other conf args?
+        )
+        self._json = json.dumps(json_dict, sort_keys=True, indent=4)
 
     def json(self, build_context) -> str:
         """Return JSON serialization of this target for caching purposes."""
@@ -216,7 +215,6 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
 
         The hash is computed over the target JSON representation.
         """
-        from hashlib import md5
         m = md5()
         m.update(self.json(build_context).encode('utf8'))
         self._hash = m.hexdigest()

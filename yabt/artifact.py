@@ -84,9 +84,6 @@ class ArtifactStore:
     def __init__(self):
         self._artifacts = defaultdict(dict)
 
-    def get_all(self) -> dict:
-        return self._artifacts
-
     def add(self, artifact_type: ArtifactType, src_path: str,
             dst_path: str=None):
         """Add an artifact of type `artifact_type` at `src_path`.
@@ -113,6 +110,13 @@ class ArtifactStore:
     def get(self, artifact_type: ArtifactType) -> dict:
         """Return artifacts dict of type `artifact_type`."""
         return self._artifacts[artifact_type]
+
+    def get_all(self) -> dict:
+        return self._artifacts
+
+    def reset(self):
+        """Clear internal artifacts store."""
+        self._artifacts.clear()
 
     def link_types(self, base_dir: str, types: list, conf: Config) -> int:
         """Link all artifacts with types `types` under `base_dir` and return

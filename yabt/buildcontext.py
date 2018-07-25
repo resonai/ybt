@@ -389,6 +389,7 @@ class BuildContext:
                 target.done()
                 return
             try:
+                target.compute_hash(self)
                 self.build_target(target)
                 built_targets.add(target.name)
                 target.done()

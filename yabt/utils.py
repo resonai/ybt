@@ -245,11 +245,14 @@ def hash_tree(filepath: str) -> str:
     if isfile(filepath):
         return hash_file(filepath)
     if isdir(filepath):
+        base_dir = filepath
         md5 = hashlib.md5()
-        for root, _, files in walk(filepath):
-            for rel_fpath in files:
-                fpath = join(root, rel_fpath)
-                md5.update(fpath.encode('utf8'))
-                acc_hash(fpath, md5)
+        for root, _, files in walk(base_dir):
+            for fname in files:
+                filepath = join(root, fname)
+                # consistent hashing between POSIX & Windows
+                md5.update(relpath(filepath, base_dir)
+                           .replace('\\', '/').encode('utf8'))
+                acc_hash(filepath, md5)
         return md5.hexdigest()
     return None
