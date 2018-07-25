@@ -21,10 +21,13 @@ yabt Target utils tests
 :author: Itamar Ostricher
 """
 
+from os.path import join
 
 import pytest
 
-from .target_utils import norm_name
+from .buildcontext import BuildContext
+from .graph import populate_targets_graph
+from .target_utils import hashify_files, hashify_targets, norm_name
 
 
 def test_norm_name_abs_ref():
@@ -88,3 +91,76 @@ def test_norm_name_unqualified_error():
         norm_name('cat', 'poops')
     assert ('Must provide fully-qualified target name (with `:\') to avoid '
             'possible ambiguity' in str(excinfo.value))
+
+
+_EXP_JSON = """{
+    "buildenv": [],
+    "builder_name": "CppApp",
+    "deps": [
+        "6ea2f455f7aee018f32ed921c0a793f8",
+        "cb618c643079626f9c21ca173a706ad6"
+    ],
+    "flavor": null,
+    "props": {
+        "base_image": [
+            "6ea2f455f7aee018f32ed921c0a793f8"
+        ],
+        "build_params": {},
+        "build_user": null,
+        "distro": {},
+        "docker_labels": {},
+        "env": {},
+        "executable": {},
+        "full_path_cmd": false,
+        "image_caching_behavior": {},
+        "image_name": null,
+        "image_tag": "latest",
+        "main": [
+            "cb618c643079626f9c21ca173a706ad6"
+        ],
+        "packaging_params": {},
+        "run_user": null,
+        "runtime_params": {},
+        "work_dir": "/usr/src/app"
+    },
+    "tags": []
+}"""
+
+
+@pytest.mark.usefixtures('in_proto_project')
+def test_target_hash_and_json(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['app:hello-prog-app']
+    populate_targets_graph(build_context, basic_conf)
+    assert ('cb618c643079626f9c21ca173a706ad6' ==
+            build_context.targets['app:hello-prog'].hash(build_context))
+    assert ('6ea2f455f7aee018f32ed921c0a793f8' ==
+            build_context.targets[':proto-builder'].hash(build_context))
+    prog_app = build_context.targets['app:hello-prog-app']
+    prog_app.compute_json(build_context)
+    assert _EXP_JSON == prog_app.json(build_context)
+
+
+@pytest.mark.usefixtures('in_proto_project')
+def test_hashify_targets(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['app:hello-prog-app']
+    populate_targets_graph(build_context, basic_conf)
+    assert [
+        '6ea2f455f7aee018f32ed921c0a793f8',
+        'cb618c643079626f9c21ca173a706ad6',
+    ] == hashify_targets(['app:hello-prog', ':proto-builder'], build_context)
+
+
+DATA_DIR = join('tests', 'data')
+
+
+def test_hashify_files():
+    files = [join(DATA_DIR, fname)
+             for fname in ('empty', 'hello.txt', 'world.txt')]
+    hashed_files = hashify_files(files)
+    assert {
+        join(DATA_DIR, 'empty'): 'd41d8cd98f00b204e9800998ecf8427e',
+        join(DATA_DIR, 'hello.txt'): '910c8bc73110b0cd1bc5d2bcae782511',
+        join(DATA_DIR, 'world.txt'): '910c8bc73110b0cd1bc5d2bcae782511',
+    } == hashed_files

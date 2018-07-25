@@ -19,6 +19,10 @@ yabt Caching module
 ~~~~~~~~~~~~~~~~~~~
 
 :author: Itamar Ostricher
+
+TODO: implement also distributed caching
+will require keeping track of which machine produced what, so it is possible
+to rerun "cached" tests on machines with different hardware (for example).
 """
 
 import json
@@ -38,6 +42,8 @@ from .utils import hash_tree, rmtree
 
 
 logger = make_logger(__name__)
+
+_NO_CACHE_TYPES = frozenset((AT.app,))
 
 
 class CachedDescendants(dict):
@@ -128,11 +134,15 @@ def save_target_in_cache(target: Target, build_context):
     the artifacts cache dir by their content hash.
 
     TODO: pruning policy to limit cache size.
+    TODO: add error checking on serialized metadata
+    TODO: also write out "stats" (modified timestamp, last used timestamp,
+          stdout/stderr of builder & tester, build time, test time)
     """
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if isdir(cache_dir):
         rmtree(cache_dir)
     makedirs(cache_dir)
+    logger.debug('Saving target metadata in cache under {}', cache_dir)
     # write target metadata
     with open(join(cache_dir, 'target.json'), 'w') as meta_file:
         meta_file.write(target.json(build_context))
@@ -144,7 +154,7 @@ def save_target_in_cache(target: Target, build_context):
             artifact_hashes[dst_path] = hash_tree(src_path)
             # not caching "app" artifacts, since they're part
             # of the source tree
-            if artifact_type not in (AT.app,):
+            if artifact_type not in _NO_CACHE_TYPES:
                 copy_artifact(src_path, artifact_hashes[dst_path],
                               build_context.conf)
     # serialize target artifacts metadata + hashes
