@@ -84,6 +84,9 @@ class ArtifactStore:
     def __init__(self):
         self._artifacts = defaultdict(dict)
 
+    def get_all(self) -> dict:
+        return self._artifacts
+
     def add(self, artifact_type: ArtifactType, src_path: str,
             dst_path: str=None):
         """Add an artifact of type `artifact_type` at `src_path`.
