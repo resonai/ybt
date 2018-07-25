@@ -36,7 +36,7 @@ import networkx as nx
 from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
 
-from .caching import get_prebuilt_targets
+from .caching import get_prebuilt_targets, save_target_in_cache
 from .config import Config
 from .docker import format_qualified_image_name
 from .extend import Plugin
@@ -384,14 +384,12 @@ class BuildContext:
 
         def build(target: Target):
             """Build `target` if it wasn't built already, and mark it built."""
+            # avoid rebuilding built target
             if target.name in built_targets:
                 target.done()
-            else:
-                try:
-                    self.build_target(target)
-                except Exception as ex:
-                    target.fail()
-                    fatal('`{}\': {}', target.name, ex)
+                return
+            try:
+                self.build_target(target)
                 built_targets.add(target.name)
                 target.done()
                 # TODO: retry flaky tests N times
@@ -399,11 +397,13 @@ class BuildContext:
                 # TODO: support both "fail fast" (exit on first failure) and
                 # run all tests (don't exit on first failure) modes
                 if run_tests and 'testable' in target.tags:
-                    try:
-                        self.test_target(target)
-                    except Exception as ex:
-                        target.fail()
-                        fatal('`{}\': {}', target.name, ex)
+                    self.test_target(target)
+
+                # should this be conditioned on 'no_cache' conf?
+                save_target_in_cache(target, self)
+            except Exception as ex:
+                target.fail()
+                fatal('`{}\': {}', target.name, ex)
 
         def build_in_pool(seq):
             jobs = self.conf.jobs

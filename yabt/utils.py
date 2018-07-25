@@ -22,6 +22,7 @@ yabt utils
 """
 
 
+import hashlib
 import os
 from os.path import isdir, isfile, join, normpath, relpath, split
 import shutil
@@ -31,7 +32,7 @@ from traceback import format_exc
 from colorama import Fore, Style
 from ostrich.utils.path import commonpath
 
-from .compat import scandir
+from .compat import scandir, walk
 from .logging import make_logger
 
 
@@ -212,3 +213,43 @@ def yprint(config, *objects, **kwargs):
         print(*objects, **kwargs)
     else:
         logger.info('{}', ' '.join(str(obj) for obj in objects))
+
+
+_BUF_SIZE = 1024 * 1024  # read file in 1MB chunks
+
+
+def acc_hash(filepath: str, hasher):
+    """Accumulate content of file at `filepath` in `hasher`."""
+    with open(filepath, 'rb') as f:
+        while True:
+            chunk = f.read(_BUF_SIZE)
+            if not chunk:
+                break
+            hasher.update(chunk)
+
+
+def hash_file(filepath: str) -> str:
+    """Return the hexdigest MD5 hash of content of file at `filepath`."""
+    md5 = hashlib.md5()
+    acc_hash(filepath, md5)
+    return md5.hexdigest()
+
+
+def hash_tree(filepath: str) -> str:
+    """Return the hexdigest MD5 hash of file or directory at `filepath`.
+
+    If file - just hash file content.
+    If directory - walk the directory, and accumulate hashes of all the
+    relative paths + contents of files under the directory.
+    """
+    if isfile(filepath):
+        return hash_file(filepath)
+    if isdir(filepath):
+        md5 = hashlib.md5()
+        for root, _, files in walk(filepath):
+            for rel_fpath in files:
+                fpath = join(root, rel_fpath)
+                md5.update(fpath.encode('utf8'))
+                acc_hash(fpath, md5)
+        return md5.hexdigest()
+    return None
