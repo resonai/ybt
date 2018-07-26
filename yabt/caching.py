@@ -34,7 +34,7 @@ from ostrich.utils.text import get_safe_path
 
 from .artifact import ArtifactType as AT
 from .config import Config
-from .docker import get_image_name, handle_build_cache
+from .docker import get_image_name, handle_build_cache, tag_docker_image
 from .graph import get_descendants
 from .logging import make_logger
 from .target_utils import ImageCachingBehavior, Target
@@ -43,7 +43,7 @@ from .utils import hash_tree, rmtree
 
 logger = make_logger(__name__)
 
-_NO_CACHE_TYPES = frozenset((AT.app,))
+_NO_CACHE_TYPES = frozenset((AT.app, AT.docker_image))
 
 
 class CachedDescendants(dict):
@@ -93,6 +93,7 @@ def get_prebuilt_targets(build_context):
             # mark deps of cached base image as "contained"
             image_deps = cached_descendants.get(target_name)
             contained_deps.update(image_deps)
+            contained_deps.add(target.name)
         else:
             # mark deps of image that is going to be built
             # (and are not deps of its base image) as "required"
@@ -100,6 +101,44 @@ def get_prebuilt_targets(build_context):
             base_image_deps = cached_descendants.get(target.props.base_image)
             required_deps.update(image_deps - base_image_deps)
     return contained_deps - required_deps
+
+
+def load_target_from_cache(target: Target, build_context):
+    """Load `target` from build cache, restoring its cached artifacts.
+       Return True if target restored successfully,
+       or False if it's required to build the target.
+    """
+    cache_dir = build_context.conf.get_cache_dir(target, build_context)
+    if not isdir(cache_dir):
+        logger.debug('No cache dir found for target {}', target.name)
+        return False
+    # read cached artifacts metadata
+    with open(join(cache_dir, 'artifacts.json'), 'r') as artifacts_meta_file:
+        artifact_desc = json.loads(artifacts_meta_file.read())
+    for type_name, artifact_list in artifact_desc.items():
+        artifact_type = getattr(AT, type_name)
+        for artifact in artifact_list:
+            # restore artifact to its expected src path
+            if artifact_type not in _NO_CACHE_TYPES:
+                if not restore_artifact(
+                        artifact['src'], artifact['hash'], build_context.conf):
+                    target.artifacts.reset()
+                    return False
+            if artifact_type in (AT.docker_image,):
+                # "restore" docker image from local registry
+                image_id = artifact['src']
+                image_full_name = artifact['dst']
+                try:
+                    tag_docker_image(image_id, image_full_name)
+                except:
+                    logger.debug('Docker image with ID {} not found locally',
+                                 image_id)
+                    target.artifacts.reset()
+                    return False
+                target.image_id = image_id
+            target.artifacts.add(
+                artifact_type, artifact['src'], artifact['dst'])
+    return True
 
 
 def copy_artifact(src_path: str, artifact_hash: str, conf: Config):
@@ -123,6 +162,40 @@ def copy_artifact(src_path: str, artifact_hash: str, conf: Config):
     logger.debug('Caching artifact {} under {}',
                  abs_src_path, cached_artifact_path)
     shutil.copy(abs_src_path, cached_artifact_path)
+
+
+def restore_artifact(src_path: str, artifact_hash: str, conf: Config):
+    cache_dir = conf.get_artifacts_cache_dir()
+    if not isdir(cache_dir):
+        return False
+    cached_artifact_path = join(cache_dir, artifact_hash)
+    if isfile(cached_artifact_path) or isdir(cached_artifact_path):
+        # verify cached item hash matches expected hash
+        actual_hash = hash_tree(cached_artifact_path)
+        if actual_hash != artifact_hash:
+            logger.warning(
+                'Cached artifact {} expected hash {} != actual hash {}',
+                src_path, artifact_hash, actual_hash)
+            rmtree(cached_artifact_path)
+            return False
+        # if something exists in src_path, check if it matches the cached item
+        abs_src_path = join(conf.project_root, src_path)
+        if isfile(abs_src_path) or isdir(abs_src_path):
+            existing_hash = hash_tree(src_path)
+            if existing_hash == artifact_hash:
+                logger.debug('Existing artifact {} matches cached hash {}',
+                             src_path, artifact_hash)
+                return True
+            logger.debug('Replacing existing artifact {} with cached one',
+                         src_path)
+            rmtree(abs_src_path)
+        logger.debug('Restoring cached artifact {} to {}',
+                     artifact_hash, src_path)
+        shutil.copy(cached_artifact_path, abs_src_path)
+        return True
+    logger.debug('No cached artifact for {} with hash {}',
+                 src_path, artifact_hash)
+    return False
 
 
 def save_target_in_cache(target: Target, build_context):
@@ -150,6 +223,8 @@ def save_target_in_cache(target: Target, build_context):
     artifacts = target.artifacts.get_all()
     artifact_hashes = {}
     for artifact_type, artifact_map in artifacts.items():
+        if artifact_type in (AT.docker_image,):
+            continue
         for dst_path, src_path in artifact_map.items():
             artifact_hashes[dst_path] = hash_tree(src_path)
             # not caching "app" artifacts, since they're part
@@ -160,7 +235,8 @@ def save_target_in_cache(target: Target, build_context):
     # serialize target artifacts metadata + hashes
     artifact_desc = {
         artifact_type.name:
-        [{'dst': dst_path, 'src': src_path, 'hash': artifact_hashes[dst_path]}
+        [{'dst': dst_path, 'src': src_path,
+          'hash': artifact_hashes.get(dst_path)}
          for dst_path, src_path in artifact_map.items()]
         for artifact_type, artifact_map in artifacts.items()
     }

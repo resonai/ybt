@@ -101,7 +101,8 @@ def in_tests_project():
 @yield_fixture
 def basic_conf():
     reset_parser()
-    conf = cli.init_and_get_conf(['--non-interactive', 'build'])
+    conf = cli.init_and_get_conf(
+        ['--non-interactive', '--no-cache', 'build'])
     yabt.extend.Plugin.load_plugins(conf)
     yield conf
 
@@ -109,6 +110,7 @@ def basic_conf():
 @yield_fixture()
 def debug_conf():
     reset_parser()
-    conf = cli.init_and_get_conf(['--non-interactive', '-f', 'debug', 'build'])
+    conf = cli.init_and_get_conf(
+        ['--non-interactive', '-f', 'debug', '--no-cache', 'build'])
     yabt.extend.Plugin.load_plugins(conf)
     yield conf

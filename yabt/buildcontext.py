@@ -36,7 +36,8 @@ import networkx as nx
 from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
 
-from .caching import get_prebuilt_targets, save_target_in_cache
+from .caching import (
+    get_prebuilt_targets, load_target_from_cache, save_target_in_cache)
 from .config import Config
 from .docker import format_qualified_image_name
 from .extend import Plugin
@@ -367,7 +368,6 @@ class BuildContext:
     def register_target_artifact_metadata(self, target: str, metadata: dict):
         """Register the artifact metadata dictionary for a built target."""
         with self.context_lock:
-            target.props.docker_image_id = metadata['image_id']
             self.artifacts_metadata[target.name] = metadata
 
     def write_artifacts_metadata(self):
@@ -379,6 +379,28 @@ class BuildContext:
             with open(self.conf.artifacts_metadata_file, 'w') as fp:
                 json.dump(self.artifacts_metadata, fp)
 
+    def check_dirty(self, target: Target) -> bool:
+        """Return True if `target` should be (re)built (it is dirty).
+           Return False if `target` is valid in cache (not dirty).
+
+        If False, the target is also restored from cache upon returning.
+        """
+        # if caching is disabled for this execution, then all targets are dirty
+        if self.conf.no_cache:
+            return True
+        # if the target's `cachable` prop is falsy, then it is dirty
+        if not target.props.cachable:
+            return True
+        # if any dependency of the target is dirty, then the target is dirty
+        if any(self.targets[dep].is_dirty for dep in target.deps):
+            return True
+        # if the target has a dirty buildenv then it's also dirty
+        if target.buildenv and self.targets[target.buildenv].is_dirty:
+            return True
+        if not load_target_from_cache(target, self):
+            return True
+        return False
+
     def build_graph(self, run_tests: bool=False):
         built_targets = set(get_prebuilt_targets(self))
 
@@ -389,18 +411,24 @@ class BuildContext:
                 target.done()
                 return
             try:
-                target.compute_hash(self)
+                # check if cache can be used to skip building target
+                target.is_dirty = self.check_dirty(target)
+                if not target.is_dirty:
+                    logger.info('Target {} cached - skipping build',
+                                target.name)
+                    target.done()
+                    return
+
                 self.build_target(target)
                 built_targets.add(target.name)
                 target.done()
                 # TODO: retry flaky tests N times
                 # TODO: collect stats and print report at the end
                 # TODO: support both "fail fast" (exit on first failure) and
-                # run all tests (don't exit on first failure) modes
+                #       run all tests (don't exit on first failure) modes
                 if run_tests and 'testable' in target.tags:
                     self.test_target(target)
 
-                # should this be conditioned on 'no_cache' conf?
                 save_target_in_cache(target, self)
             except Exception as ex:
                 target.fail()

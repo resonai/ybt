@@ -23,7 +23,7 @@ yabt Docker Builder
 :author: Itamar Ostricher
 """
 
-
+from ..artifact import ArtifactType as AT
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
@@ -112,6 +112,10 @@ def docker_builder(build_context, target, entrypoint=None, ybt_bin_path=None):
             build_user=target.props.build_user,
             run_user=target.props.run_user,
             labels=target.props.docker_labels))
+    target.image_id = metadata['image_id']
+    target.artifacts.add(
+        AT.docker_image, target.image_id,
+        '{}:{}'.format(get_image_name(target), target.props.image_tag))
     build_context.register_target_artifact_metadata(target, metadata)
 
 

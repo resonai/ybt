@@ -48,8 +48,7 @@ def register_app_builder_sig(builder_name, sig=None, docstring=None):
             ('build_user', PT.str, None),
             ('run_user', PT.str, None),
             ('docker_labels', PT.dict, None),
-        ],
-        docstring)
+        ], cachable=False, docstring=docstring)
 
 
 def build_app_docker_and_bin(build_context, target, **kwargs):

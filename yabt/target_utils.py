@@ -181,8 +181,15 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
           and file props are replaced with mapping from file name to its hash)
 
         It specifically does NOT include:
-        - The target name
         - Artifacts produced by the target
+
+        The target name is currently included, although it would be better off
+        to leave it out, and allow targets to be renamed without affecting
+        their caching status (if it's just a rename).
+        It is currently included because it's the easy way to account for the
+        fact that when cached artifacts are restored, their path may be a
+        function of the target name in non-essential ways (such as a workspace
+        dir name).
         """
         props = {}
         for prop in self.props:
@@ -194,13 +201,15 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
             props[prop] = process_prop(sig_spec.type, self.props[prop],
                                        build_context)
         json_dict = dict(
-            # note: name intentionally not part of JSON for target hashing
+            # TODO: avoid including the name in the hashed json...
+            name=self.name,
             builder_name=self.builder_name,
             deps=hashify_targets(self.deps, build_context),
             props=props,
             buildenv=hashify_targets(self.buildenv, build_context),
             tags=sorted(list(self.tags)),
             flavor=build_context.conf.flavor,  # TODO: any other conf args?
+            # yabt_version=__version__,  # TODO: is this needed?
         )
         self._json = json.dumps(json_dict, sort_keys=True, indent=4)
 

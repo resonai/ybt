@@ -97,13 +97,14 @@ _EXP_JSON = """{
     "buildenv": [],
     "builder_name": "CppApp",
     "deps": [
-        "6ea2f455f7aee018f32ed921c0a793f8",
-        "cb618c643079626f9c21ca173a706ad6"
+        "657b53bd2b91d468f1dbec4a872ab9ee",
+        "e0e81d3a8620b1a9fba538e6cc1465ed"
     ],
     "flavor": null,
+    "name": "app:hello-prog-app",
     "props": {
         "base_image": [
-            "6ea2f455f7aee018f32ed921c0a793f8"
+            "e0e81d3a8620b1a9fba538e6cc1465ed"
         ],
         "build_params": {},
         "build_user": null,
@@ -116,7 +117,7 @@ _EXP_JSON = """{
         "image_name": null,
         "image_tag": "latest",
         "main": [
-            "cb618c643079626f9c21ca173a706ad6"
+            "657b53bd2b91d468f1dbec4a872ab9ee"
         ],
         "packaging_params": {},
         "run_user": null,
@@ -132,9 +133,9 @@ def test_target_hash_and_json(basic_conf):
     build_context = BuildContext(basic_conf)
     basic_conf.targets = ['app:hello-prog-app']
     populate_targets_graph(build_context, basic_conf)
-    assert ('cb618c643079626f9c21ca173a706ad6' ==
+    assert ('657b53bd2b91d468f1dbec4a872ab9ee' ==
             build_context.targets['app:hello-prog'].hash(build_context))
-    assert ('6ea2f455f7aee018f32ed921c0a793f8' ==
+    assert ('e0e81d3a8620b1a9fba538e6cc1465ed' ==
             build_context.targets[':proto-builder'].hash(build_context))
     prog_app = build_context.targets['app:hello-prog-app']
     prog_app.compute_json(build_context)
@@ -147,8 +148,8 @@ def test_hashify_targets(basic_conf):
     basic_conf.targets = ['app:hello-prog-app']
     populate_targets_graph(build_context, basic_conf)
     assert [
-        '6ea2f455f7aee018f32ed921c0a793f8',
-        'cb618c643079626f9c21ca173a706ad6',
+        '657b53bd2b91d468f1dbec4a872ab9ee',
+        'e0e81d3a8620b1a9fba538e6cc1465ed',
     ] == hashify_targets(['app:hello-prog', ':proto-builder'], build_context)
 
 

@@ -26,7 +26,7 @@ yabt Custom Installer Builder
 
 from collections import namedtuple
 import os
-from os.path import basename, isfile, join, relpath, splitext
+from os.path import basename, isdir, join, relpath, splitext
 import shutil
 import tarfile
 from urllib.parse import urlparse
@@ -36,12 +36,13 @@ import git
 from git import InvalidGitRepositoryError, NoSuchPathError
 import requests
 
+from ..artifact import ArtifactType as AT
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
 from ..logging import make_logger
 from ..target_utils import split_name
-from ..utils import yprint
+from ..utils import rmtree, yprint
 
 
 logger = make_logger(__name__)
@@ -119,21 +120,18 @@ def git_handler(unused_build_context, target, fetch, package_dir, tar):
 
 def fetch_url(url, dest, parent_to_remove_before_fetch):
     """Helper function to fetch a file from a URL."""
-    if isfile(dest):
-        logger.debug('File {} is cached', dest)
-    else:
-        logger.debug('Downloading file {} from {}', dest, url)
-        try:
-            shutil.rmtree(parent_to_remove_before_fetch)
-        except FileNotFoundError:
-            pass
-        os.makedirs(parent_to_remove_before_fetch)
-        # TODO(itamar): Better downloading (multi-process-multi-threaded?)
-        # Consider offloading this to a "standalone app" invoked with Docker
-        resp = requests.get(url, stream=True)
-        with open(dest, 'wb') as fetch_file:
-            for chunk in resp.iter_content(chunk_size=32 * 1024):
-                fetch_file.write(chunk)
+    logger.debug('Downloading file {} from {}', dest, url)
+    try:
+        shutil.rmtree(parent_to_remove_before_fetch)
+    except FileNotFoundError:
+        pass
+    os.makedirs(parent_to_remove_before_fetch)
+    # TODO(itamar): Better downloading (multi-process-multi-threaded?)
+    # Consider offloading this to a "standalone app" invoked with Docker
+    resp = requests.get(url, stream=True)
+    with open(dest, 'wb') as fetch_file:
+        for chunk in resp.iter_content(chunk_size=32 * 1024):
+            fetch_file.write(chunk)
 
 
 def archive_handler(unused_build_context, target, fetch, package_dir, tar):
@@ -185,27 +183,32 @@ def local_handler(build_context, target, fetch, package_dir, tar):
     pass
 
 
-@register_build_func('CustomInstaller')
-def custom_installer_builder(build_context, target):
-    # TODO(itamar): Handle cached package invalidation
-    yprint(build_context.conf,
-           'Fetch and cache custom installer package', target)
-    if target.props.fetch and (target.props.uri or target.props.uri_type):
-        raise AttributeError(
-            '{}: `uri` & `uri_type` are deprecated - use `fetch` instead'
-            .format(target.name))
-
+def get_installer_desc(build_context, target) -> tuple:
+    """Return a target_name, script_name, package_tarball tuple for `target`"""
     workspace_dir = build_context.get_workspace('CustomInstaller', target.name)
     target_name = split_name(target.name)
     script_name = basename(target.props.script)
     package_tarball = '{}.tar.gz'.format(join(workspace_dir, target_name))
-    target.props.installer_desc = CustomInstaller(
-        name=target_name, package=package_tarball, install_script=script_name)
-    if isfile(package_tarball):
-        logger.info('Removing cached custom installer workspace {}',
-                    workspace_dir)
-        shutil.rmtree(workspace_dir)
-        os.makedirs(workspace_dir)
+    return target_name, script_name, package_tarball
+
+
+@register_build_func('CustomInstaller')
+def custom_installer_builder(build_context, target):
+    yprint(build_context.conf,
+           'Fetch and cache custom installer package', target)
+    if target.props.fetch and (target.props.uri or target.props.uri_type):
+        raise AttributeError(
+            '{}: `uri` & `uri_type` are deprecated - use `fetch` exclusively'
+            .format(target.name))
+
+    workspace_dir = build_context.get_workspace('CustomInstaller', target.name)
+    # cleanup workspace
+    if isdir(workspace_dir):
+        rmtree(workspace_dir)
+    os.makedirs(workspace_dir)
+
+    target_name, script_name, package_tarball = get_installer_desc(
+        build_context, target)
 
     logger.debug('Making custom installer package {}', package_tarball)
     handlers = {
@@ -237,8 +240,7 @@ def custom_installer_builder(build_context, target):
             raise ValueError('{}: Duplicate fetch name "{}"'.format(
                 target.name, fetch.name))
         used_names.add(fetch.name)
-    tar = tarfile.open(target.props.installer_desc.package, 'w:gz',
-                       dereference=True)
+    tar = tarfile.open(package_tarball, 'w:gz', dereference=True)
     for fetch in fetches:
         uri_type = guess_uri_type(fetch.uri, fetch.type)
         logger.debug('CustomInstaller URI {} typed guessed to be {}',
@@ -252,9 +254,11 @@ def custom_installer_builder(build_context, target):
                 arcname=join(target_name, local_node))
     # Add the install script to the installer package
     tar.add(join(build_context.conf.project_root, target.props.script),
-            arcname=join(target_name,
-                         target.props.installer_desc.install_script))
+            arcname=join(target_name, script_name))
     tar.close()
+    target.artifacts.add(
+        AT.custom_installer,
+        relpath(package_tarball, build_context.conf.project_root))
 
 
 @register_manipulate_target_hook('CustomInstaller')
