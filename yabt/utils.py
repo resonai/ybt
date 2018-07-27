@@ -247,8 +247,9 @@ def hash_tree(filepath: str) -> str:
     if isdir(filepath):
         base_dir = filepath
         md5 = hashlib.md5()
-        for root, _, files in walk(base_dir):
-            for fname in files:
+        for root, dirs, files in walk(base_dir):
+            dirs.sort()
+            for fname in sorted(files):
                 filepath = join(root, fname)
                 # consistent hashing between POSIX & Windows
                 md5.update(relpath(filepath, base_dir)
