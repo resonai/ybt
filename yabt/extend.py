@@ -149,9 +149,9 @@ class Builder:
                 kwargs_section = True
         self.sig['deps'] = ArgSpec(PropType.TargetList, None)
         self.sig['cachable'] = ArgSpec(PropType.bool, cachable)
-        self.sig['packaging_params'] = ArgSpec(PropType.dict, {})
-        self.sig['runtime_params'] = ArgSpec(PropType.dict, {})
-        self.sig['build_params'] = ArgSpec(PropType.dict, {})
+        self.sig['packaging_params'] = ArgSpec(PropType.dict, None)
+        self.sig['runtime_params'] = ArgSpec(PropType.dict, None)
+        self.sig['build_params'] = ArgSpec(PropType.dict, None)
 
 
 class Plugin:

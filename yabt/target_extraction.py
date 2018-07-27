@@ -140,7 +140,7 @@ def handle_typed_args(target, builder, build_module):
             # replace `None` with empty dict
             assert_type(arg_name, value, dict, 'dict')
             if value is None:
-                target.props[arg_name] = {}
+                target.props[arg_name] = dict()
         elif arg_type == PT.StrList:
             target.props[arg_name] = [
                 assert_type(arg_name, val, str, 'string')
