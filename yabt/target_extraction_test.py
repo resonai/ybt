@@ -53,8 +53,9 @@ def test_build_sig_args_to_props_valid_positional_args():
     assert target.props == {'name': 'my-spam', 'foo': 'foo', 'bar': 'bar',
                             'deps': None, 'cachable': True,
                             'cats': None, 'cat_list': None,
-                            'packaging_params': {}, 'runtime_params': {},
-                            'build_params': {}}
+                            'packaging_params': None,
+                            'runtime_params': None,
+                            'build_params': None}
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')
@@ -95,8 +96,9 @@ def test_build_sig_args_to_props_valid_mix_pos_kwargs():
     assert target.props == {'name': 'my-spam', 'foo': 'foo', 'bar': 'bar',
                             'deps': None, 'cachable': True,
                             'cats': None, 'cat_list': None,
-                            'packaging_params': {}, 'runtime_params': {},
-                            'build_params': {}}
+                            'packaging_params': None,
+                            'runtime_params': None,
+                            'build_params': None}
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')
@@ -135,7 +137,7 @@ def test_build_sig_args_to_props_too_many_pos_args():
     with pytest.raises(TypeError) as excinfo:
         args_to_props(target, Plugin.builders['Spam'],
                       args=['my-spam', 'foo', 'bar', None, None, None, None,
-                            {}, {}, {}, 'w00t'],
+                            None, None, None, 'w00t'],
                       kwargs={})
     assert ('Spam() takes from 3 to 10 positional arguments, but 11 were given'
             in str(excinfo.value))
@@ -173,7 +175,8 @@ def test_typed_args_valid_defaults():
                             'bar': 'bar', 'deps': [], 'cachable': True,
                             'cats': [], 'cat_list': None,
                             'packaging_params': {},
-                            'runtime_params': {}, 'build_params': {}}
+                            'runtime_params': {},
+                            'build_params': {}}
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')
