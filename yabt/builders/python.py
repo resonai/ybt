@@ -122,12 +122,12 @@ def pythontest_tester(build_context, target):
     yprint(build_context.conf, 'Run PythonTest', target)
     workspace_dir = build_context.get_workspace('PythonTest', target.name)
 
-    # Link generated Python protos
+    # Link generated Python protos & required binaries
     gen_dir = join(workspace_dir, 'gen')
     rmtree(gen_dir)
     for dep in build_context.generate_all_deps(target):
         dep.artifacts.link_types(
-            workspace_dir, [AT.gen_py], build_context.conf)
+            workspace_dir, [AT.gen_py, AT.binary], build_context.conf)
 
     # Run the test module
     pytest_params = build_context.conf.get('pytest_params', {})
@@ -142,4 +142,6 @@ def pythontest_tester(build_context, target):
     pypath = test_env.get('PYTHONPATH', '.').split(':')
     pypath.append(relpath(gen_dir, build_context.conf.project_root))
     test_env['PYTHONPATH'] = ':'.join(pypath)
+    test_env['BIN_DIR'] = build_context.conf.host_to_buildenv_path(
+        join(workspace_dir, 'bin'))
     build_context.run_in_buildenv(target.props.in_testenv, test_cmd, test_env)

@@ -194,8 +194,7 @@ def get_installer_desc(build_context, target) -> tuple:
 
 @register_build_func('CustomInstaller')
 def custom_installer_builder(build_context, target):
-    yprint(build_context.conf,
-           'Fetch and cache custom installer package', target)
+    yprint(build_context.conf,'Fetch custom installer package', target)
     if target.props.fetch and (target.props.uri or target.props.uri_type):
         raise AttributeError(
             '{}: `uri` & `uri_type` are deprecated - use `fetch` exclusively'
