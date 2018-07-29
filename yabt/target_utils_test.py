@@ -152,15 +152,12 @@ def test_hashify_targets(basic_conf):
     ] == hashify_targets(['app:hello-prog', ':proto-builder'], build_context)
 
 
-DATA_DIR = join('tests', 'data')
-
-
 def test_hashify_files():
-    files = [join(DATA_DIR, fname)
+    files = [join(join('tests', 'data'), fname)
              for fname in ('empty', 'hello.txt', 'world.txt')]
     hashed_files = hashify_files(files)
     assert {
-        join(DATA_DIR, 'empty'): 'd41d8cd98f00b204e9800998ecf8427e',
-        join(DATA_DIR, 'hello.txt'): '910c8bc73110b0cd1bc5d2bcae782511',
-        join(DATA_DIR, 'world.txt'): '910c8bc73110b0cd1bc5d2bcae782511',
+        'tests/data/empty': 'd41d8cd98f00b204e9800998ecf8427e',
+        'tests/data/hello.txt': '910c8bc73110b0cd1bc5d2bcae782511',
+        'tests/data/world.txt': '910c8bc73110b0cd1bc5d2bcae782511',
     } == hashed_files
