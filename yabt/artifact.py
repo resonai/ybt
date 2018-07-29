@@ -111,6 +111,13 @@ class ArtifactStore:
         """Return artifacts dict of type `artifact_type`."""
         return self._artifacts[artifact_type]
 
+    def get_all(self) -> dict:
+        return self._artifacts
+
+    def reset(self):
+        """Clear internal artifacts store."""
+        self._artifacts.clear()
+
     def link_types(self, base_dir: str, types: list, conf: Config) -> int:
         """Link all artifacts with types `types` under `base_dir` and return
            the number of linked artifacts."""

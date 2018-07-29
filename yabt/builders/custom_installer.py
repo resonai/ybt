@@ -52,7 +52,6 @@ register_builder_sig(
     [('script', PT.File),
      ('fetch', PT.list, None),
      ('local_data', PT.FileList, None),
-     ('caching', PT.bool, True),
      ('uri', PT.str, None),  # deprecated
      ('uri_type', PT.str, None),  # deprecated
      ])
@@ -203,10 +202,6 @@ def custom_installer_builder(build_context, target):
     target.props.installer_desc = CustomInstaller(
         name=target_name, package=package_tarball, install_script=script_name)
     if isfile(package_tarball):
-        if target.props.caching:
-            logger.debug('Custom installer package {} is cached',
-                         package_tarball)
-            return
         logger.info('Removing cached custom installer workspace {}',
                     workspace_dir)
         shutil.rmtree(workspace_dir)

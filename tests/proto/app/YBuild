@@ -22,6 +22,12 @@ CppProg(
     in_buildenv='//:proto-builder'
 )
 
+CppApp(
+    'hello-prog-app',
+    main=':hello-prog',
+    base_image='//:proto-builder'
+)
+
 Python(
     'hello-py',
     sources='hello.py',

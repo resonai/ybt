@@ -23,17 +23,21 @@ yabt target utils module
 
 
 from collections import defaultdict
+from hashlib import md5
+import json
 from os.path import join, normpath
 from pathlib import PurePath
 import types
 
 from munch import Munch
+from ostrich.utils.collections import listify
 from ostrich.utils.text import get_safe_path
 
 from .artifact import ArtifactStore
+from .extend import Plugin, PropType as PT
 from .compat import walk
 from .config import Config
-from .utils import norm_proj_path
+from .utils import hash_tree, norm_proj_path
 
 
 _TARGET_NAMES_WHITELIST = frozenset(('*', '@default'))
@@ -122,7 +126,29 @@ def parse_target_selectors(target_selectors: list, conf: Config):
             for target_selector in target_selectors]
 
 
+def hashify_targets(targets: list, build_context) -> list:
+    """Return sorted hashes of `targets`."""
+    return sorted(build_context.targets[target_name].hash(build_context)
+                  for target_name in listify(targets))
+
+
+def hashify_files(files: list) -> dict:
+    """Return mapping from file path to file hash."""
+    return {filepath: hash_tree(filepath) for filepath in listify(files)}
+
+
+def process_prop(prop_type: PT, value, build_context):
+    """Return a cachable representation of the prop `value` given its type."""
+    if prop_type in (PT.Target, PT.TargetList):
+        return hashify_targets(value, build_context)
+    elif prop_type in (PT.File, PT.FileList):
+        return hashify_files(value)
+    return value
+
+
 class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
+
+    _prop_json_blacklist = frozenset(('copy_generated_to', 'cachable'))
 
     def __init__(self, builder_name):
         super().__init__(
@@ -133,7 +159,7 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
             buildenv=None,
             tags=set(),
             artifacts=ArtifactStore(),
-            is_dirty=True,
+            is_dirty=False,
             _hash=None,
             _json=None)
 
@@ -141,6 +167,63 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         keys = ['name', 'builder_name', 'props', 'deps', 'buildenv', 'tags']
         items = ('{}={!r}'.format(k, self.__dict__[k]) for k in keys)
         return '{}({})'.format(type(self).__name__, ', '.join(items))
+
+    def compute_json(self, build_context):
+        """Compute and store a JSON serialization of this target for caching
+           purposes.
+
+        The serialization includes:
+        - The build flavor
+        - The builder name
+        - Target tags
+        - Hashes of target dependencies & buildenv
+        - Processed props (where target props are replaced with their hashes,
+          and file props are replaced with mapping from file name to its hash)
+
+        It specifically does NOT include:
+        - The target name
+        - Artifacts produced by the target
+        """
+        props = {}
+        for prop in self.props:
+            if prop in self._prop_json_blacklist:
+                continue
+            sig_spec = Plugin.builders[self.builder_name].sig.get(prop)
+            if sig_spec is None:
+                continue
+            props[prop] = process_prop(sig_spec.type, self.props[prop],
+                                       build_context)
+        json_dict = dict(
+            # note: name intentionally not part of JSON for target hashing
+            builder_name=self.builder_name,
+            deps=hashify_targets(self.deps, build_context),
+            props=props,
+            buildenv=hashify_targets(self.buildenv, build_context),
+            tags=sorted(list(self.tags)),
+            flavor=build_context.conf.flavor,  # TODO: any other conf args?
+        )
+        self._json = json.dumps(json_dict, sort_keys=True, indent=4)
+
+    def json(self, build_context) -> str:
+        """Return JSON serialization of this target for caching purposes."""
+        if self._json is None:
+            self.compute_json(build_context)
+        return self._json
+
+    def compute_hash(self, build_context):
+        """Compute and store the hash of this target for caching purposes.
+
+        The hash is computed over the target JSON representation.
+        """
+        m = md5()
+        m.update(self.json(build_context).encode('utf8'))
+        self._hash = m.hexdigest()
+
+    def hash(self, build_context) -> str:
+        """Return the hash of this target for caching purposes."""
+        if self._hash is None:
+            self.compute_hash(build_context)
+        return self._hash
 
 
 class ImageCachingBehavior(types.SimpleNamespace):
