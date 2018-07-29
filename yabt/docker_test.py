@@ -54,7 +54,7 @@ def test_run_in_buildenv(basic_conf):
         assert package in result.stdout
     labels = str(check_output(
         ['docker', 'inspect', '--format={{.Config.Labels}}',
-         build_context.targets['app:flask-hello'].props.docker_image_id]))
+         build_context.targets['app:flask-hello'].image_id]))
     assert 'com.ybt.foo:bar' in labels and 'com.ybt.here:there' in labels
 
 

@@ -30,13 +30,14 @@ import os
 from pathlib import PurePath
 import platform
 import threading
-from time import sleep
+from time import sleep, time
 
 import networkx as nx
 from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
 
-from .caching import get_prebuilt_targets
+from .caching import (
+    get_prebuilt_targets, load_target_from_cache, save_target_in_cache)
 from .config import Config
 from .docker import format_qualified_image_name
 from .extend import Plugin
@@ -346,28 +347,27 @@ class BuildContext:
         """Invoke the builder function for a target."""
         builder = Plugin.builders[target.builder_name]
         if builder.func:
-            logger.info('About to invoke the {} builder function for {}',
-                        target.builder_name, target.name)
+            logger.debug('About to invoke the {} builder function for {}',
+                         target.builder_name, target.name)
             builder.func(self, target)
         else:
-            logger.warning('Skipping {} builder function for target {} (no '
-                           'function registered)', target.builder_name, target)
+            logger.debug('Skipping {} builder function for target {} (no '
+                         'function registered)', target.builder_name, target)
 
     def test_target(self, target: Target):
         """Invoke the tester function for a target."""
         builder = Plugin.builders[target.builder_name]
         if builder.test_func:
-            logger.info('About to invoke the {} tester function for {}',
-                        target.builder_name, target.name)
+            logger.debug('About to invoke the {} tester function for {}',
+                         target.builder_name, target.name)
             builder.test_func(self, target)
         else:
-            logger.warning('Skipping {} tester function for target {} (no '
-                           'function registered)', target.builder_name, target)
+            logger.debug('Skipping {} tester function for target {} (no '
+                         'function registered)', target.builder_name, target)
 
     def register_target_artifact_metadata(self, target: str, metadata: dict):
         """Register the artifact metadata dictionary for a built target."""
         with self.context_lock:
-            target.props.docker_image_id = metadata['image_id']
             self.artifacts_metadata[target.name] = metadata
 
     def write_artifacts_metadata(self):
@@ -379,31 +379,84 @@ class BuildContext:
             with open(self.conf.artifacts_metadata_file, 'w') as fp:
                 json.dump(self.artifacts_metadata, fp)
 
+    def can_use_cache(self, target: Target) -> bool:
+        """Return True if should attempt to load `target` from cache.
+           Return False if `target` has to be built, regardless of its cache
+           status (because cache is disabled, or dependencies are dirty).
+        """
+        # if caching is disabled for this execution, then all targets are dirty
+        if self.conf.no_build_cache:
+            return False
+        # if the target's `cachable` prop is falsy, then it is dirty
+        if not target.props.cachable:
+            return False
+        # if any dependency of the target is dirty, then the target is dirty
+        if any(self.targets[dep].is_dirty for dep in target.deps):
+            return False
+        # if the target has a dirty buildenv then it's also dirty
+        if target.buildenv and self.targets[target.buildenv].is_dirty:
+            return False
+        return True
+
     def build_graph(self, run_tests: bool=False):
         built_targets = set(get_prebuilt_targets(self))
 
         def build(target: Target):
             """Build `target` if it wasn't built already, and mark it built."""
+            # avoid rebuilding built target
             if target.name in built_targets:
                 target.done()
-            else:
-                try:
+                return
+            try:
+                # check if cache can be used to skip building target
+                build_cached, test_cached = False, False
+                if self.can_use_cache(target):
+                    build_cached, test_cached = load_target_from_cache(
+                        target, self)
+
+                target_built = False
+                if build_cached:
+                    logger.info('Target {} loaded from cache - skipping build',
+                                target.name)
+                else:
+                    logger.info('Building target {}', target.name)
+                    target.is_dirty = True
+                    # test can't be cached if running build
+                    test_cached = False
+                    build_start = time()
                     self.build_target(target)
-                except Exception as ex:
-                    target.fail()
-                    fatal('`{}\': {}', target.name, ex)
+                    target.summary['build_time'] = time() - build_start
+                    logger.info('Build of target {} completed in {} sec',
+                                target.name, target.summary['build_time'])
+                    target_built = True
                 built_targets.add(target.name)
                 target.done()
+
                 # TODO: retry flaky tests N times
                 # TODO: collect stats and print report at the end
                 # TODO: support both "fail fast" (exit on first failure) and
-                # run all tests (don't exit on first failure) modes
+                #       run all tests (don't exit on first failure) modes
+                target_tested = False
                 if run_tests and 'testable' in target.tags:
-                    try:
+                    if self.conf.no_test_cache or not test_cached:
+                        logger.info('Testing target {}', target.name)
+                        test_start = time()
                         self.test_target(target)
-                    except Exception as ex:
-                        target.fail()
-                        fatal('`{}\': {}', target.name, ex)
+                        target.summary['test_time'] = time() - test_start
+                        logger.info('Test of target {} completed in {} sec',
+                                    target.name, target.summary['test_time'])
+                        target_tested = True
+                    else:
+                        logger.info(
+                            'Target {} test cached - skipping test run',
+                            target.name)
+
+                # write to cache only if build or test was executed
+                if target_built or target_tested:
+                    save_target_in_cache(target, self)
+            except Exception as ex:
+                target.fail()
+                fatal('`{}\': {}', target.name, ex)
 
         def build_in_pool(seq):
             jobs = self.conf.jobs

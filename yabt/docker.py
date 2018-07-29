@@ -41,6 +41,7 @@ from ostrich.utils.collections import listify
 
 from .config import Config
 from .logging import make_logger
+from .builders.custom_installer import get_installer_desc
 from .builders.nodejs import format_npm_specifier
 from .builders.ruby import format_gem_specifier
 from .pkgmgmt import (
@@ -107,8 +108,8 @@ def format_qualified_image_name(target):
         if target.props.tag:
             return '{}:{}'.format(target.props.image, target.props.tag)
         return target.props.image
-    elif 'docker_image_id' in target.props:
-        return target.props.docker_image_id
+    elif hasattr(target, 'image_id') and target.image_id is not None:
+        return target.image_id
     elif target.builder_name == 'DockerImage':
         return '{}:{}'.format(get_image_name(target), target.props.image_tag)
     else:
@@ -371,7 +372,7 @@ def build_docker_image(
         if 'pip-installable' in dep.tags:
             add_package(dep.props.pip, format_pypi_specifier(dep))
         if 'custom-installer' in dep.tags:
-            add_package('custom', dep.props.installer_desc)
+            add_package('custom', get_installer_desc(build_context, dep))
         if 'npm-installable' in dep.tags:
             if dep.props.global_install:
                 add_package('npm-global', format_npm_specifier(dep))
@@ -443,15 +444,14 @@ def build_docker_image(
             rmtree(workspace_packages_dir)
             os.makedirs(workspace_packages_dir)
             run_installers = []
-            for custom_installer in packages:
-                package_tar = basename(custom_installer.package)
-                os.link(custom_installer.package,
-                        join(workspace_packages_dir, package_tar))
+            for custom_installer_desc in packages:
+                target_name, install_script, package = custom_installer_desc
+                package_tar = basename(package)
+                link_node(package, join(workspace_packages_dir, package_tar))
                 run_installers.extend([
                     'tar -xf {0}/{1} -C {0}'.format(tmp_install, package_tar),
-                    'cd {}/{}'.format(tmp_install, custom_installer.name),
-                    'cat {} | tr -d \'\\r\' | bash'.format(
-                        custom_installer.install_script),
+                    'cd {}/{}'.format(tmp_install, target_name),
+                    'cat {} | tr -d \'\\r\' | bash'.format(install_script),
                 ])
             dockerfile.extend([
                 'COPY {} {}\n'.format(packages_dir, tmp_install),
@@ -538,8 +538,10 @@ def build_docker_image(
     # TODO(itamar): write only if changed?
     with open(dockerfile_path, 'w') as dockerfile_f:
         dockerfile_f.writelines(dockerfile)
-    docker_build_cmd = [
-        'docker', 'build', '-t', docker_image, workspace_dir]
+    docker_build_cmd = ['docker', 'build']
+    if build_context.conf.no_docker_cache:
+        docker_build_cmd.append('--no-cache')
+    docker_build_cmd.extend(['-t', docker_image, workspace_dir])
     logger.info('Building docker image "{}" using command {}',
                 docker_image, docker_build_cmd)
     run(docker_build_cmd, check=True)

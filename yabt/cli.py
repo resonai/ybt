@@ -103,8 +103,12 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         # TODO(itamar): this flag should come from the builder, not from here
         PARSER.add('--push', action='store_true')
         PARSER.add('--scm-provider')
-        PARSER.add('--no-cache', action='store_true',
+        PARSER.add('--no-build-cache', action='store_true',
                    help='Disable YBT build cache')
+        PARSER.add('--no-docker-cache', action='store_true',
+                   help='Disable YBT Docker cache')
+        PARSER.add('--no-test-cache', action='store_true',
+                   help='Disable YBT test cache')
         PARSER.add('-v', '--verbose', action='store_true',
                    help='More verbose output to STDOUT')
         PARSER.add('--with-tini-entrypoint', action='store_true')
