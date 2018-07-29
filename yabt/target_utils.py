@@ -134,7 +134,8 @@ def hashify_targets(targets: list, build_context) -> list:
 
 def hashify_files(files: list) -> dict:
     """Return mapping from file path to file hash."""
-    return {filepath: hash_tree(filepath) for filepath in listify(files)}
+    return {filepath.replace('\\', '/'): hash_tree(filepath)
+            for filepath in listify(files)}
 
 
 def process_prop(prop_type: PT, value, build_context):
