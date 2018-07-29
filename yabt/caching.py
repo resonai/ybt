@@ -29,6 +29,7 @@ import json
 from os import makedirs, remove
 from os.path import isdir, isfile, join, relpath, split
 import shutil
+from time import time
 
 from ostrich.utils.text import get_safe_path
 
@@ -103,18 +104,41 @@ def get_prebuilt_targets(build_context):
     return contained_deps - required_deps
 
 
-def load_target_from_cache(target: Target, build_context):
-    """Load `target` from build cache, restoring its cached artifacts.
-       Return True if target restored successfully,
-       or False if it's required to build the target.
+def write_summary(summary: dict, cache_dir: str):
+    """Write the `summary` JSON to `cache_dir`.
+
+    Updated the accessed timestamp to now before writing.
+    """
+    # update the summary last-accessed timestamp
+    summary['accessed'] = time()
+    with open(join(cache_dir, 'summary.json'), 'w') as summary_file:
+        summary_file.write(json.dumps(summary, indent=4, sort_keys=True))
+
+
+def load_target_from_cache(target: Target, build_context) -> (bool, bool):
+    """Load `target` from build cache, restoring cached artifacts & summary.
+       Return (build_cached, test_cached) tuple.
+
+    `build_cached` is True if target restored successfully.
+    `test_cached` is True if build is cached and test_time metadata is valid.
     """
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if not isdir(cache_dir):
         logger.debug('No cache dir found for target {}', target.name)
-        return False
+        return False, False
+    # read summary file and restore relevant fields into target
+    with open(join(cache_dir, 'summary.json'), 'r') as summary_file:
+        summary = json.loads(summary_file.read())
+    for field in ('build_time', 'test_time', 'created', 'accessed'):
+        target.summary[field] = summary.get(field)
+    # compare artifacts hash
+    if (hash_tree(join(cache_dir, 'artifacts.json')) !=
+            summary.get('artifacts_hash', 'no hash')):
+        return False, False
     # read cached artifacts metadata
     with open(join(cache_dir, 'artifacts.json'), 'r') as artifacts_meta_file:
         artifact_desc = json.loads(artifacts_meta_file.read())
+    # restore all artifacts
     for type_name, artifact_list in artifact_desc.items():
         artifact_type = getattr(AT, type_name)
         for artifact in artifact_list:
@@ -134,11 +158,12 @@ def load_target_from_cache(target: Target, build_context):
                     logger.debug('Docker image with ID {} not found locally',
                                  image_id)
                     target.artifacts.reset()
-                    return False
+                    return False, False
                 target.image_id = image_id
             target.artifacts.add(
                 artifact_type, artifact['src'], artifact['dst'])
-    return True
+    write_summary(summary, cache_dir)
+    return True, target.summary['test_time'] is not None
 
 
 def copy_artifact(src_path: str, artifact_hash: str, conf: Config):
@@ -165,6 +190,11 @@ def copy_artifact(src_path: str, artifact_hash: str, conf: Config):
 
 
 def restore_artifact(src_path: str, artifact_hash: str, conf: Config):
+    """Restore the artifact whose hash is `artifact_hash` to `src_path`.
+
+    Return True if cached artifact is found, valid, and restored successfully.
+    Otherwise return False.
+    """
     cache_dir = conf.get_artifacts_cache_dir()
     if not isdir(cache_dir):
         return False
@@ -207,9 +237,6 @@ def save_target_in_cache(target: Target, build_context):
     the artifacts cache dir by their content hash.
 
     TODO: pruning policy to limit cache size.
-    TODO: add error checking on serialized metadata
-    TODO: also write out "stats" (modified timestamp, last used timestamp,
-          stdout/stderr of builder & tester, build time, test time)
     """
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if isdir(cache_dir):
@@ -233,7 +260,7 @@ def save_target_in_cache(target: Target, build_context):
                 copy_artifact(src_path, artifact_hashes[dst_path],
                               build_context.conf)
     # serialize target artifacts metadata + hashes
-    artifact_desc = {
+    artifacts_desc = {
         artifact_type.name:
         [{'dst': dst_path, 'src': src_path,
           'hash': artifact_hashes.get(dst_path)}
@@ -241,5 +268,12 @@ def save_target_in_cache(target: Target, build_context):
         for artifact_type, artifact_map in artifacts.items()
     }
     with open(join(cache_dir, 'artifacts.json'), 'w') as artifacts_meta_file:
-        artifacts_meta_file.write(json.dumps(
-            artifact_desc, indent=4, sort_keys=True))
+        artifacts_meta_file.write(json.dumps(artifacts_desc, indent=4,
+                                             sort_keys=True))
+    # copying the summary dict so I can modify it without mutating the target
+    summary = dict(target.summary)
+    summary['name'] = target.name
+    summary['artifacts_hash'] = hash_tree(join(cache_dir, 'artifacts.json'))
+    if summary.get('created') is None:
+        summary['created'] = time()
+    write_summary(summary, cache_dir)

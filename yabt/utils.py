@@ -212,7 +212,7 @@ def yprint(config, *objects, **kwargs):
     if config.verbose:
         print(*objects, **kwargs)
     else:
-        logger.info('{}', ' '.join(str(obj) for obj in objects))
+        logger.debug('{}', ' '.join(str(obj) for obj in objects))
 
 
 _BUF_SIZE = 1024 * 1024  # read file in 1MB chunks

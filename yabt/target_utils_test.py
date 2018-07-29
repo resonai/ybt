@@ -97,14 +97,14 @@ _EXP_JSON = """{
     "buildenv": [],
     "builder_name": "CppApp",
     "deps": [
-        "657b53bd2b91d468f1dbec4a872ab9ee",
-        "e0e81d3a8620b1a9fba538e6cc1465ed"
+        "9622d221dd088a77b148ceec6a9f6aee",
+        "cd8ef6049ebe0e2528a26ac1dfaa6aeb"
     ],
     "flavor": null,
     "name": "app:hello-prog-app",
     "props": {
         "base_image": [
-            "e0e81d3a8620b1a9fba538e6cc1465ed"
+            "9622d221dd088a77b148ceec6a9f6aee"
         ],
         "build_params": {},
         "build_user": null,
@@ -113,11 +113,10 @@ _EXP_JSON = """{
         "env": {},
         "executable": {},
         "full_path_cmd": false,
-        "image_caching_behavior": {},
         "image_name": null,
         "image_tag": "latest",
         "main": [
-            "657b53bd2b91d468f1dbec4a872ab9ee"
+            "cd8ef6049ebe0e2528a26ac1dfaa6aeb"
         ],
         "packaging_params": {},
         "run_user": null,
@@ -133,9 +132,9 @@ def test_target_hash_and_json(basic_conf):
     build_context = BuildContext(basic_conf)
     basic_conf.targets = ['app:hello-prog-app']
     populate_targets_graph(build_context, basic_conf)
-    assert ('657b53bd2b91d468f1dbec4a872ab9ee' ==
+    assert ('cd8ef6049ebe0e2528a26ac1dfaa6aeb' ==
             build_context.targets['app:hello-prog'].hash(build_context))
-    assert ('e0e81d3a8620b1a9fba538e6cc1465ed' ==
+    assert ('9622d221dd088a77b148ceec6a9f6aee' ==
             build_context.targets[':proto-builder'].hash(build_context))
     prog_app = build_context.targets['app:hello-prog-app']
     prog_app.compute_json(build_context)
@@ -148,8 +147,8 @@ def test_hashify_targets(basic_conf):
     basic_conf.targets = ['app:hello-prog-app']
     populate_targets_graph(build_context, basic_conf)
     assert [
-        '657b53bd2b91d468f1dbec4a872ab9ee',
-        'e0e81d3a8620b1a9fba538e6cc1465ed',
+        '9622d221dd088a77b148ceec6a9f6aee',
+        'cd8ef6049ebe0e2528a26ac1dfaa6aeb',
     ] == hashify_targets(['app:hello-prog', ':proto-builder'], build_context)
 
 

@@ -538,8 +538,10 @@ def build_docker_image(
     # TODO(itamar): write only if changed?
     with open(dockerfile_path, 'w') as dockerfile_f:
         dockerfile_f.writelines(dockerfile)
-    docker_build_cmd = [
-        'docker', 'build', '-t', docker_image, workspace_dir]
+    docker_build_cmd = ['docker', 'build']
+    if build_context.conf.no_docker_cache:
+        docker_build_cmd.append('--no-cache')
+    docker_build_cmd.extend(['-t', docker_image, workspace_dir])
     logger.info('Building docker image "{}" using command {}',
                 docker_image, docker_build_cmd)
     run(docker_build_cmd, check=True)

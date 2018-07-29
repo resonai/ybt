@@ -148,7 +148,11 @@ def process_prop(prop_type: PT, value, build_context):
 
 class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
 
-    _prop_json_blacklist = frozenset(('copy_generated_to', 'cachable'))
+    _prop_json_blacklist = frozenset((
+        'cachable',
+        'copy_generated_to',
+        'image_caching_behavior',
+    ))
 
     def __init__(self, builder_name):
         super().__init__(
@@ -159,6 +163,12 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
             buildenv=None,
             tags=set(),
             artifacts=ArtifactStore(),
+            summary={
+                'build_time': None,
+                'test_time': None,
+                'created': None,
+                'accessed': None,
+            },
             is_dirty=False,
             _hash=None,
             _json=None)
