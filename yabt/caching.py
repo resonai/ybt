@@ -147,7 +147,7 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
                 if not restore_artifact(
                         artifact['src'], artifact['hash'], build_context.conf):
                     target.artifacts.reset()
-                    return False
+                    return False, False
             if artifact_type in (AT.docker_image,):
                 # "restore" docker image from local registry
                 image_id = artifact['src']
