@@ -23,6 +23,7 @@ yabt config
 
 
 import os
+from os.path import abspath, relpath
 from pathlib import Path
 
 from ostrich.utils.collections import listify
@@ -134,11 +135,10 @@ class Config:
                             '.cache', 'artifacts')
 
     def host_to_buildenv_path(self, host_path: str) -> str:
-        host_path, project_root = Path(host_path), Path(self.project_root)
         # TODO: windows-containers?
         return '/'.join([
             '/project',
-            host_path.resolve().relative_to(project_root).as_posix()])
+            Path(relpath(abspath(host_path), self.project_root)).as_posix()])
 
     def get(self, param: str, fallback: str) -> str:
         common_val, flavor_val = None, None
