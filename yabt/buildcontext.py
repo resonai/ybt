@@ -409,6 +409,7 @@ class BuildContext:
                 return
             try:
                 # check if cache can be used to skip building target
+                target.compute_hash(self)
                 build_cached, test_cached = False, False
                 if self.can_use_cache(target):
                     build_cached, test_cached = load_target_from_cache(
