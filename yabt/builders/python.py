@@ -109,6 +109,10 @@ register_builder_sig(
 def pythontest_manipulate_target(build_context, target):
     target.tags.add('testable')
     target.buildenv = target.props.in_testenv
+    # doing test-command manipulation (and storing it in target props) during
+    # target extraction (as opposed to during build) so it is considered
+    # during target hashing (for cache)
+    prepare_test_cmd(build_context, target)
 
 
 @register_build_func('PythonTest')
@@ -130,6 +134,17 @@ def pythontest_tester(build_context, target):
             workspace_dir, [AT.gen_py, AT.binary], build_context.conf)
 
     # Run the test module
+    test_env = target.props.test_env or {}
+    pypath = test_env.get('PYTHONPATH', '.').split(':')
+    pypath.append(relpath(gen_dir, build_context.conf.project_root))
+    test_env['PYTHONPATH'] = ':'.join(pypath)
+    test_env['BIN_DIR'] = build_context.conf.host_to_buildenv_path(
+        join(workspace_dir, 'bin'))
+    build_context.run_in_buildenv(
+        target.props.in_testenv, target.props.test_cmd, test_env)
+
+
+def prepare_test_cmd(build_context, target):
     pytest_params = build_context.conf.get('pytest_params', {})
     test_cmd = target.props.test_cmd
     if not test_cmd:
@@ -138,10 +153,4 @@ def pythontest_tester(build_context, target):
     test_cmd.append(path_to_pymodule(target.props.module))
     test_cmd.extend(target.props.test_flags)
     test_cmd.extend(listify(pytest_params.get('extra_exec_flags')))
-    test_env = target.props.test_env or {}
-    pypath = test_env.get('PYTHONPATH', '.').split(':')
-    pypath.append(relpath(gen_dir, build_context.conf.project_root))
-    test_env['PYTHONPATH'] = ':'.join(pypath)
-    test_env['BIN_DIR'] = build_context.conf.host_to_buildenv_path(
-        join(workspace_dir, 'bin'))
-    build_context.run_in_buildenv(target.props.in_testenv, test_cmd, test_env)
+    target.props.test_cmd = test_cmd

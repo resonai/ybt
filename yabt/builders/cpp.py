@@ -89,6 +89,11 @@ class CompilerConfig:
             self.link_flags.extend(
                 listify(build_params.get('extra_link_flags')))
 
+    def as_dict(self):
+        return {key: getattr(self, key)
+                for key in ('compiler', 'linker', 'compile_flags',
+                            'link_flags', 'include_path')}
+
     def get(self, param, config, target, fallback):
         """Return the value of `param`, according to priority / expansion.
 
@@ -126,6 +131,9 @@ CPP_SIG = [
      ('compile_flags', PT.StrList, None),
      ('link_flags', PT.StrList, None),
      ('include_path', PT.StrList, None),
+     # an internal "prop" used internally bt YBT to add compiler config data
+     # to the target props, so it is considered by target hashing (for cache)
+     ('_internal_dict_', PT.dict, None),
 ]
 
 
@@ -181,9 +189,27 @@ register_builder_sig(
 )
 
 
+def make_pre_build_hook(extra_compiler_config_params):
+    """Return a pre-build hook function for C++ builders.
+
+    When called, during graph build, it computes and stores the compiler-config
+    object on the target, as well as adding it to the internal_dict prop for
+    hashing purposes.
+    """
+
+    def pre_build_hook(build_context, target):
+        target.compiler_config = CompilerConfig(
+            build_context, target, extra_compiler_config_params)
+        target.props._internal_dict_['compiler_config'] = (
+            target.compiler_config.as_dict())
+
+    return pre_build_hook
+
+
 @register_manipulate_target_hook('CppProg')
 def cpp_prog_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
+    target.pre_build_hook = make_pre_build_hook({})
 
 
 @register_manipulate_target_hook('CppGTest')
@@ -191,6 +217,12 @@ def cpp_gtest_manipulate_target(build_context, target):
     target.tags.add('testable')
     target.buildenv = target.props.in_buildenv
     # target.buildenvs.append(target.props.in_testenv)
+    # manipulate the test_flags prop during target extraction (as opposed to
+    # during build func), so it is considered during target hashing (for cache)
+    target.props.test_flags.extend(listify(
+        build_context.conf.get('gtest_params', {}).get('extra_exec_flags')))
+    target.pre_build_hook = make_pre_build_hook(
+        build_context.conf.get('gtest_params', {}))
 
 
 def is_cc_file(filename: str) -> bool:
@@ -299,8 +331,7 @@ def cpp_prog_builder(build_context, target):
     """Build a C++ binary executable"""
     yprint(build_context.conf, 'Build CppProg', target)
     workspace_dir = build_context.get_workspace('CppProg', target.name)
-    compiler_config = CompilerConfig(build_context, target)
-    build_cpp(build_context, target, compiler_config, workspace_dir)
+    build_cpp(build_context, target, target.compiler_config, workspace_dir)
 
     # TODO: remove?
     # # Copy binary artifacts to external destination
@@ -315,10 +346,7 @@ def cpp_gtest_builder(build_context, target):
     """Build a C++ test executable"""
     yprint(build_context.conf, 'Build CppGTest', target)
     workspace_dir = build_context.get_workspace('CppGTest', target.name)
-    compiler_config = CompilerConfig(
-        build_context, target,
-        extra_params=build_context.conf.get('gtest_params', {}))
-    build_cpp(build_context, target, compiler_config, workspace_dir)
+    build_cpp(build_context, target, target.compiler_config, workspace_dir)
 
 
 @register_test_func('CppGTest')
@@ -331,8 +359,6 @@ def cpp_gtest_tester(build_context, target):
     test_cmd = [join(buildenv_workspace, *split(target.name))]
     # take gtest exec flags from the target & from project config
     test_cmd.extend(target.props.test_flags)
-    test_cmd.extend(listify(
-        build_context.conf.get('gtest_params', {}).get('extra_exec_flags')))
     build_context.run_in_buildenv(
         # TODO: target.props.in_testenv,
         target.props.in_buildenv, test_cmd, target.props.test_env)
@@ -346,6 +372,7 @@ def cpp_lib_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
     # proto targets are also direct dependencies
     target.deps.extend(target.props.protos)
+    target.pre_build_hook = make_pre_build_hook({})
 
 
 @register_build_func('CppLib')
@@ -355,12 +382,11 @@ def cpp_lib_builder(build_context, target):
     workspace_dir = build_context.get_workspace('CppLib', target.name)
     workspace_src_dir = join(workspace_dir, 'src')
     rmtree(workspace_src_dir)
-    compiler_config = CompilerConfig(build_context, target)
     link_cpp_artifacts(build_context, target, workspace_src_dir, False)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_src_dir)
     objects = compile_cc(
-        build_context, compiler_config, target.props.in_buildenv,
+        build_context, target.compiler_config, target.props.in_buildenv,
         get_source_files(target, build_context), workspace_src_dir,
         buildenv_workspace, target.props.cmd_env)
     for obj_file in objects:
