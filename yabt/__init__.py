@@ -23,5 +23,5 @@ yabt root package
 
 
 __author__ = 'Itamar Ostricher'
-__version__ = '0.3.3'
+__version__ = '0.3.4'
 __oneliner__ = 'Yet another Build Tool'
