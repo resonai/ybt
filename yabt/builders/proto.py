@@ -132,13 +132,6 @@ def proto_builder(build_context, target):
 
     # Create __init__.py files in all generated directories with Python files
     if target.props.gen_python or target.props.gen_python_rpcz:
-        join_env = target.props.packaging_params.pop('semicolon_join_env', {})
-        if 'PYTHONPATH' in join_env:
-            if '/usr/src/gen' not in join_env['PYTHONPATH'].split(':'):
-                join_env['PYTHONPATH'] += ':/usr/src/gen'
-        else:
-            join_env['PYTHONPATH'] = '/usr/src/gen'
-        target.props.packaging_params['semicolon_join_env'] = join_env
         py_dirs = set(('',))
         for src in target.props.sources:
             py_dir = dirname(src)
@@ -155,6 +148,23 @@ def proto_builder(build_context, target):
                        workspace_dir, build_context.conf)
 
 
+def add_gen_python_path(target):
+    if target.props.gen_python or target.props.gen_python_rpcz:
+        join_env = target.props.packaging_params.pop('semicolon_join_env', {})
+        if 'PYTHONPATH' in join_env:
+            if '/usr/src/gen' not in join_env['PYTHONPATH'].split(':'):
+                join_env['PYTHONPATH'] += ':/usr/src/gen'
+        else:
+            join_env['PYTHONPATH'] = '/usr/src/gen'
+        target.props.packaging_params['semicolon_join_env'] = join_env
+
+
 @register_manipulate_target_hook('Proto')
 def proto_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
+    # manipulating the packaging_params (and storing it in the target props)
+    # during target extraction (as opposed to build time), because:
+    # 1. it should affect the target hash (for cache)
+    # 2. it is used by docker builder further down the graph, so it should be
+    #    populated if the target is cached (and build func is never called)
+    add_gen_python_path(target)

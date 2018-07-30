@@ -302,8 +302,6 @@ def populate_targets_graph(build_context, conf: Config):
             ' -> '.join(cycle)
             for cycle in networkx.simple_cycles(build_context.target_graph))
         raise RuntimeError('Detected cycles in build graph!\n' + cycles)
-    for target_name in topological_sort(build_context.target_graph):
-        build_context.targets[target_name].compute_hash(build_context)
     logger.info('Finished parsing build graph with {} nodes and {} edges',
                 build_context.target_graph.order(),
                 build_context.target_graph.size())

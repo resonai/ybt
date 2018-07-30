@@ -408,6 +408,22 @@ class BuildContext:
                 target.done()
                 return
             try:
+                # call pre-build hook, if one exists
+                if hasattr(target, 'pre_build_hook'):
+                    logger.debug('Calling pre-build hook for target {}',
+                                 target.name)
+                    pre_build_hook = getattr(target, 'pre_build_hook')
+                    pre_build_hook(self, target)
+                # note: running compute hash here so the hash is not affected
+                # by the build func itself (and may change based on whether
+                # the build was cached or not), but not earlier than here,
+                # so all previous nodes have already been built, including
+                # artifacts that this target may rely on in hacky ways, such
+                # as following ExtCommand or Grunt builder with a FileGroup
+                # builder that collects generated files that are not handled
+                # as "real artifacts"...
+                # TODO: fix this...
+                target.compute_hash(self)
                 # check if cache can be used to skip building target
                 build_cached, test_cached = False, False
                 if self.can_use_cache(target):
