@@ -128,11 +128,11 @@ class BuildContext:
 
     def generate_direct_deps(self, target: Target):
         """Generate only direct dependencies of `target`."""
-        yield from (self.targets[dep_name] for dep_name in target.deps)
+        yield from (self.targets[dep_name] for dep_name in sorted(target.deps))
 
     def generate_dep_names(self, target: Target):
         """Generate names of all dependencies (descendants) of `target`."""
-        yield from get_descendants(self.target_graph, target.name)
+        yield from sorted(get_descendants(self.target_graph, target.name))
 
     def generate_all_deps(self, target: Target):
         """Generate all dependencies of `target` (the target nodes)."""
