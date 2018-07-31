@@ -26,7 +26,7 @@ to rerun "cached" tests on machines with different hardware (for example).
 """
 
 import json
-from os import makedirs, remove
+from os import makedirs
 from os.path import isdir, isfile, join, relpath, split
 import shutil
 from time import time
@@ -39,7 +39,7 @@ from .docker import get_image_name, handle_build_cache, tag_docker_image
 from .graph import get_descendants
 from .logging import make_logger
 from .target_utils import ImageCachingBehavior, Target
-from .utils import hash_tree, rmtree
+from .utils import hash_tree, rmnode, rmtree
 
 
 logger = make_logger(__name__)
@@ -206,7 +206,7 @@ def restore_artifact(src_path: str, artifact_hash: str, conf: Config):
             logger.warning(
                 'Cached artifact {} expected hash {} != actual hash {}',
                 src_path, artifact_hash, actual_hash)
-            rmtree(cached_artifact_path)
+            rmnode(cached_artifact_path)
             return False
         # if something exists in src_path, check if it matches the cached item
         abs_src_path = join(conf.project_root, src_path)
@@ -218,7 +218,7 @@ def restore_artifact(src_path: str, artifact_hash: str, conf: Config):
                 return True
             logger.debug('Replacing existing artifact {} with cached one',
                          src_path)
-            rmtree(abs_src_path)
+            rmnode(abs_src_path)
         logger.debug('Restoring cached artifact {} to {}',
                      artifact_hash, src_path)
         shutil.copy(cached_artifact_path, abs_src_path)

@@ -52,6 +52,15 @@ def fatal(msg, *args, **kwargs):
     sys.exit(1)
 
 
+def rmnode(path: str):
+    """Forcibly remove file or directory tree at `path`.
+       Fail silently if base dir doesn't exist."""
+    if isdir(path):
+        rmtree(path)
+    elif isfile(path):
+        os.remove(path)
+
+
 def rmtree(path: str):
     """Forcibly remove directory tree.
        Fail silently if base dir doesn't exist."""
