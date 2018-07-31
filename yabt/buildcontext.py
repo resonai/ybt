@@ -336,7 +336,13 @@ class BuildContext:
             # Fix permissions for bind-mounted project dir
             # The fix is not needed when using Docker For Mac / Windows,
             # because it is somehow taken care of by the sharing mechanics
-            docker_run.extend(['-u', '{}:{}'.format(os.getuid(), os.getgid())])
+            docker_run.extend([
+                '-u', '{}:{}'.format(os.getuid(), os.getgid()),
+                '-v', '/etc/shadow:/etc/shadow:ro',
+                '-v', '/etc/group:/etc/group:ro',
+                '-v', '/etc/passwd:/etc/passwd:ro',
+                '-v', '/etc/sudoers:/etc/sudoers:ro',
+            ])
         docker_run.append(format_qualified_image_name(buildenv_target))
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
