@@ -430,6 +430,8 @@ class BuildContext:
                 # as "real artifacts"...
                 # TODO: fix this...
                 target.compute_hash(self)
+                logger.info('Target {} hash: {}',
+                            target.name, target.hash(self))
                 # check if cache can be used to skip building target
                 build_cached, test_cached = False, False
                 if self.can_use_cache(target):
