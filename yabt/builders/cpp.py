@@ -65,23 +65,24 @@ class CompilerConfig:
     TODO: add this note to proper project docs (also - create proper docs...)
     """
 
-    def __init__(self, build_context, target, extra_params={}):
+    def __init__(self, build_context, target, extra_params=None):
         self.compiler = self.get(
             'compiler', build_context.conf, target, 'g++')
         self.linker = self.get(
             'linker', build_context.conf, target, 'g++')
-        self.compile_flags = self.get(
-            'compile_flags', build_context.conf, target, [])
-        self.link_flags = self.get(
-            'link_flags', build_context.conf, target, [])
-        self.include_path = self.get(
-            'include_path', build_context.conf, target, [])
+        self.compile_flags = list(self.get(
+            'compile_flags', build_context.conf, target, []))
+        self.link_flags = list(self.get(
+            'link_flags', build_context.conf, target, []))
+        self.include_path = list(self.get(
+            'include_path', build_context.conf, target, []))
 
         def generate_extra_params():
             yield from (dep.props.build_params
                         for dep in build_context.generate_all_deps(target))
             yield target.props.build_params
-            yield extra_params
+            if extra_params:
+                yield extra_params
 
         for build_params in generate_extra_params():
             self.compile_flags.extend(
