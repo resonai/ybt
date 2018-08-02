@@ -78,13 +78,19 @@ class CompilerConfig:
             'include_path', build_context.conf, target, []))
 
         def generate_extra_params():
-            yield from (dep.props.build_params
-                        for dep in build_context.generate_all_deps(target))
-            yield target.props.build_params
             if extra_params:
                 yield extra_params
+            yield target.props.build_params
+            # using topological order here because linker `-l<lib>` flags
+            # are sensitive to the order that they appear in!
+            # so if this target depends on, for example, both libsoft and
+            # libfftw, and also libsoft requires symbols that are defined in
+            # libfftw, then `-lfftw` must appear *after* `-lsoft`.
+            yield from (
+                dep.props.build_params for dep in
+                build_context.walk_target_deps_topological_order(target))
 
-        for build_params in generate_extra_params():
+        for build_params in reversed(list(generate_extra_params())):
             self.compile_flags.extend(
                 listify(build_params.get('extra_compile_flags')))
             self.link_flags.extend(
