@@ -38,7 +38,7 @@ from ..extend import (
     register_manipulate_target_hook, register_test_func)
 from ..logging import make_logger
 from ..target_utils import split
-from ..utils import link_artifacts, rmtree, yprint
+from ..utils import link_files, rmtree, yprint
 
 
 logger = make_logger(__name__)
@@ -280,7 +280,7 @@ def link_cpp_artifacts(build_context, target, workspace_dir,
     for dep in build_context.generate_all_deps(target):
         source_files.extend(dep.props.get('headers', []))
 
-    link_artifacts(source_files, workspace_dir, None, build_context.conf)
+    link_files(source_files, workspace_dir, None, build_context.conf)
 
     # add generated headers and collect objects of dependencies
     for dep in build_context.generate_all_deps(target):
