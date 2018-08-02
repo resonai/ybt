@@ -81,6 +81,11 @@ class CompilerConfig:
             if extra_params:
                 yield extra_params
             yield target.props.build_params
+            # using topological order here because linker `-l<lib>` flags
+            # are sensitive to the order that they appear in!
+            # so if this target depends on, for example, both libsoft and
+            # libfftw, and also libsoft requires symbols that are defined in
+            # libfftw, then `-lfftw` must appear *after* `-lsoft`.
             yield from (
                 dep.props.build_params for dep in
                 build_context.walk_target_deps_topological_order(target))
