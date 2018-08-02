@@ -34,7 +34,7 @@ from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
 from ..logging import make_logger
-from ..utils import link_artifacts, yprint
+from ..utils import link_files, rmtree, yprint
 
 
 logger = make_logger(__name__)
@@ -61,16 +61,18 @@ register_builder_sig(
 def proto_builder(build_context, target):
     yprint(build_context.conf, 'Build ProtoBuf', target)
     workspace_dir = build_context.get_workspace('ProtoBuilder', target.name)
+    # make sure workdir is clean
+    rmtree(workspace_dir)
     proto_dir = join(workspace_dir, 'proto')
     # Collect proto sources from this target and all dependecies,
     # to link under the target sandbox dir
     protos = [source for source in target.props.sources
               if source.endswith('.proto')]
-    for dep in build_context.walk_target_deps_topological_order(target):
+    for dep in build_context.generate_all_deps(target):
         if 'sources' in dep.props:
             protos.extend(source for source in dep.props.sources
                           if source.endswith('.proto'))
-    link_artifacts(protos, proto_dir, None, build_context.conf)
+    link_files(protos, proto_dir, None, build_context.conf)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     protoc_cmd = target.props.proto_cmd + ['--proto_path', buildenv_workspace]
@@ -99,7 +101,6 @@ def proto_builder(build_context, target):
         if not isfile(gen_file):
             logger.error('Missing expected generated file: {}', gen_file)
             return
-        # rel_gen_path = relpath(gen_file, workspace_dir)
         target.artifacts.add(
             artifact_type,
             relpath(gen_file, build_context.conf.project_root),
@@ -143,9 +144,10 @@ def proto_builder(build_context, target):
                               AT.gen_py)
 
     # Copy generated files to external destination
+    # TODO: remove this? (deprecate copy_generated_to?)
     if target.props.copy_generated_to:
-        link_artifacts(generated_files, target.props.copy_generated_to,
-                       workspace_dir, build_context.conf)
+        link_files(generated_files, target.props.copy_generated_to,
+                   workspace_dir, build_context.conf)
 
 
 def add_gen_python_path(target):

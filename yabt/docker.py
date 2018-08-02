@@ -47,7 +47,7 @@ from .builders.ruby import format_gem_specifier
 from .pkgmgmt import (
     format_apt_specifier, format_pypi_specifier, parse_apt_repository)
 from .target_utils import ImageCachingBehavior
-from .utils import link_artifacts, link_node, rmtree, yprint
+from .utils import link_node, rmtree, yprint
 
 
 logger = make_logger(__name__)

@@ -79,13 +79,13 @@ def link_func(src: str, dst: str):
 
 def link_node(abs_src: str, abs_dest: str):
     """Sync source node (file / dir) to destination path using hard links."""
+    dest_parent_dir = split(abs_dest)[0]
+    if not isdir(dest_parent_dir):
+        # exist_ok=True in case of concurrent creation of the same
+        # parent dir
+        os.makedirs(dest_parent_dir, exist_ok=True)
     if isfile(abs_src):
         # sync file by linking it to dest
-        dest_parent_dir = split(abs_dest)[0]
-        if not isdir(dest_parent_dir):
-            # exist_ok=True in case of concurrent creation of the same
-            # parent dir
-            os.makedirs(dest_parent_dir, exist_ok=True)
         link_func(abs_src, abs_dest)
     elif isdir(abs_src):
         # sync dir by recursively linking files under it to dest
@@ -96,51 +96,44 @@ def link_node(abs_src: str, abs_dest: str):
         raise FileNotFoundError(abs_src)
 
 
-def link_artifacts(artifacts: set, workspace_src_dir: str,
-                   common_parent: str, conf):
-    """Sync the list of files and directories in `artifacts` to destination
+def link_files(files: set, workspace_src_dir: str,
+               common_parent: str, conf):
+    """Sync the list of files and directories in `files` to destination
        directory specified by `workspace_src_dir`.
 
-    "Sync" in the sense that every file given in `artifacts` will be
+    "Sync" in the sense that every file given in `files` will be
     hard-linked under `workspace_src_dir` after this function returns, and no
     other files will exist under `workspace_src_dir`.
 
-    For directories in `artifacts`, hard-links of contained files are
+    For directories in `files`, hard-links of contained files are
     created recursively.
 
-    All paths in `artifacts`, and the `workspace_src_dir`, must be relative
+    All paths in `files`, and the `workspace_src_dir`, must be relative
     to `conf.project_root`.
 
-    If `workspace_src_dir` exists before calling this function, it is removed
-    before syncing.
-
     If `common_parent` is given, and it is a common parent directory of all
-    `artifacts`, then the `commonm_parent` part is truncated from the
+    `files`, then the `commonm_parent` part is truncated from the
     sync'ed files destination path under `workspace_src_dir`.
 
-    :raises FileNotFoundError: If `artifacts` contains files or directories
+    :raises FileNotFoundError: If `files` contains files or directories
                                that do not exist.
 
     :raises ValueError: If `common_parent` is given (not `None`), but is *NOT*
-                        a common parent of all `artifacts`.
+                        a common parent of all `files`.
     """
     norm_dir = normpath(workspace_src_dir)
-    if norm_dir not in conf.deleted_dirs:
-        conf.deleted_dirs.add(norm_dir)
-        rmtree(norm_dir)
+    base_dir = ''
     if common_parent:
         common_parent = normpath(common_parent)
-        base_dir = commonpath(list(artifacts) + [common_parent])
+        base_dir = commonpath(list(files) + [common_parent])
         if base_dir != common_parent:
             raise ValueError('{} is not the common parent of all target '
                              'sources and data'.format(common_parent))
         logger.debug(
             'Rebasing files in image relative to common parent dir {}',
             base_dir)
-    else:
-        base_dir = ''
     num_linked = 0
-    for src in artifacts:
+    for src in files:
         abs_src = join(conf.project_root, src)
         abs_dest = join(conf.project_root, workspace_src_dir,
                         relpath(src, base_dir))

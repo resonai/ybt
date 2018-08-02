@@ -85,7 +85,6 @@ class Config:
         self.scm_provider = str(args.scm_provider).lower()
         self.scm = ScmManager.get_provider(self.scm_provider, self)
         Plugin.load_plugins(self)
-        self.deleted_dirs = set()
         self.settings = settings_module
         self.common_conf = {}
         self.flavor_conf = {}
