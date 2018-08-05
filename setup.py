@@ -7,17 +7,28 @@ yabt setup
 :license: MIT, see LICENSE for more details.
 """
 
+from os import path
 
 from setuptools import setup, find_packages
 import yabt
+
+
+def get_readme():
+    """Read and return the content of the project README file."""
+    base_dir = path.abspath(path.dirname(__file__))
+    with open(path.join(base_dir, 'README.md'), encoding='utf-8') as readme_f:
+        return readme_f.read()
+
 
 setup(
     name='ybt',
     version=yabt.__version__,
     author=yabt.__author__,
-    author_email='yabt@ostricher.com',
-    url='https://yabt.ostrich.io/',
+    author_email='yabt@resonai.com',
+    url='https://github.com/resonai/ybt',
     description=yabt.__oneliner__,
+    long_description=get_readme(),
+    long_description_content_type='text/markdown',
     packages=find_packages(),
     include_package_data=True,
     entry_points={
