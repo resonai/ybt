@@ -1,0 +1,102 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2018 Resonai Ltd. All rights reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+yabt caching tests
+~~~~~~~~~~~~~~~~~~
+
+:author: Itamar Ostricher
+"""
+
+
+import pytest
+
+from .caching import get_prebuilt_targets
+from .buildcontext import BuildContext
+from .graph import populate_targets_graph
+
+
+slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
+                          reason='need --with-slow option to run')
+
+
+@slow
+@pytest.mark.usefixtures('in_caching_project')
+def test_prebuilt_targets_case1(basic_conf):
+    """Test pre-built case #1 - all base deps should be marked as pre-built.
+
+    See issue: https://github.com/resonai/ybt/issues/61
+    """
+    basic_conf.targets = [':builder']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    pre_built = get_prebuilt_targets(build_context)
+    assert set((':build-tools', ':tools', ':unzip', ':ubuntu')) == pre_built
+    assert (set((':builder', ':builder-base', ':build-tools',
+                 ':tools', ':unzip', ':ubuntu')) ==
+            set(build_context.target_graph.nodes))
+
+
+@slow
+@pytest.mark.usefixtures('in_caching_project')
+def test_prebuilt_targets_case2(basic_conf):
+    """Test pre-built case #2 - nothing should be marked pre-built.
+
+    See issue: https://github.com/resonai/ybt/issues/61
+    """
+    basic_conf.targets = [':an-image']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    pre_built = get_prebuilt_targets(build_context)
+    assert set() == pre_built
+    assert (set((':an-image', ':unzip', ':ubuntu')) ==
+            set(build_context.target_graph.nodes))
+
+
+@slow
+@pytest.mark.usefixtures('in_caching_project')
+def test_prebuilt_targets_case1(basic_conf):
+    """Test pre-built case #3 - unzip & ubuntu should NOT mark as prebuilt.
+
+    See issue: https://github.com/resonai/ybt/issues/61
+    """
+    basic_conf.targets = [':all-images']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    pre_built = get_prebuilt_targets(build_context)
+    assert set((':build-tools', ':tools')) == pre_built
+    assert (set((':all-images', ':an-image', ':builder', ':builder-base',
+                 ':build-tools', ':tools', ':unzip', ':ubuntu')) ==
+            set(build_context.target_graph.nodes))
+
+
+@slow
+@pytest.mark.usefixtures('in_caching_project')
+def test_prebuilt_targets_build_base_image(basic_conf):
+    """Test pre-built targets when building base images.
+
+    When `--build-base-images` is specified, all targets should be built,
+    regardless of base-image status.
+    """
+    basic_conf.build_base_images = True
+    basic_conf.targets = [':builder']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    pre_built = get_prebuilt_targets(build_context)
+    assert set() == pre_built
+    assert (set((':builder', ':builder-base', ':build-tools',
+                 ':tools', ':unzip', ':ubuntu')) ==
+            set(build_context.target_graph.nodes))
