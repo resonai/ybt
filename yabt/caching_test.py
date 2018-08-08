@@ -142,7 +142,8 @@ def test_save_target_to_cache(basic_conf):
     basic_conf.targets = [':all-images']
     build_context = BuildContext(basic_conf)
     populate_targets_graph(build_context, basic_conf)
-    unzip_target = build_context.targets[':unzip']
+    target_name = ':unzip'
+    unzip_target = build_context.targets[target_name]
     unzip_target.summary['build_time'] = 5.432
     save_target_in_cache(unzip_target, build_context)
     target_cache_dir = join(cache_dir, 'targets',
@@ -160,5 +161,5 @@ def test_save_target_to_cache(basic_conf):
     assert set(('accessed', 'artifacts_hash', 'build_time', 'created',
                 'name', 'test_time')) == set(summary.keys())
     assert summary['build_time'] == 5.432
-    assert summary['name'] == ':unzip'
+    assert summary['name'] == target_name
     assert summary['test_time'] is None
