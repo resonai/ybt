@@ -21,12 +21,15 @@ yabt caching tests
 :author: Itamar Ostricher
 """
 
+import json
+from os.path import isdir, isfile, join
 
 import pytest
 
-from .caching import get_prebuilt_targets
+from .caching import get_prebuilt_targets, save_target_in_cache
 from .buildcontext import BuildContext
 from .graph import populate_targets_graph
+from .utils import rmtree
 
 
 slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
@@ -100,3 +103,63 @@ def test_prebuilt_targets_build_base_image(basic_conf):
     assert (set((':builder', ':builder-base', ':build-tools',
                  ':tools', ':unzip', ':ubuntu')) ==
             set(build_context.target_graph.nodes))
+
+
+def read_file(fpath, parse_json=False):
+    with open(fpath, 'r') as f:
+        content = f.read()
+    if parse_json:
+        return json.loads(content)
+    return content
+
+
+_EXP_UNZIP_JSON = """{
+    "buildenv": [],
+    "builder_name": "AptPackage",
+    "deps": [],
+    "flavor": null,
+    "name": ":unzip",
+    "props": {
+        "build_params": {},
+        "package": "unzip",
+        "packaging_params": {},
+        "repo_key": null,
+        "repo_keyserver": "hkp://keyserver.ubuntu.com:80",
+        "repository": null,
+        "runtime_params": {},
+        "version": null
+    },
+    "tags": [
+        "apt-installable"
+    ]
+}"""
+
+
+@pytest.mark.usefixtures('in_caching_project')
+def test_save_target_to_cache(basic_conf):
+    cache_dir = join(basic_conf.project_root, 'yabtwork', '.cache')
+    rmtree(cache_dir)
+    basic_conf.targets = [':all-images']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    target_name = ':unzip'
+    unzip_target = build_context.targets[target_name]
+    unzip_target.summary['build_time'] = 5.432
+    save_target_in_cache(unzip_target, build_context)
+    target_cache_dir = join(cache_dir, 'targets',
+                            unzip_target.hash(build_context))
+    assert isdir(target_cache_dir)
+    target_json_path = join(target_cache_dir, 'target.json')
+    artifacts_json_path = join(target_cache_dir, 'artifacts.json')
+    summary_json_path = join(target_cache_dir, 'summary.json')
+    assert isfile(target_json_path)
+    assert isfile(artifacts_json_path)
+    assert isfile(summary_json_path)
+    assert _EXP_UNZIP_JSON == read_file(target_json_path)
+    assert '{}' == read_file(artifacts_json_path)
+    summary = read_file(summary_json_path, True)
+    assert set(('accessed', 'artifacts_hash', 'build_time', 'created',
+                'name', 'test_time')) == set(summary.keys())
+    assert summary['build_time'] == 5.432
+    assert summary['name'] == target_name
+    assert summary['test_time'] is None
