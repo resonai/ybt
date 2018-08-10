@@ -37,9 +37,13 @@ setup(
         ],
         'yabt.builders': [
             'Alias = yabt.builders.alias',
+            'AptGroup = yabt.builders.apt',
             'AptPackage = yabt.builders.apt',
             'AptRepository = yabt.builders.apt',
             'CppApp = yabt.builders.cpp',
+            'CppLib = yabt.builders.cpp',
+            'CppProg = yabt.builders.cpp',
+            'CppGTest = yabt.builders.cpp',
             'CustomInstaller = yabt.builders.custom_installer',
             'DockerImage = yabt.builders.docker',
             'ExtCommand = yabt.builders.extcommand',
@@ -51,6 +55,7 @@ setup(
             'PythonApp = yabt.builders.python',
             'PythonPackage = yabt.builders.python',
             'Python = yabt.builders.python',
+            'PythonTest = yabt.builders.python',
             'TargetGroup = yabt.builders.targetgroup',
             'Proto = yabt.builders.proto',
 
