@@ -131,7 +131,7 @@ _EXP_JSON = """{
         "work_dir": "/usr/src/app"
     },
     "tags": []
-}""" % (*_BOTH_HASHES, _PROTO_BUILDER, _HELLO_PROG_HASH)
+}""" % (_BOTH_HASHES[0], _BOTH_HASHES[1], _PROTO_BUILDER, _HELLO_PROG_HASH)
 
 
 @pytest.mark.usefixtures('in_proto_project')
