@@ -128,8 +128,11 @@ KNOWN_LICENSES = frozenset((
 ))
 
 
-def standard_licenses_only(build_context, target):
-    """A policy fnuction for allowing specifying only known licenses.
+def standard_licenses_only(build_context, target) -> str:
+    """A policy function for allowing specifying only known licenses.
+
+    Return error message (string) if policy for `target` is violated,
+    otherwise return `None`.
 
     To apply in project, include this function in the ilst returned by the
     `get_policies` function implemented in the project `YSettings` file.
@@ -161,6 +164,11 @@ def whitelist_licenses_policy(policy_name: str, allowed_licenses: set):
     """
 
     def policy_func(build_context, target):
+        """whitelist_{policy_name}_licenses policy function.
+
+        Return error message (string) if policy for `target` is violated,
+        otherwise return `None`.
+        """
         if policy_name in target.props.policies:
             licenses = set(target.props.license)
             for dep in build_context.generate_all_deps(target):
