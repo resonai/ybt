@@ -93,18 +93,23 @@ def test_norm_name_unqualified_error():
             'possible ambiguity' in str(excinfo.value))
 
 
+_HELLO_PROG_HASH = 'f54d934e9db097faa287604622dae36f'
+_PROTO_BUILDER = 'eb0874ddb922e4b0b8ba0ca3808a6936'
+_BOTH_HASHES = list(sorted([_HELLO_PROG_HASH, _PROTO_BUILDER]))
+
+
 _EXP_JSON = """{
     "buildenv": [],
     "builder_name": "CppApp",
     "deps": [
-        "9622d221dd088a77b148ceec6a9f6aee",
-        "c6bf2ffb8837d4a66b4efbd7ec642bac"
+        "%s",
+        "%s"
     ],
     "flavor": null,
     "name": "app:hello-prog-app",
     "props": {
         "base_image": [
-            "9622d221dd088a77b148ceec6a9f6aee"
+            "%s"
         ],
         "build_params": {},
         "build_user": null,
@@ -115,16 +120,18 @@ _EXP_JSON = """{
         "full_path_cmd": false,
         "image_name": null,
         "image_tag": "latest",
+        "license": [],
         "main": [
-            "c6bf2ffb8837d4a66b4efbd7ec642bac"
+            "%s"
         ],
         "packaging_params": {},
+        "policies": [],
         "run_user": null,
         "runtime_params": {},
         "work_dir": "/usr/src/app"
     },
     "tags": []
-}"""
+}""" % (*_BOTH_HASHES, _PROTO_BUILDER, _HELLO_PROG_HASH)
 
 
 @pytest.mark.usefixtures('in_proto_project')
@@ -132,9 +139,9 @@ def test_target_hash_and_json(basic_conf):
     build_context = BuildContext(basic_conf)
     basic_conf.targets = ['app:hello-prog-app']
     populate_targets_graph(build_context, basic_conf)
-    assert ('c6bf2ffb8837d4a66b4efbd7ec642bac' ==
+    assert (_HELLO_PROG_HASH ==
             build_context.targets['app:hello-prog'].hash(build_context))
-    assert ('9622d221dd088a77b148ceec6a9f6aee' ==
+    assert (_PROTO_BUILDER ==
             build_context.targets[':proto-builder'].hash(build_context))
     prog_app = build_context.targets['app:hello-prog-app']
     prog_app.compute_json(build_context)
@@ -146,10 +153,9 @@ def test_hashify_targets(basic_conf):
     build_context = BuildContext(basic_conf)
     basic_conf.targets = ['app:hello-prog-app']
     populate_targets_graph(build_context, basic_conf)
-    assert [
-        '9622d221dd088a77b148ceec6a9f6aee',
-        'c6bf2ffb8837d4a66b4efbd7ec642bac',
-    ] == hashify_targets(['app:hello-prog', ':proto-builder'], build_context)
+    assert (
+        _BOTH_HASHES ==
+        hashify_targets(['app:hello-prog', ':proto-builder'], build_context))
 
 
 def test_hashify_files():

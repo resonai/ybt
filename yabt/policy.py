@@ -122,7 +122,7 @@ KNOWN_LICENSES = frozenset((
     'Xnet',
     'ZPL-2.0',
     'Zlib',
-    #### manual additions ####
+    # *** manual additions *** #
     'Other',
     'Commercial',
 ))
