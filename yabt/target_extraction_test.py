@@ -53,9 +53,12 @@ def test_build_sig_args_to_props_valid_positional_args():
     assert target.props == {'name': 'my-spam', 'foo': 'foo', 'bar': 'bar',
                             'deps': None, 'cachable': True,
                             'cats': None, 'cat_list': None,
+                            'build_params': None,
+                            'license': None,
                             'packaging_params': None,
+                            'policies': None,
                             'runtime_params': None,
-                            'build_params': None}
+                            }
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')
@@ -96,9 +99,12 @@ def test_build_sig_args_to_props_valid_mix_pos_kwargs():
     assert target.props == {'name': 'my-spam', 'foo': 'foo', 'bar': 'bar',
                             'deps': None, 'cachable': True,
                             'cats': None, 'cat_list': None,
+                            'build_params': None,
+                            'license': None,
                             'packaging_params': None,
+                            'policies': None,
                             'runtime_params': None,
-                            'build_params': None}
+                            }
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')
@@ -137,9 +143,9 @@ def test_build_sig_args_to_props_too_many_pos_args():
     with pytest.raises(TypeError) as excinfo:
         args_to_props(target, Plugin.builders['Spam'],
                       args=['my-spam', 'foo', 'bar', None, None, None, None,
-                            None, None, None, 'w00t'],
+                            None, None, None, None, None, 'w00t'],
                       kwargs={})
-    assert ('Spam() takes from 3 to 10 positional arguments, but 11 were given'
+    assert ('Spam() takes from 3 to 12 positional arguments, but 13 were given'
             in str(excinfo.value))
 
 
@@ -174,9 +180,12 @@ def test_typed_args_valid_defaults():
     assert target.props == {'name': 'spams:my-spam', 'foo': 'foo',
                             'bar': 'bar', 'deps': [], 'cachable': True,
                             'cats': [], 'cat_list': None,
+                            'build_params': {},
+                            'license': [],
                             'packaging_params': {},
+                            'policies': [],
                             'runtime_params': {},
-                            'build_params': {}}
+                            }
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')
@@ -191,8 +200,12 @@ def test_typed_args_valid_non_default():
                             'bar': 'bar', 'deps': ['hams:my-ham'],
                             'cachable': True, 'cats': ['my cat', 'other cat'],
                             'cat_list': path.join('lists', 'from-vet-4'),
-                            'packaging_params': {}, 'runtime_params': {},
-                            'build_params': {}}
+                            'build_params': {},
+                            'license': [],
+                            'packaging_params': {},
+                            'policies': [],
+                            'runtime_params': {},
+                            }
 
 
 @pytest.mark.usefixtures('with_spam_builder_sig')
@@ -206,5 +219,9 @@ def test_file_arg_from_project_root():
                             'bar': 'bar', 'deps': [], 'cachable': True,
                             'cats': [],
                             'cat_list': path.join('lists', 'from-vet-4'),
-                            'packaging_params': {}, 'runtime_params': {},
-                            'build_params': {}}
+                            'build_params': {},
+                            'license': [],
+                            'packaging_params': {},
+                            'policies': [],
+                            'runtime_params': {},
+                            }

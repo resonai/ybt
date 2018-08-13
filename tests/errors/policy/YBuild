@@ -1,0 +1,10 @@
+DepTester('bad-license-name', license='GPLv3')
+
+DepTester('ext-lib-gpl3', license='GPL-3.0')
+
+DepTester('lib',
+          deps=':ext-lib-gpl3')
+
+DepTester('app', deps=':lib', policies='prod')
+
+DepTester('test', deps=':lib')

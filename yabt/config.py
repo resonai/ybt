@@ -90,6 +90,7 @@ class Config:
         self.flavor_conf = {}
         self.flavor_dir = get_safe_path('flavor__all__' if self.flavor is None
                                         else '{}_flavor'.format(self.flavor))
+        self.policies = []
 
     def in_yabt_project(self) -> bool:
         return self.project_root is not None

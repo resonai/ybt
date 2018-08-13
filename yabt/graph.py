@@ -296,12 +296,28 @@ def populate_targets_graph(build_context, conf: Config):
     for target_name in targets_to_prune:
         build_context.remove_target(target_name)
 
+    # fill in an actual target graph using the dependencies info
+    # and assert that it has no cycles
     build_target_dep_graph(build_context, conf)
     if not dag.is_directed_acyclic_graph(build_context.target_graph):
         cycles = '\n'.join(
             ' -> '.join(cycle)
             for cycle in networkx.simple_cycles(build_context.target_graph))
         raise RuntimeError('Detected cycles in build graph!\n' + cycles)
+
+    # go over the graph and assert policies
+    violations = []
+    if conf.policies:
+        for target in build_context.targets.values():
+            for policy in conf.policies:
+                err = policy(build_context, target)
+                if err:
+                    violations.append(
+                        '- Target {} violates {} policy: {}'.format(
+                            target.name, policy.__name__, err))
+    if violations:
+        raise RuntimeError('Policy violations:\n' + '\n'.join(violations))
+
     logger.info('Finished parsing build graph with {} nodes and {} edges',
                 build_context.target_graph.order(),
                 build_context.target_graph.size())

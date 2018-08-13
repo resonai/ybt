@@ -79,8 +79,10 @@ def evaluate_arg_spec(arg_spec):
     return arg_name, ArgSpec(arg_type, def_val)
 
 
-INJECTED_ARGS = frozenset(
-    ('deps', 'cachable', 'packaging_params', 'runtime_params', 'build_params'))
+INJECTED_ARGS = frozenset((
+    'build_params', 'deps', 'cachable', 'license',
+    'packaging_params', 'policies', 'runtime_params',
+))
 
 
 class Builder:
@@ -118,11 +120,13 @@ class Builder:
             (or empty list) is always the first after all builder args.
         3. A keyword arg `cachable` of type bool and default value taken from
            the signature registration call (`cachable` arg).
-        4. A keyword arg `packaging_params` of type dict and default value {}
+        4. A keyword arg `license` of type StrList and default value [].
+        5. A keyword arg `policies` of type StrList and default value [].
+        6. A keyword arg `packaging_params` of type dict and default value {}
             (empty dict).
-        5. A keyword arg `runtime_params` of type dict and default value {}
+        7. A keyword arg `runtime_params` of type dict and default value {}
             (empty dict).
-        6. A keyword arg `build_params` of type dict and default value {}
+        8. A keyword arg `build_params` of type dict and default value {}
             (empty dict).
         """
         if self.sig is not None:
@@ -149,6 +153,8 @@ class Builder:
                 kwargs_section = True
         self.sig['deps'] = ArgSpec(PropType.TargetList, None)
         self.sig['cachable'] = ArgSpec(PropType.bool, cachable)
+        self.sig['license'] = ArgSpec(PropType.StrList, None)
+        self.sig['policies'] = ArgSpec(PropType.StrList, None)
         self.sig['packaging_params'] = ArgSpec(PropType.dict, None)
         self.sig['runtime_params'] = ArgSpec(PropType.dict, None)
         self.sig['build_params'] = ArgSpec(PropType.dict, None)

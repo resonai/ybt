@@ -226,4 +226,7 @@ def init_and_get_conf(argv: list=None) -> Config:
     config.flavor_conf = call_user_func(
         config.settings, 'get_flavored_config', config, args)
     call_user_func(config.settings, 'extend_config', config, args)
+    # TODO: condition no "override policies" flag
+    config.policies = listify(call_user_func(
+        config.settings, 'get_policies', config))
     return config
