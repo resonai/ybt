@@ -74,3 +74,11 @@ def test_multiple_policy_violations(basic_conf):
             'Invalid licenses for prod policy: GPL-3.0' in err_str)
     # asserting for 2 policy violations
     assert 3 == len(err_str.split('\n'))
+
+
+@pytest.mark.usefixtures('in_error_project')
+def test_disable_policy(nopolicy_conf):
+    nopolicy_conf.targets = ['policy']
+    build_context = BuildContext(nopolicy_conf)
+    populate_targets_graph(build_context, nopolicy_conf)
+    # asserting no exception thrown
