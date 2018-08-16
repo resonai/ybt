@@ -116,3 +116,13 @@ def debug_conf():
         '--no-test-cache', '--no-docker-cache', 'build'])
     yabt.extend.Plugin.load_plugins(conf)
     yield conf
+
+
+@yield_fixture
+def nopolicy_conf():
+    reset_parser()
+    conf = cli.init_and_get_conf([
+        '--non-interactive', '--no-build-cache', '--no-test-cache',
+        '--no-docker-cache','--no-policies', 'build'])
+    yabt.extend.Plugin.load_plugins(conf)
+    yield conf

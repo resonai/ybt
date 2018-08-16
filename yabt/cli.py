@@ -107,6 +107,7 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    help='Disable YBT build cache')
         PARSER.add('--no-docker-cache', action='store_true',
                    help='Disable YBT Docker cache')
+        PARSER.add('--no-policies', action='store_true')
         PARSER.add('--no-test-cache', action='store_true',
                    help='Disable YBT test cache')
         PARSER.add('-v', '--verbose', action='store_true',
@@ -226,7 +227,7 @@ def init_and_get_conf(argv: list=None) -> Config:
     config.flavor_conf = call_user_func(
         config.settings, 'get_flavored_config', config, args)
     call_user_func(config.settings, 'extend_config', config, args)
-    # TODO: condition no "override policies" flag
-    config.policies = listify(call_user_func(
-        config.settings, 'get_policies', config))
+    if not args.no_policies:
+        config.policies = listify(call_user_func(
+            config.settings, 'get_policies', config))
     return config
