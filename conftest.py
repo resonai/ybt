@@ -123,7 +123,6 @@ def nopolicy_conf():
     reset_parser()
     conf = cli.init_and_get_conf([
         '--non-interactive', '--no-build-cache', '--no-test-cache',
-        '--no-docker-cache','--no-policies',
-        '--yes-definitely-disable-policies', 'build'])
+        '--no-docker-cache','--no-policies', 'build'])
     yabt.extend.Plugin.load_plugins(conf)
     yield conf

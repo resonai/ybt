@@ -107,14 +107,12 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    help='Disable YBT build cache')
         PARSER.add('--no-docker-cache', action='store_true',
                    help='Disable YBT Docker cache')
+        PARSER.add('--no-policies', action='store_true')
         PARSER.add('--no-test-cache', action='store_true',
                    help='Disable YBT test cache')
         PARSER.add('-v', '--verbose', action='store_true',
                    help='More verbose output to STDOUT')
         PARSER.add('--with-tini-entrypoint', action='store_true')
-        # Policy flags
-        PARSER.add('--no-policies', action='store_true')
-        PARSER.add('--yes-definitely-disable-policies', action='store_true')
         # Logging flags
         PARSER.add('--logtostderr', action='store_true',
                    help='Whether to log to STDERR')
@@ -229,14 +227,7 @@ def init_and_get_conf(argv: list=None) -> Config:
     config.flavor_conf = call_user_func(
         config.settings, 'get_flavored_config', config, args)
     call_user_func(config.settings, 'extend_config', config, args)
-    # TODO: condition no "override policies" flag
-    disable_policies = (
-        args.no_policies and args.yes_definitely_disable_policies)
-    if ((args.no_policies or args.yes_definitely_disable_policies) and
-            not disable_policies):
-        raise ValueError('To disable policies use '
-                         '--no-policies --yes-definitely-disable-policies')
-    if not disable_policies:
+    if not args.no_policies:
         config.policies = listify(call_user_func(
             config.settings, 'get_policies', config))
     return config
