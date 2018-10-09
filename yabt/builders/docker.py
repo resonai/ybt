@@ -95,6 +95,8 @@ def docker_builder(build_context, target, entrypoint=None, ybt_bin_path=None):
     if ybt_bin_path is None:
         ybt_bin_path = target.props.get('ybt_bin_path')
     if ybt_bin_path == '.':
+        # Create a ybt_bin script in the default location
+        # (ybt_bin/module_dir/target_name)
         build_module, bin_name = target_utils.split(target.name)
         ybt_bin_path = join(build_context.get_bin_dir(build_module), bin_name)
     metadata = (
