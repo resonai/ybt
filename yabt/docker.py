@@ -566,7 +566,7 @@ def build_docker_image(
     if ybt_bin_path:
         if ybt_bin_path.startswith('//'):
             ybt_bin_path = join(build_context.conf.get_bin_path(),
-                                ybt_bin_path[2::])
+                                ybt_bin_path[2:])
         # Make sure ybt_bin's are created only under bin_path
         assert (build_context.conf.get_bin_path() ==
                 commonpath([build_context.conf.get_bin_path(), ybt_bin_path]))

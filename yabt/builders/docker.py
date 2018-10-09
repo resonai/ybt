@@ -22,6 +22,7 @@ yabt Docker Builder
 
 :author: Itamar Ostricher
 """
+from os.path import join
 
 from ..artifact import ArtifactType as AT
 from ..extend import (
@@ -30,6 +31,7 @@ from ..extend import (
 from ..logging import make_logger
 from ..docker import build_docker_image, get_image_name
 from ..utils import yprint
+from .. import target_utils
 
 
 logger = make_logger(__name__)
@@ -92,6 +94,9 @@ def docker_builder(build_context, target, entrypoint=None, ybt_bin_path=None):
         entrypoint = target.props.get('docker_entrypoint')
     if ybt_bin_path is None:
         ybt_bin_path = target.props.get('ybt_bin_path')
+    if ybt_bin_path == '.':
+        build_module, bin_name = target_utils.split(target.name)
+        ybt_bin_path = join(build_context.get_bin_dir(build_module), bin_name)
     metadata = (
         {'image_id': target.image_id} if target.image_id else
         build_docker_image(
