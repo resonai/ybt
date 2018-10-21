@@ -480,7 +480,7 @@ class BuildContext:
                     save_target_in_cache(target, self)
             except Exception as ex:
                 target.fail()
-                fatal('`{}\': {}', target.name, ex)
+                fatal('`{}\':### {}', target.name, ex)
 
         def build_in_pool(seq):
             jobs = self.conf.jobs
