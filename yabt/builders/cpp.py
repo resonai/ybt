@@ -361,25 +361,15 @@ def cpp_gtest_builder(build_context, target):
 def cpp_gtest_tester(build_context, target):
     """Run a C++ test executable"""
     yprint(build_context.conf, 'Run CppGTest', target)
-    logger.info('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ %d' % target.props.retry)
     workspace_dir = build_context.get_workspace('CppGTest', target.name)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     test_cmd = [join(buildenv_workspace, *split(target.name))]
     # take gtest exec flags from the target & from project config
     test_cmd.extend(target.props.test_flags)
-    failed = True
-    for i in range(0, target.props.retry):
-        try:
-            build_context.run_in_buildenv(
-                # TODO: target.props.in_testenv,
-                target.props.in_buildenv, test_cmd, target.props.test_env)
-        except Exception as ex:
-            if i < target.props.retry - 1:
-                continue
-            else:
-                raise ex
-
+    build_context.run_in_buildenv(
+        # TODO: target.props.in_testenv,
+        target.props.in_buildenv, test_cmd, target.props.test_env)
 
 register_builder_sig('CppLib', CPP_SIG)
 

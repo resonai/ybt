@@ -464,8 +464,16 @@ class BuildContext:
                 if run_tests and 'testable' in target.tags:
                     if self.conf.no_test_cache or not test_cached:
                         logger.info('Testing target {}', target.name)
-                        test_start = time()
-                        self.test_target(target)
+                        test_start = time() # TODO(Shai) time all retries?
+                        retries = target.props.retry if target.props.retry else 1
+                        for i in range(0, retries):
+                            try:
+                                self.test_target(target)
+                            except Exception as ex:
+                                if i < retries - 1:
+                                    continue
+                                else:
+                                    raise ex
                         target.summary['test_time'] = time() - test_start
                         logger.info('Test of target {} completed in {} sec',
                                     target.name, target.summary['test_time'])
@@ -480,7 +488,7 @@ class BuildContext:
                     save_target_in_cache(target, self)
             except Exception as ex:
                 target.fail()
-                fatal('`{}\':### {}', target.name, ex)
+                fatal('`{}\': {}', target.name, ex)
 
         def build_in_pool(seq):
             jobs = self.conf.jobs
