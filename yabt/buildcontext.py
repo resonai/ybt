@@ -464,19 +464,25 @@ class BuildContext:
                 if run_tests and 'testable' in target.tags:
                     if self.conf.no_test_cache or not test_cached:
                         logger.info('Testing target {}', target.name)
-                        test_start = time() # TODO(Shai) time all retries?
                         retries = target.props.retries or self.conf.test_retries or 3
-                        for i in range(0, retries):
+                        if retries < 1:
+                            raise ValueError('Retries value must be positive: got {}'.format(retries))
+                        test_start = 0
+                        for fails in range(0, retries + 1):
+                            test_start = time() # TODO(bergden) time all retries?
                             try:
                                 self.test_target(target)
                             except Exception as ex:
-                                if i < retries - 1:
+                                if fails < retries:
                                     continue
                                 else:
                                     raise ex
+                            else:
+                                break
                         target.summary['test_time'] = time() - test_start
-                        logger.info('Test of target {} completed in {} sec',
-                                    target.name, target.summary['test_time'])
+                        target.summary['fail_count'] = fails
+                        logger.info('Test of target {} completed in {} sec with {} fails',
+                                    target.name, target.summary['test_time'], fails)
                         target_tested = True
                     else:
                         logger.info(
