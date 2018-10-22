@@ -465,7 +465,7 @@ class BuildContext:
                     if self.conf.no_test_cache or not test_cached:
                         logger.info('Testing target {}', target.name)
                         test_start = time() # TODO(Shai) time all retries?
-                        retries = target.props.retry if target.props.retry else 1
+                        retries = target.props.retries or self.conf.test_retries or 3
                         for i in range(0, retries):
                             try:
                                 self.test_target(target)

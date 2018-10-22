@@ -58,6 +58,7 @@ class Config:
         'no_build_cache',
         'no_docker_cache',
         'no_test_cache',
+        'test_retries',
         'non_interactive',
         'offline',
         'output_dot_file',
