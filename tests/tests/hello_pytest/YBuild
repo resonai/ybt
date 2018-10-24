@@ -5,3 +5,11 @@ PythonTest('greet-test', module='greet_test.py', deps=':greet',
 
 PythonTest('greet-failing-test', module='greet_test.py', deps=':greet',
            test_flags='TestGreetFail', in_testenv='//:python')
+
+PythonTest('flaky-test', module='flaky_test.py',
+           test_flags='TestFlaky', in_testenv='//:python',
+           runtime_params={
+             'volumes': ['/tmp/:/tmp/']
+           },
+           test_env={'RANDOM_FILE': None},
+           retries=5)

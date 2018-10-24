@@ -19,7 +19,7 @@
 :author: Itamar Ostricher
 """
 
-
+import random
 import pytest
 
 from ..buildcontext import BuildContext
@@ -47,3 +47,14 @@ def test_python_tester_fail(basic_conf):
     populate_targets_graph(build_context, basic_conf)
     with pytest.raises(SystemExit):
         build_context.build_graph(run_tests=True)
+
+@slow
+@pytest.mark.usefixtures('in_tests_project')
+def test_python_tester_flaky(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['hello_pytest:flaky-test']
+    populate_targets_graph(build_context, basic_conf)
+    target = build_context.targets[basic_conf.targets[0]]
+    target.props.test_env['RANDOM_FILE'] = str(random.randint(0, 20000))
+    build_context.build_graph(run_tests=True)
+    assert target.summary['fail_count'] == 1
