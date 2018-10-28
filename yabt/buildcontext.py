@@ -471,7 +471,7 @@ class BuildContext:
                                 .format(retries))
                         test_start = 0
                         fails = 0
-                        while retries - fails >= 0:
+                        while retries >= fails:
                             test_start = time() # TODO(bergden) time all retries?
                             try:
                                 self.test_target(target)

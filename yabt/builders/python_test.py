@@ -50,6 +50,18 @@ def test_python_tester_fail(basic_conf):
 
 @slow
 @pytest.mark.usefixtures('in_tests_project')
+def test_python_tester_fail_with_retry(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['hello_pytest:greet-failing-test']
+    populate_targets_graph(build_context, basic_conf)
+    target = build_context.targets[basic_conf.targets[0]]
+    target.props.retries = 4
+    with pytest.raises(SystemExit):
+        build_context.build_graph(run_tests=True)
+        assert target.summary['fail_count'] == 5
+
+@slow
+@pytest.mark.usefixtures('in_tests_project')
 def test_python_tester_flaky(basic_conf):
     build_context = BuildContext(basic_conf)
     basic_conf.targets = ['hello_pytest:flaky-test']
