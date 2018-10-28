@@ -456,7 +456,7 @@ class BuildContext:
                 built_targets.add(target.name)
                 target.done()
 
-                # TODO: retry flaky tests N times
+                # TODO: retry flaky tests N times AFTER all the rest passed
                 # TODO: collect stats and print report at the end
                 # TODO: support both "fail fast" (exit on first failure) and
                 #       run all tests (don't exit on first failure) modes
