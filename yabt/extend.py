@@ -159,7 +159,7 @@ class Builder:
         self.sig['packaging_params'] = ArgSpec(PropType.dict, None)
         self.sig['runtime_params'] = ArgSpec(PropType.dict, None)
         self.sig['build_params'] = ArgSpec(PropType.dict, None)
-        self.sig['retries'] = ArgSpec(PropType.numeric, 1)
+        self.sig['retries'] = ArgSpec(PropType.numeric, 0)
 
 
 class Plugin:

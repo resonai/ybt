@@ -465,20 +465,21 @@ class BuildContext:
                     if self.conf.no_test_cache or not test_cached:
                         logger.info('Testing target {}', target.name)
                         retries = target.props.retries or self.conf.test_retries
-                        if retries < 1:
+                        if retries < 0:
                             raise ValueError(
                                 'Retries value must be positive: got {}'
                                 .format(retries))
                         test_start = 0
-                        for fails in range(0, retries + 1):
+                        fails = 0
+                        while retries - fails >= 0:
                             test_start = time() # TODO(bergden) time all retries?
                             try:
                                 self.test_target(target)
                             except Exception:
-                                if fails < retries:
-                                    continue
-                                else:
+                                if retries - fails <= 0:
                                     raise
+                                else:
+                                    fails += 1
                             else:
                                 break
                         target.summary['test_time'] = time() - test_start

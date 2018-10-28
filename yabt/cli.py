@@ -110,7 +110,7 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         PARSER.add('--no-policies', action='store_true')
         PARSER.add('--no-test-cache', action='store_true',
                    help='Disable YBT test cache')
-        PARSER.add('--test-retries', type=int, default=1)
+        PARSER.add('--test-retries', type=int, default=0)
         PARSER.add('-v', '--verbose', action='store_true',
                    help='More verbose output to STDOUT')
         PARSER.add('--with-tini-entrypoint', action='store_true')
