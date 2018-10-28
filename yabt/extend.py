@@ -128,6 +128,7 @@ class Builder:
             (empty dict).
         8. A keyword arg `build_params` of type dict and default value {}
             (empty dict).
+        9. A keyword arg `retries` of type int and default value 1.
         """
         if self.sig is not None:
             raise KeyError('{} already registered a signature!'
