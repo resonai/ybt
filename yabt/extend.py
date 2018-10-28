@@ -95,7 +95,7 @@ class Builder:
         self.min_positional_args = 1  # the `name`
 
     def register_sig(self, builder_name: str, sig: list, docstring: str,
-                     retries, cachable: bool=True):
+                     cachable: bool=True, retries=0):
         """Register a builder signature & docstring for `builder_name`.
 
         The input for the builder signature is a list of "sig-spec"s
@@ -206,7 +206,7 @@ class Plugin:
 
 
 def register_builder_sig(
-        builder_name, sig=None, docstring=None, cachable: bool=True, retries=3):
+        builder_name, sig=None, docstring=None, cachable: bool=True, retries=0):
     Plugin.builders[builder_name].register_sig(
         builder_name, sig, docstring, cachable, retries)
     logger.debug('Registered {} builder signature'.format(builder_name))
