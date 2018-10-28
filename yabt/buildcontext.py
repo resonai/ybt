@@ -466,17 +466,19 @@ class BuildContext:
                         logger.info('Testing target {}', target.name)
                         retries = target.props.retries or self.conf.test_retries or 3
                         if retries < 1:
-                            raise ValueError('Retries value must be positive: got {}'.format(retries))
+                            raise ValueError(
+                                'Retries value must be positive: got {}'
+                                .format(retries))
                         test_start = 0
                         for fails in range(0, retries + 1):
                             test_start = time() # TODO(bergden) time all retries?
                             try:
                                 self.test_target(target)
-                            except Exception as ex:
+                            except Exception:
                                 if fails < retries:
                                     continue
                                 else:
-                                    raise ex
+                                    raise
                             else:
                                 break
                         target.summary['test_time'] = time() - test_start
