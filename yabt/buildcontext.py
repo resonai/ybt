@@ -464,31 +464,13 @@ class BuildContext:
                 if run_tests and 'testable' in target.tags:
                     if self.conf.no_test_cache or not test_cached:
                         logger.info('Testing target {}', target.name)
-                        retries =
-                        target.props.retries or self.conf.test_retries
-                        if retries < 0:
-                            raise ValueError(
-                                'Retries value must be positive: got {}'
-                                .format(retries))
-                        test_start = 0
-                        fails = 0
-                        while retries >= fails:
-                            test_start = time()
-                            try:
-                                self.test_target(target)
-                            except Exception:
-                                if retries - fails <= 0:
-                                    raise
-                                else:
-                                    fails += 1
-                            else:
-                                break
+                        self.test_target(target)
                         target.summary['test_time'] = time() - test_start
-                        target.summary['fail_count'] = fails
+                        # target.summary['fail_count'] = fails
                         logger.info(
                             'Test of target {} completed in {} sec '
                             'with {} fails',
-                            target.name, target.summary['test_time'], fails)
+                            target.name, target.summary['test_time'], target.summary['fail_count'])
                         target_tested = True
                     else:
                         logger.info(
@@ -499,8 +481,17 @@ class BuildContext:
                 if target_built or target_tested:
                     save_target_in_cache(target, self)
             except Exception as ex:
-                target.fail()
-                fatal('`{}\': {}', target.name, ex)
+                target.summary['fail_count'] += 1
+                default_retries = 0
+                if 'testable' in target.tags:
+                    default_retries = self.conf.test_retries
+                retries = target.props.retries or default_retries
+                if retries > target.summary['fail_count']:
+                    # TODO(bergden): re-push to iterator and accumulate error prin
+                else:
+                    target.fail()
+                    # TODO(bergden): flag out exit on fail
+                    fatal('`{}\': {}', target.name, ex)
 
         def build_in_pool(seq):
             jobs = self.conf.jobs
