@@ -464,8 +464,8 @@ class BuildContext:
                 if run_tests and 'testable' in target.tags:
                     if self.conf.no_test_cache or not test_cached:
                         logger.info('Testing target {}', target.name)
-                        retries =
-                        target.props.retries or self.conf.test_retries
+                        retries = (
+                            target.props.retries or self.conf.test_retries)
                         if retries < 0:
                             raise ValueError(
                                 'Retries value must be positive: got {}'
