@@ -167,6 +167,7 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
             summary={
                 'build_time': None,
                 'test_time': None,
+                'fail_count': 0,
                 'created': None,
                 'accessed': None,
             },
