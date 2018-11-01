@@ -59,7 +59,7 @@ def test_python_tester_fail_with_retry(basic_conf):
     target.props.retries = 4
     with pytest.raises(SystemExit):
         build_context.build_graph(run_tests=True)
-        assert target.summary['fail_count'] == 5
+    assert target.summary['fail_count'] == 5
 
 
 @slow

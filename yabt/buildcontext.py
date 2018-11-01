@@ -471,24 +471,23 @@ class BuildContext:
                                 'Retries value must be positive: got {}'
                                 .format(retries))
                         test_start = 0
-                        fails = 0
-                        while retries >= fails:
+                        target.summary['fail_count'] = 0
+                        while retries >= target.summary['fail_count']:
                             test_start = time()
                             try:
                                 self.test_target(target)
                             except Exception:
-                                if retries - fails <= 0:
+                                target.summary['fail_count'] += 1
+                                if retries < target.summary['fail_count']:
                                     raise
-                                else:
-                                    fails += 1
                             else:
                                 break
                         target.summary['test_time'] = time() - test_start
-                        target.summary['fail_count'] = fails
                         logger.info(
                             'Test of target {} completed in {} sec '
                             'with {} fails',
-                            target.name, target.summary['test_time'], fails)
+                            target.name, target.summary['test_time'],
+                            target.summary['fail_count'])
                         target_tested = True
                     else:
                         logger.info(
