@@ -484,7 +484,8 @@ class BuildContext:
                         logger.info(
                             'Test of target {} completed in {} sec '
                             'with {} fails',
-                            target.name, target.summary['test_time'], target.summary['fail_count'])
+                            target.name, target.summary['test_time'],
+                            target.summary['fail_count'])
                         target_tested = True
                     else:
                         logger.info(
@@ -503,7 +504,7 @@ class BuildContext:
                     default_retries = self.conf.test_retries
                 retries = target.props.retries or default_retries
                 if retries > target.summary['fail_count'] - 1:
-                    # TODO(bergden): re-push to iterator and accumulate error prints
+                    # TODO(bergden): accumulate error prints
                     target.retry()
                     pass
                 else:
