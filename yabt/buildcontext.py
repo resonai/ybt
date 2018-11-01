@@ -253,6 +253,19 @@ class BuildContext:
 
             return done_notifier
 
+        def make_retry_callback(target: Target):
+            """Return a callable "retry" notifier to
+               report a target as in need of retry."""
+
+            def retry_notifier():
+                """Mark target as retry, re-entering node to end of queue"""
+                if graph_copy.has_node(target.name):
+                    # graph_copy.remove_node(target.name)
+                    ready_nodes.append(target.name)
+                    produced_event.set()
+
+            return retry_notifier
+
         while True:
             while len(ready_nodes) == 0:
                 if graph_copy.order() == 0:
@@ -264,6 +277,8 @@ class BuildContext:
             next_node = ready_nodes.popleft()
             node = self.targets[next_node]
             node.done = make_done_callback(node)
+            # TODO(berdgen) retry assumes no need to update predecessors
+            node.retry = make_retry_callback(node)
             node.fail = lambda: failed_event.set()
             yield node
 
@@ -453,8 +468,6 @@ class BuildContext:
                     logger.info('Build of target {} completed in {} sec',
                                 target.name, target.summary['build_time'])
                     target_built = True
-                built_targets.add(target.name)
-                target.done()
 
                 # TODO: retry flaky tests N times AFTER all the rest passed
                 # TODO: collect stats and print report at the end
@@ -464,6 +477,7 @@ class BuildContext:
                 if run_tests and 'testable' in target.tags:
                     if self.conf.no_test_cache or not test_cached:
                         logger.info('Testing target {}', target.name)
+                        test_start = time()
                         self.test_target(target)
                         target.summary['test_time'] = time() - test_start
                         # target.summary['fail_count'] = fails
@@ -476,6 +490,8 @@ class BuildContext:
                         logger.info(
                             'Target {} test cached - skipping test run',
                             target.name)
+                built_targets.add(target.name)
+                target.done()
 
                 # write to cache only if build or test was executed
                 if target_built or target_tested:
@@ -486,8 +502,10 @@ class BuildContext:
                 if 'testable' in target.tags:
                     default_retries = self.conf.test_retries
                 retries = target.props.retries or default_retries
-                if retries > target.summary['fail_count']:
+                if retries > target.summary['fail_count'] - 1:
                     # TODO(bergden): re-push to iterator and accumulate error prints
+                    target.retry()
+                    pass
                 else:
                     target.fail()
                     # TODO(bergden): flag out exit on fail
