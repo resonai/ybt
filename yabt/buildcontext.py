@@ -487,7 +487,7 @@ class BuildContext:
                     default_retries = self.conf.test_retries
                 retries = target.props.retries or default_retries
                 if retries > target.summary['fail_count']:
-                    # TODO(bergden): re-push to iterator and accumulate error prin
+                    # TODO(bergden): re-push to iterator and accumulate error prints
                 else:
                     target.fail()
                     # TODO(bergden): flag out exit on fail
