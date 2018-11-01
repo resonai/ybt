@@ -498,6 +498,7 @@ class BuildContext:
                 if target_built or target_tested:
                     save_target_in_cache(target, self)
             except Exception as ex:
+                logger.info('fail_count: {}', target.summary['fail_count'])
                 target.summary['fail_count'] += 1
                 default_retries = 0
                 if 'testable' in target.tags:
