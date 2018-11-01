@@ -206,7 +206,8 @@ class Plugin:
 
 
 def register_builder_sig(
-        builder_name, sig=None, docstring=None, cachable: bool=True, retries=0):
+        builder_name, sig=None, docstring=None, cachable: bool=True,
+        retries=0):
     Plugin.builders[builder_name].register_sig(
         builder_name, sig, docstring, cachable, retries)
     logger.debug('Registered {} builder signature'.format(builder_name))

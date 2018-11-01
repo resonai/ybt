@@ -48,6 +48,7 @@ def test_python_tester_fail(basic_conf):
     with pytest.raises(SystemExit):
         build_context.build_graph(run_tests=True)
 
+
 @slow
 @pytest.mark.usefixtures('in_tests_project')
 def test_python_tester_fail_with_retry(basic_conf):
@@ -59,6 +60,7 @@ def test_python_tester_fail_with_retry(basic_conf):
     with pytest.raises(SystemExit):
         build_context.build_graph(run_tests=True)
         assert target.summary['fail_count'] == 5
+
 
 @slow
 @pytest.mark.usefixtures('in_tests_project')
