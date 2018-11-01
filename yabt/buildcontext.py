@@ -469,7 +469,6 @@ class BuildContext:
                                 target.name, target.summary['build_time'])
                     target_built = True
 
-                # TODO: retry flaky tests N times AFTER all the rest passed
                 # TODO: collect stats and print report at the end
                 # TODO: support both "fail fast" (exit on first failure) and
                 #       run all tests (don't exit on first failure) modes
