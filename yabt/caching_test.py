@@ -162,7 +162,6 @@ def test_save_target_to_cache(basic_conf):
     assert '{}' == read_file(artifacts_json_path)
     summary = read_file(summary_json_path, True)
     assert set(('accessed', 'artifacts_hash', 'build_time', 'created',
-                'name', 'test_time')) == set(summary.keys())
+                'name')) == set(summary.keys())
     assert summary['build_time'] == 5.432
     assert summary['name'] == target_name
-    assert summary['test_time'] is None
