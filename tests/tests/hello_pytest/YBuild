@@ -9,4 +9,4 @@ PythonTest('greet-failing-test', module='greet_test.py', deps=':greet',
 PythonTest('flaky-test', module='flaky_test.py',
            test_flags='TestFlaky', in_testenv='//:python',
            test_env={'RANDOM_FILE': None},
-           retries=1)
+           attempts=2)

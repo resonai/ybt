@@ -57,7 +57,7 @@ def test_python_tester_fail_with_retry(basic_conf):
     basic_conf.targets = [target_name]
     populate_targets_graph(build_context, basic_conf)
     target = build_context.targets[target_name]
-    target.props.retries = 4
+    target.props.attempts = 5
     with pytest.raises(SystemExit):
         build_context.build_graph(run_tests=True)
     assert target.info['fail_count'] == 5

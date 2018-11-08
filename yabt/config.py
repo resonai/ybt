@@ -63,7 +63,7 @@ class Config:
         'output_dot_file',
         'push',
         'targets',
-        'test_retries',
+        'test_attempts',
         'verbose',
         'with_tini_entrypoint',
         # logging-related

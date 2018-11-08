@@ -120,6 +120,7 @@ _EXP_UNZIP_JSON = """{
     "flavor": null,
     "name": ":unzip",
     "props": {
+        "attempts": 1,
         "build_params": {},
         "license": [],
         "package": "unzip",
@@ -128,7 +129,6 @@ _EXP_UNZIP_JSON = """{
         "repo_key": null,
         "repo_keyserver": "hkp://keyserver.ubuntu.com:80",
         "repository": null,
-        "retries": 0,
         "runtime_params": {},
         "version": null
     },

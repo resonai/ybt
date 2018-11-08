@@ -456,7 +456,7 @@ class BuildContext:
                 built_targets.add(target.name)
                 target.done()
 
-                # TODO: retry flaky tests N times AFTER all the rest passed
+                # TODO: attempt flaky tests N times AFTER all the rest passed
                 # TODO: collect stats and print report at the end
                 # TODO: support both "fail fast" (exit on first failure) and
                 #       run all tests (don't exit on first failure) modes
@@ -464,21 +464,21 @@ class BuildContext:
                 if run_tests and 'testable' in target.tags:
                     if self.conf.no_test_cache or not test_cached:
                         logger.info('Testing target {}', target.name)
-                        retries = (
-                            target.props.retries or self.conf.test_retries)
-                        if retries < 0:
+                        attempts = max(target.props.attempts,
+                                       self.conf.test_attempts)
+                        if attempts < 1:
                             raise ValueError(
-                                'Retries value must be positive: got {}'
-                                .format(retries))
+                                'Attempts value must be 1 or more: got {}'
+                                .format(attempts))
                         test_start = 0
                         target.info['fail_count'] = 0
-                        while retries >= target.info['fail_count']:
+                        while attempts > target.info['fail_count']:
                             test_start = time()
                             try:
                                 self.test_target(target)
                             except Exception:
                                 target.info['fail_count'] += 1
-                                if retries < target.info['fail_count']:
+                                if attempts <= target.info['fail_count']:
                                     raise
                             else:
                                 break
