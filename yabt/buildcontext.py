@@ -478,13 +478,13 @@ class BuildContext:
                         logger.info('Testing target {}', target.name)
                         test_start = time()
                         self.test_target(target)
-                        target.summary['test_time'] = time() - test_start
-                        # target.summary['fail_count'] = fails
+                        target.info['test_time'] = time() - test_start
+                        # target.info['fail_count'] = fails
                         logger.info(
                             'Test of target {} completed in {} sec '
                             'with {} fails',
-                            target.name, target.summary['test_time'],
-                            target.summary['fail_count'])
+                            target.name, target.info['test_time'],
+                            target.info['fail_count'])
                         target_tested = True
                     else:
                         logger.info(
@@ -497,13 +497,13 @@ class BuildContext:
                 if target_built or target_tested:
                     save_target_in_cache(target, self)
             except Exception as ex:
-                logger.info('fail_count: {}', target.summary['fail_count'])
-                target.summary['fail_count'] += 1
-                default_retries = 0
+                logger.info('fail_count: {}', target.info['fail_count'])
+                target.info['fail_count'] += 1
+                default_retries = 1
                 if 'testable' in target.tags:
-                    default_retries = self.conf.test_retries
-                retries = target.props.retries or default_retries
-                if retries > target.summary['fail_count'] - 1:
+                    default_attempts = self.conf.test_attempts
+                attempts = max(target.props.attempts, default_attempts)
+                if attempts > target.info['fail_count']:
                     # TODO(bergden): accumulate error prints
                     target.retry()
                     pass

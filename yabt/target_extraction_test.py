@@ -57,7 +57,7 @@ def test_build_sig_args_to_props_valid_positional_args():
                             'license': None,
                             'packaging_params': None,
                             'policies': None,
-                            'retries': 0,
+                            'attempts': 1,
                             'runtime_params': None,
                             }
 
@@ -104,7 +104,7 @@ def test_build_sig_args_to_props_valid_mix_pos_kwargs():
                             'license': None,
                             'packaging_params': None,
                             'policies': None,
-                            'retries': 0,
+                            'attempts': 1,
                             'runtime_params': None,
                             }
 
@@ -186,7 +186,7 @@ def test_typed_args_valid_defaults():
                             'license': [],
                             'packaging_params': {},
                             'policies': [],
-                            'retries': 0,
+                            'attempts': 1,
                             'runtime_params': {},
                             }
 
@@ -207,7 +207,7 @@ def test_typed_args_valid_non_default():
                             'license': [],
                             'packaging_params': {},
                             'policies': [],
-                            'retries': 0,
+                            'attempts': 1,
                             'runtime_params': {},
                             }
 
@@ -227,6 +227,6 @@ def test_file_arg_from_project_root():
                             'license': [],
                             'packaging_params': {},
                             'policies': [],
-                            'retries': 0,
+                            'attempts': 1,
                             'runtime_params': {},
                             }
