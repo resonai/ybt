@@ -30,47 +30,65 @@ slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
                           reason='need --with-slow option to run')
 
 
+# @slow
+# @pytest.mark.usefixtures('in_tests_project')
+# def test_python_tester_success(basic_conf):
+#     build_context = BuildContext(basic_conf)
+#     basic_conf.targets = ['hello_pytest:greet-test']
+#     populate_targets_graph(build_context, basic_conf)
+#     build_context.build_graph(run_tests=True)
+
+
+# @slow
+# @pytest.mark.usefixtures('in_tests_project')
+# def test_python_tester_fail(basic_conf):
+#     build_context = BuildContext(basic_conf)
+#     basic_conf.targets = ['hello_pytest:greet-failing-test']
+#     populate_targets_graph(build_context, basic_conf)
+#     with pytest.raises(SystemExit):
+#         build_context.build_graph(run_tests=True)
+
+
+# @slow
+# @pytest.mark.usefixtures('in_tests_project')
+# def test_python_tester_fail_with_retry(basic_conf):
+#     build_context = BuildContext(basic_conf)
+#     target_name = 'hello_pytest:greet-failing-test'
+#     basic_conf.targets = [target_name]
+#     populate_targets_graph(build_context, basic_conf)
+#     target = build_context.targets[target_name]
+#     target.props.attempts = 5
+#     with pytest.raises(SystemExit):
+#         build_context.build_graph(run_tests=True)
+#     assert target.info['fail_count'] == 5
+
+
+# @slow
+# @pytest.mark.usefixtures('in_tests_project')
+# def test_python_tester_flaky(basic_conf):
+#     build_context = BuildContext(basic_conf)
+#     target_name = 'hello_pytest:flaky-test'
+#     basic_conf.targets = [target_name]
+#     populate_targets_graph(build_context, basic_conf)
+#     target = build_context.targets[target_name]
+#     target.props.test_env['RANDOM_FILE'] = str(random.randint(0, 20000))
+#     build_context.build_graph(run_tests=True)
+#     assert target.info['fail_count'] == 1
+
+
 @slow
 @pytest.mark.usefixtures('in_tests_project')
-def test_python_tester_success(basic_conf):
+def test_python_tester_aba(basic_conf):
     build_context = BuildContext(basic_conf)
-    basic_conf.targets = ['hello_pytest:greet-test']
+    target_a_name = 'hello_pytest:test-a'
+    target_b_name = 'hello_pytest:test-b'
+    basic_conf.targets = [target_a_name, target_b_name]
     populate_targets_graph(build_context, basic_conf)
+    target_a = build_context.targets[target_a_name]
+    target_b = build_context.targets[target_b_name]
+    random_file = str(random.randint(0, 20000))
+    target_a.props.test_env['RANDOM_FILE'] = random_file
+    target_b.props.test_env['RANDOM_FILE'] = random_file
     build_context.build_graph(run_tests=True)
-
-
-@slow
-@pytest.mark.usefixtures('in_tests_project')
-def test_python_tester_fail(basic_conf):
-    build_context = BuildContext(basic_conf)
-    basic_conf.targets = ['hello_pytest:greet-failing-test']
-    populate_targets_graph(build_context, basic_conf)
-    with pytest.raises(SystemExit):
-        build_context.build_graph(run_tests=True)
-
-
-@slow
-@pytest.mark.usefixtures('in_tests_project')
-def test_python_tester_fail_with_retry(basic_conf):
-    build_context = BuildContext(basic_conf)
-    target_name = 'hello_pytest:greet-failing-test'
-    basic_conf.targets = [target_name]
-    populate_targets_graph(build_context, basic_conf)
-    target = build_context.targets[target_name]
-    target.props.attempts = 5
-    with pytest.raises(SystemExit):
-        build_context.build_graph(run_tests=True)
-    assert target.info['fail_count'] == 5
-
-
-@slow
-@pytest.mark.usefixtures('in_tests_project')
-def test_python_tester_flaky(basic_conf):
-    build_context = BuildContext(basic_conf)
-    target_name = 'hello_pytest:flaky-test'
-    basic_conf.targets = [target_name]
-    populate_targets_graph(build_context, basic_conf)
-    target = build_context.targets[target_name]
-    target.props.test_env['RANDOM_FILE'] = str(random.randint(0, 20000))
-    build_context.build_graph(run_tests=True)
-    assert target.info['fail_count'] == 1
+    # assert target.info['fail_count'] == 1
+    # assert target.info['test_time'] >
