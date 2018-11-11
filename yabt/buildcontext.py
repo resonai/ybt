@@ -464,8 +464,10 @@ class BuildContext:
                 if run_tests and 'testable' in target.tags:
                     if self.conf.no_test_cache or not test_cached:
                         logger.info('Testing target {}', target.name)
-                        attempts = max(target.props.attempts,
-                                       self.conf.test_attempts)
+                        attempts = (
+                            self.conf.test_attempts if
+                            target.props.attempts == 1 else
+                            target.props.attempts)
                         if attempts < 1:
                             raise ValueError(
                                 'Attempts value must be 1 or more: got {}'
