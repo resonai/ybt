@@ -57,6 +57,7 @@ def test_build_sig_args_to_props_valid_positional_args():
                             'license': None,
                             'packaging_params': None,
                             'policies': None,
+                            'attempts': 1,
                             'runtime_params': None,
                             }
 
@@ -103,6 +104,7 @@ def test_build_sig_args_to_props_valid_mix_pos_kwargs():
                             'license': None,
                             'packaging_params': None,
                             'policies': None,
+                            'attempts': 1,
                             'runtime_params': None,
                             }
 
@@ -143,9 +145,9 @@ def test_build_sig_args_to_props_too_many_pos_args():
     with pytest.raises(TypeError) as excinfo:
         args_to_props(target, Plugin.builders['Spam'],
                       args=['my-spam', 'foo', 'bar', None, None, None, None,
-                            None, None, None, None, None, 'w00t'],
+                            None, None, None, None, None, 'w00t', '14th'],
                       kwargs={})
-    assert ('Spam() takes from 3 to 12 positional arguments, but 13 were given'
+    assert ('Spam() takes from 3 to 13 positional arguments, but 14 were given'
             in str(excinfo.value))
 
 
@@ -184,6 +186,7 @@ def test_typed_args_valid_defaults():
                             'license': [],
                             'packaging_params': {},
                             'policies': [],
+                            'attempts': 1,
                             'runtime_params': {},
                             }
 
@@ -204,6 +207,7 @@ def test_typed_args_valid_non_default():
                             'license': [],
                             'packaging_params': {},
                             'policies': [],
+                            'attempts': 1,
                             'runtime_params': {},
                             }
 
@@ -223,5 +227,6 @@ def test_file_arg_from_project_root():
                             'license': [],
                             'packaging_params': {},
                             'policies': [],
+                            'attempts': 1,
                             'runtime_params': {},
                             }

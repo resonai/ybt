@@ -80,7 +80,7 @@ def evaluate_arg_spec(arg_spec):
 
 
 INJECTED_ARGS = frozenset((
-    'build_params', 'deps', 'cachable', 'license',
+    'build_params', 'deps', 'cachable', 'license', 'attempts'
     'packaging_params', 'policies', 'runtime_params',
 ))
 
@@ -95,7 +95,7 @@ class Builder:
         self.min_positional_args = 1  # the `name`
 
     def register_sig(self, builder_name: str, sig: list, docstring: str,
-                     cachable: bool=True):
+                     cachable: bool=True, attempts=1):
         """Register a builder signature & docstring for `builder_name`.
 
         The input for the builder signature is a list of "sig-spec"s
@@ -128,6 +128,7 @@ class Builder:
             (empty dict).
         8. A keyword arg `build_params` of type dict and default value {}
             (empty dict).
+        9. A keyword arg `attempts` of type int and default value 1.
         """
         if self.sig is not None:
             raise KeyError('{} already registered a signature!'
@@ -158,6 +159,7 @@ class Builder:
         self.sig['packaging_params'] = ArgSpec(PropType.dict, None)
         self.sig['runtime_params'] = ArgSpec(PropType.dict, None)
         self.sig['build_params'] = ArgSpec(PropType.dict, None)
+        self.sig['attempts'] = ArgSpec(PropType.numeric, 1)
 
 
 class Plugin:
@@ -204,9 +206,10 @@ class Plugin:
 
 
 def register_builder_sig(
-        builder_name, sig=None, docstring=None, cachable: bool=True):
+        builder_name, sig=None, docstring=None, cachable: bool=True,
+        attempts=1):
     Plugin.builders[builder_name].register_sig(
-        builder_name, sig, docstring, cachable)
+        builder_name, sig, docstring, cachable, attempts)
     logger.debug('Registered {} builder signature'.format(builder_name))
 
 

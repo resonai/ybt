@@ -166,9 +166,12 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
             artifacts=ArtifactStore(),
             summary={
                 'build_time': None,
-                'test_time': None,
                 'created': None,
                 'accessed': None,
+            },
+            info={
+                'test_time': None,
+                'fail_count': 0,
             },
             is_dirty=False,
             _hash=None,

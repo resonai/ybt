@@ -93,8 +93,8 @@ def test_norm_name_unqualified_error():
             'possible ambiguity' in str(excinfo.value))
 
 
-_HELLO_PROG_HASH = 'f54d934e9db097faa287604622dae36f'
-_PROTO_BUILDER = 'eb0874ddb922e4b0b8ba0ca3808a6936'
+_HELLO_PROG_HASH = '41eb61d311e6b841d71f2230e7e62a94'
+_PROTO_BUILDER = '2673afde9594dc5212450377dfc16b41'
 _BOTH_HASHES = list(sorted([_HELLO_PROG_HASH, _PROTO_BUILDER]))
 
 
@@ -108,6 +108,7 @@ _EXP_JSON = """{
     "flavor": null,
     "name": "app:hello-prog-app",
     "props": {
+        "attempts": 1,
         "base_image": [
             "%s"
         ],
