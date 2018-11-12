@@ -273,7 +273,7 @@ class BuildContext:
             """Return a callable "fail" notifier to
                report a target as failed after all retries."""
 
-            def fail_notifier():
+            def fail_notifier(ex):
                 """Mark target as failed, taking it and decendants
                    out from the queue"""
                 if graph_copy.has_node(target.name):
@@ -290,10 +290,11 @@ class BuildContext:
                             if not affected_node == target.name:
                                 self.skipped_nodes.append(affected_node)
                             graph_copy.remove_node(affected_node)
-                    if False:
-                        failed_event.set()
-                    else:
+                    if self.conf.continue_after_fail:
                         produced_event.set()
+                    else:
+                        failed_event.set()
+                        fatal('`{}\': {}', target.name, ex)
 
             return fail_notifier
 
@@ -542,9 +543,7 @@ class BuildContext:
                     target.retry()
                     pass
                 else:
-                    target.fail()
-                    # TODO(bergden): flag out exit on fail
-                    # fatal('`{}\': {}', target.name, ex)
+                    target.fail(ex)
 
         def build_in_pool(seq):
             jobs = self.conf.jobs
@@ -568,7 +567,8 @@ class BuildContext:
         # main pass: build rest of the graph
         build_in_pool(self.target_iter())
         if self.failed_nodes:
-            logger.info('Finished building target graph with fails: {} \n'
-            'and skips: {}', self.failed_nodes, self.skipped_nodes)
+            fatal('Finished building target graph with fails: \n{}\n'
+            'which caused the following to skip: \n{}',
+            self.failed_nodes, self.skipped_nodes)
         else:
             logger.info('Finished building target graph successfully')

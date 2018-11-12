@@ -51,6 +51,18 @@ def test_python_tester_fail(basic_conf):
 
 @slow
 @pytest.mark.usefixtures('in_tests_project')
+def test_python_tester_fail_no_exit(basic_conf):
+    basic_conf.continue_after_fail = True
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['hello_pytest:greet-failing-test']
+    populate_targets_graph(build_context, basic_conf)
+    with pytest.raises(SystemExit):
+        build_context.build_graph(run_tests=True)
+        # TODO(bergden) assert it's the right error
+
+
+@slow
+@pytest.mark.usefixtures('in_tests_project')
 def test_python_tester_fail_with_retry(basic_conf):
     build_context = BuildContext(basic_conf)
     target_name = 'hello_pytest:greet-failing-test'
