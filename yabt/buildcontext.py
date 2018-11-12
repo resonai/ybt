@@ -78,6 +78,8 @@ class BuildContext:
         self.conf = conf
         # A *thread-safe* targets map
         self.targets = {}
+        self.failed_nodes = []
+        self.skipped_nodes = []
         # A *thread-safe* map from build module to set of target names
         # that were extracted from that build module
         self.targets_by_module = defaultdict(set)
@@ -255,16 +257,45 @@ class BuildContext:
 
         def make_retry_callback(target: Target):
             """Return a callable "retry" notifier to
-               report a target as in need of retry."""
+               report a target as in need of retry.
+               Currently for tests we rebuild the target
+               when it's not necessary."""
 
             def retry_notifier():
                 """Mark target as retry, re-entering node to end of queue"""
                 if graph_copy.has_node(target.name):
-                    # graph_copy.remove_node(target.name)
                     ready_nodes.append(target.name)
                     produced_event.set()
 
             return retry_notifier
+
+        def make_fail_callback(target: Target):
+            """Return a callable "fail" notifier to
+               report a target as failed after all retries."""
+
+            def fail_notifier():
+                """Mark target as failed, taking it and decendants
+                   out from the queue"""
+                if graph_copy.has_node(target.name):
+                    self.failed_nodes.append(target.name)
+                    affected_nodes = [target.name]
+                    # removing all predecessors recursively
+                    while affected_nodes:
+                        affected_node = affected_nodes.pop()
+                        if affected_node in self.skipped_nodes:
+                            continue
+                        affected_nodes += list(sorted(
+                            graph_copy.predecessors(affected_node)))
+                        if graph_copy.has_node(affected_node):
+                            if not affected_node == target.name:
+                                self.skipped_nodes.append(affected_node)
+                            graph_copy.remove_node(affected_node)
+                    if False:
+                        failed_event.set()
+                    else:
+                        produced_event.set()
+
+            return fail_notifier
 
         while True:
             while len(ready_nodes) == 0:
@@ -272,14 +303,17 @@ class BuildContext:
                     return
                 if failed_event.is_set():
                     return
+                # logger.info('graph order: {}', graph_copy.order())
                 produced_event.wait(0.5)
             produced_event.clear()
             next_node = ready_nodes.popleft()
             node = self.targets[next_node]
             node.done = make_done_callback(node)
-            # TODO(berdgen) retry assumes no need to update predecessors
+            # TODO(berdgen) retry assumes no need to update predecessors:
+            # This means we don't support retries for targets that are
+            # prerequisites of other targets (builds, installs)
             node.retry = make_retry_callback(node)
-            node.fail = lambda: failed_event.set()
+            node.fail = make_fail_callback(node)
             yield node
 
     def target_iter(self):
@@ -499,7 +533,7 @@ class BuildContext:
             except Exception as ex:
                 logger.info('fail_count: {}', target.info['fail_count'])
                 target.info['fail_count'] += 1
-                default_retries = 1
+                default_attempts = 1
                 if 'testable' in target.tags:
                     default_attempts = self.conf.test_attempts
                 attempts = max(target.props.attempts, default_attempts)
@@ -510,7 +544,7 @@ class BuildContext:
                 else:
                     target.fail()
                     # TODO(bergden): flag out exit on fail
-                    fatal('`{}\': {}', target.name, ex)
+                    # fatal('`{}\': {}', target.name, ex)
 
         def build_in_pool(seq):
             jobs = self.conf.jobs
@@ -533,4 +567,8 @@ class BuildContext:
                     self.conf.flavor, self.conf.jobs)
         # main pass: build rest of the graph
         build_in_pool(self.target_iter())
-        logger.info('Finished building target graph successfully')
+        if self.failed_nodes:
+            logger.info('Finished building target graph with fails: {} \n'
+            'and skips: {}', self.failed_nodes, self.skipped_nodes)
+        else:
+            logger.info('Finished building target graph successfully')
