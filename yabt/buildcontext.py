@@ -304,7 +304,6 @@ class BuildContext:
                     return
                 if failed_event.is_set():
                     return
-                # logger.info('graph order: {}', graph_copy.order())
                 produced_event.wait(0.5)
             produced_event.clear()
             next_node = ready_nodes.popleft()
@@ -397,6 +396,7 @@ class BuildContext:
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
                     buildenv_target_name, docker_run)
+        # TODO(bergden): accumulate error prints
         return run(docker_run, check=True, **kwargs)
 
     def build_target(self, target: Target):
@@ -514,7 +514,6 @@ class BuildContext:
                         test_start = time()
                         self.test_target(target)
                         target.info['test_time'] = time() - test_start
-                        # target.info['fail_count'] = fails
                         logger.info(
                             'Test of target {} completed in {} sec '
                             'with {} fails',
@@ -532,14 +531,12 @@ class BuildContext:
                 if target_built or target_tested:
                     save_target_in_cache(target, self)
             except Exception as ex:
-                logger.info('fail_count: {}', target.info['fail_count'])
                 target.info['fail_count'] += 1
                 default_attempts = 1
                 if 'testable' in target.tags:
                     default_attempts = self.conf.test_attempts
                 attempts = max(target.props.attempts, default_attempts)
                 if attempts > target.info['fail_count']:
-                    # TODO(bergden): accumulate error prints
                     target.retry()
                     pass
                 else:
