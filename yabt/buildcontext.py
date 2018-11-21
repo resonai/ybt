@@ -309,7 +309,7 @@ class BuildContext:
             next_node = ready_nodes.popleft()
             node = self.targets[next_node]
             node.done = make_done_callback(node)
-            # TODO(berdgen) retry assumes no need to update predecessors:
+            # TODO(bergden) retry assumes no need to update predecessors:
             # This means we don't support retries for targets that are
             # prerequisites of other targets (builds, installs)
             node.retry = make_retry_callback(node)
@@ -505,8 +505,6 @@ class BuildContext:
                     target_built = True
 
                 # TODO: collect stats and print report at the end
-                # TODO: support both "fail fast" (exit on first failure) and
-                #       run all tests (don't exit on first failure) modes
                 target_tested = False
                 if run_tests and 'testable' in target.tags:
                     if self.conf.no_test_cache or not test_cached:
