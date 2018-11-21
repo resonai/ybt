@@ -51,14 +51,20 @@ def test_python_tester_fail(basic_conf):
 
 @slow
 @pytest.mark.usefixtures('in_tests_project')
-def test_python_tester_fail_no_exit(basic_conf):
+def test_python_tester_fail_no_exit(basic_conf, capsys):
     basic_conf.continue_after_fail = True
     build_context = BuildContext(basic_conf)
     basic_conf.targets = ['hello_pytest:greet-failing-test']
     populate_targets_graph(build_context, basic_conf)
     with pytest.raises(SystemExit):
         build_context.build_graph(run_tests=True)
-        # TODO(bergden) assert it's the right error
+    out, err = capsys.readouterr()
+    err.encode()
+    expected_error = "\x1b[31mFatal: Finished building target graph with \
+fails: \n['hello_pytest:greet-failing-test']\nwhich caused the \
+following to skip: \n[]\x1b[0m\n"
+    expected_error.encode()
+    assert err == expected_error
 
 
 @slow
@@ -102,5 +108,7 @@ def test_python_tester_aba(basic_conf):
     target_a.props.test_env['RANDOM_FILE'] = random_file
     target_b.props.test_env['RANDOM_FILE'] = random_file
     build_context.build_graph(run_tests=True)
-    assert target_a.info['fail_count'] == 1 or target_b.info['fail_count'] == 1
-    assert target_a.info['fail_count'] == 0 or target_b.info['fail_count'] == 0
+    assert (
+        target_a.info['fail_count'] == 1 or target_b.info['fail_count'] == 1)
+    assert (
+        target_a.info['fail_count'] == 0 or target_b.info['fail_count'] == 0)
