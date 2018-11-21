@@ -102,5 +102,5 @@ def test_python_tester_aba(basic_conf):
     target_a.props.test_env['RANDOM_FILE'] = random_file
     target_b.props.test_env['RANDOM_FILE'] = random_file
     build_context.build_graph(run_tests=True)
-    # assert target.info['fail_count'] == 1
-    # assert target.info['test_time'] >
+    assert target_a.info['fail_count'] == 1 or target_b.info['fail_count'] == 1
+    assert target_a.info['fail_count'] == 0 or target_b.info['fail_count'] == 0
