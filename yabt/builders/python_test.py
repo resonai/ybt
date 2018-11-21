@@ -56,9 +56,9 @@ def test_python_tester_fail_no_exit(basic_conf):
     build_context = BuildContext(basic_conf)
     basic_conf.targets = ['hello_pytest:greet-failing-test']
     populate_targets_graph(build_context, basic_conf)
-    # with pytest.raises(SystemExit):
-    build_context.build_graph(run_tests=True)
-    # TODO(bergden) assert it's the right error
+    with pytest.raises(SystemExit):
+        build_context.build_graph(run_tests=True)
+        # TODO(bergden) assert it's the right error
 
 
 @slow
