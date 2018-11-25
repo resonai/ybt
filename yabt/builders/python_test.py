@@ -59,12 +59,12 @@ def test_python_tester_fail_no_exit(basic_conf, capsys):
     with pytest.raises(SystemExit):
         build_context.build_graph(run_tests=True)
     out, err = capsys.readouterr()
-    err.encode()
-    expected_error = "\x1b[31mFatal: Finished building target graph with \
+    out.encode()
+    expected_error = "Finished building target graph with \
 fails: \n['hello_pytest:greet-failing-test']\nwhich caused the \
-following to skip: \n[]\x1b[0m\n"
+following to skip: \n[]\n"
     expected_error.encode()
-    assert err == expected_error
+    assert out == expected_error
 
 
 @slow

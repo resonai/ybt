@@ -29,6 +29,7 @@ import json
 import os
 from pathlib import PurePath
 import platform
+import sys
 import threading
 from time import sleep, time
 
@@ -561,8 +562,10 @@ class BuildContext:
         # main pass: build rest of the graph
         build_in_pool(self.target_iter())
         if self.failed_nodes:
-            fatal('Finished building target graph with fails: \n{}\n'
-                  'which caused the following to skip: \n{}',
-                  self.failed_nodes, self.skipped_nodes)
+            msg = ('Finished building target graph with fails: \n{}\n'
+                   'which caused the following to skip: \n{}'.format(
+                   self.failed_nodes, self.skipped_nodes))
+            print(msg)
+            sys.exit(1)
         else:
             logger.info('Finished building target graph successfully')
