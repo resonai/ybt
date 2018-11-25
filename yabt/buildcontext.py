@@ -536,7 +536,6 @@ class BuildContext:
                 attempts = max(target.props.attempts, default_attempts)
                 if attempts > target.info['fail_count']:
                     target.retry()
-                    pass
                 else:
                     target.fail(ex)
 
