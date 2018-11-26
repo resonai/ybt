@@ -41,7 +41,7 @@ logger = make_logger(__name__)
 
 def fatal(msg, *args, **kwargs):
     """Print a red `msg` to STDERR and exit.
-
+    To be used in a context of an exception, also prints out the exception.
     The message is formatted with `args` & `kwargs`.
     """
     exc_str = format_exc()
