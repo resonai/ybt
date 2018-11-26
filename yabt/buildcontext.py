@@ -46,7 +46,7 @@ from .graph import get_descendants, topological_sort
 from .logging import make_logger
 from .target_extraction import extractor
 from .target_utils import split_build_module, Target
-from .utils import fatal
+from .utils import fatal, fatal_noexc
 
 
 logger = make_logger(__name__)
@@ -563,9 +563,8 @@ class BuildContext:
         build_in_pool(self.target_iter())
         if self.failed_nodes:
             msg = ('Finished building target graph with fails: \n{}\n'
-                   'which caused the following to skip: \n{}'.format(
-                   self.failed_nodes, self.skipped_nodes))
-            print(msg)
-            sys.exit(1)
+                   'which caused the following to skip: \n{}'
+                   .format(self.failed_nodes, self.skipped_nodes))
+            fatal_noexc(msg)
         else:
             logger.info('Finished building target graph successfully')

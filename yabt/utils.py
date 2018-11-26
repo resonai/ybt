@@ -52,6 +52,16 @@ def fatal(msg, *args, **kwargs):
     sys.exit(1)
 
 
+def fatal_noexc(msg, *args, **kwargs):
+    """Print a red `msg` to STDERR and exit.
+
+    The message is formatted with `args` & `kwargs`.
+    """
+    print(Fore.RED + 'Fatal: ' + msg.format(*args, **kwargs) + Style.RESET_ALL,
+          file=sys.stderr)
+    sys.exit(1)
+
+
 def rmnode(path: str):
     """Forcibly remove file or directory tree at `path`.
        Fail silently if base dir doesn't exist."""
