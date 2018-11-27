@@ -559,9 +559,8 @@ class BuildContext:
         # main pass: build rest of the graph
         build_in_pool(self.target_iter())
         if self.failed_nodes:
-            msg = ('Finished building target graph with fails: \n{}\n'
-                   'which caused the following to skip: \n{}'
-                   .format(self.failed_nodes, self.skipped_nodes))
-            fatal_noexc(msg)
+            fatal_noexc('Finished building target graph with fails: \n{}\n'
+                        'which caused the following to skip: \n{}',
+                        self.failed_nodes, self.skipped_nodes)
         else:
             logger.info('Finished building target graph successfully')

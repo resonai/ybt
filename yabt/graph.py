@@ -342,6 +342,6 @@ def get_descendants(graph: networkx.DiGraph, source):
     return dag.descendants(graph, source)
 
 
-def get_ancestors(graph: networkx.DiGraph, source):
-    """Return all nodes that direct to `source` in `graph`."""
-    return dag.ancestors(graph, source)
+def get_ancestors(graph: networkx.DiGraph, child):
+    """Return all nodes that have 'child' as a descendant in 'graph'"""
+    return dag.ancestors(graph, child)

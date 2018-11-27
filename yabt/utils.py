@@ -47,9 +47,7 @@ def fatal(msg, *args, **kwargs):
     exc_str = format_exc()
     if exc_str.strip() != 'NoneType: None':
         logger.info('{}', format_exc())
-    print(Fore.RED + 'Fatal: ' + msg.format(*args, **kwargs) + Style.RESET_ALL,
-          file=sys.stderr)
-    sys.exit(1)
+    fatal_noexc(msg, *args, **kwargs)
 
 
 def fatal_noexc(msg, *args, **kwargs):
