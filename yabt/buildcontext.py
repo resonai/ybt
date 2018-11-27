@@ -42,7 +42,7 @@ from .caching import (
 from .config import Config
 from .docker import format_qualified_image_name
 from .extend import Plugin
-from .graph import get_descendants, topological_sort
+from .graph import get_ancestors, get_descendants, topological_sort
 from .logging import make_logger
 from .target_extraction import extractor
 from .target_utils import split_build_module, Target
@@ -275,21 +275,18 @@ class BuildContext:
                report a target as failed after all retries."""
 
             def fail_notifier(ex):
-                """Mark target as failed, taking it and decendants
-                   out from the queue"""
+                """Mark target as failed, taking it and ancestors
+                   out of the queue"""
                 if graph_copy.has_node(target.name):
                     self.failed_nodes.append(target.name)
-                    affected_nodes = [target.name]
-                    # removing all predecessors recursively
-                    while affected_nodes:
-                        affected_node = affected_nodes.pop()
+                    # removing all ancestors (nodes that depend on this one)
+                    affected_nodes = get_ancestors(graph_copy, target.name)
+                    graph_copy.remove_node(target.name)
+                    for affected_node in affected_nodes:
                         if affected_node in self.skipped_nodes:
                             continue
-                        affected_nodes += list(sorted(
-                            graph_copy.predecessors(affected_node)))
                         if graph_copy.has_node(affected_node):
-                            if not affected_node == target.name:
-                                self.skipped_nodes.append(affected_node)
+                            self.skipped_nodes.append(affected_node)
                             graph_copy.remove_node(affected_node)
                     if self.conf.continue_after_fail:
                         produced_event.set()
