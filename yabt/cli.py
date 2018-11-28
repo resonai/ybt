@@ -81,6 +81,8 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         # PARSER.add('--config', is_config_file=True, help='Config file path')
         PARSER.add('--artifacts-metadata-file',
                    help='Output file to write artifacts metadata to')
+        PARSER.add('--continue-after-fail', default=False, action='store_true',
+                   help='If a target fails continue independent targets')
         PARSER.add('--bin-output-dir', default='ybt_bin')
         PARSER.add('--build-file-name', default='YBuild')
         PARSER.add('--build-base-images', action='store_true')

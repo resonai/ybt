@@ -41,12 +41,20 @@ logger = make_logger(__name__)
 
 def fatal(msg, *args, **kwargs):
     """Print a red `msg` to STDERR and exit.
-
+    To be used in a context of an exception, also prints out the exception.
     The message is formatted with `args` & `kwargs`.
     """
     exc_str = format_exc()
     if exc_str.strip() != 'NoneType: None':
         logger.info('{}', format_exc())
+    fatal_noexc(msg, *args, **kwargs)
+
+
+def fatal_noexc(msg, *args, **kwargs):
+    """Print a red `msg` to STDERR and exit.
+
+    The message is formatted with `args` & `kwargs`.
+    """
     print(Fore.RED + 'Fatal: ' + msg.format(*args, **kwargs) + Style.RESET_ALL,
           file=sys.stderr)
     sys.exit(1)

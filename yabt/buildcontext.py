@@ -29,6 +29,7 @@ import json
 import os
 from pathlib import PurePath
 import platform
+import sys
 import threading
 from time import sleep, time
 
@@ -41,11 +42,11 @@ from .caching import (
 from .config import Config
 from .docker import format_qualified_image_name
 from .extend import Plugin
-from .graph import get_descendants, topological_sort
+from .graph import get_ancestors, get_descendants, topological_sort
 from .logging import make_logger
 from .target_extraction import extractor
 from .target_utils import split_build_module, Target
-from .utils import fatal
+from .utils import fatal, fatal_noexc
 
 
 logger = make_logger(__name__)
@@ -78,6 +79,8 @@ class BuildContext:
         self.conf = conf
         # A *thread-safe* targets map
         self.targets = {}
+        self.failed_nodes = []
+        self.skipped_nodes = []
         # A *thread-safe* map from build module to set of target names
         # that were extracted from that build module
         self.targets_by_module = defaultdict(set)
@@ -253,6 +256,46 @@ class BuildContext:
 
             return done_notifier
 
+        def make_retry_callback(target: Target):
+            """Return a callable "retry" notifier to
+               report a target as in need of retry.
+               Currently for tests we rebuild the target
+               when it's not necessary."""
+
+            def retry_notifier():
+                """Mark target as retry, re-entering node to end of queue"""
+                if graph_copy.has_node(target.name):
+                    ready_nodes.append(target.name)
+                    produced_event.set()
+
+            return retry_notifier
+
+        def make_fail_callback(target: Target):
+            """Return a callable "fail" notifier to
+               report a target as failed after all retries."""
+
+            def fail_notifier(ex):
+                """Mark target as failed, taking it and ancestors
+                   out of the queue"""
+                if graph_copy.has_node(target.name):
+                    self.failed_nodes.append(target.name)
+                    # removing all ancestors (nodes that depend on this one)
+                    affected_nodes = get_ancestors(graph_copy, target.name)
+                    graph_copy.remove_node(target.name)
+                    for affected_node in affected_nodes:
+                        if affected_node in self.skipped_nodes:
+                            continue
+                        if graph_copy.has_node(affected_node):
+                            self.skipped_nodes.append(affected_node)
+                            graph_copy.remove_node(affected_node)
+                    if self.conf.continue_after_fail:
+                        produced_event.set()
+                    else:
+                        failed_event.set()
+                        fatal('`{}\': {}', target.name, ex)
+
+            return fail_notifier
+
         while True:
             while len(ready_nodes) == 0:
                 if graph_copy.order() == 0:
@@ -264,7 +307,11 @@ class BuildContext:
             next_node = ready_nodes.popleft()
             node = self.targets[next_node]
             node.done = make_done_callback(node)
-            node.fail = lambda: failed_event.set()
+            # TODO(bergden) retry assumes no need to update predecessors:
+            # This means we don't support retries for targets that are
+            # prerequisites of other targets (builds, installs)
+            node.retry = make_retry_callback(node)
+            node.fail = make_fail_callback(node)
             yield node
 
     def target_iter(self):
@@ -347,6 +394,7 @@ class BuildContext:
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
                     buildenv_target_name, docker_run)
+        # TODO(bergden): accumulate error prints
         return run(docker_run, check=True, **kwargs)
 
     def build_target(self, target: Target):
@@ -453,37 +501,14 @@ class BuildContext:
                     logger.info('Build of target {} completed in {} sec',
                                 target.name, target.summary['build_time'])
                     target_built = True
-                built_targets.add(target.name)
-                target.done()
 
-                # TODO: attempt flaky tests N times AFTER all the rest passed
                 # TODO: collect stats and print report at the end
-                # TODO: support both "fail fast" (exit on first failure) and
-                #       run all tests (don't exit on first failure) modes
                 target_tested = False
                 if run_tests and 'testable' in target.tags:
                     if self.conf.no_test_cache or not test_cached:
                         logger.info('Testing target {}', target.name)
-                        attempts = (
-                            self.conf.test_attempts if
-                            target.props.attempts == 1 else
-                            target.props.attempts)
-                        if attempts < 1:
-                            raise ValueError(
-                                'Attempts value must be 1 or more: got {}'
-                                .format(attempts))
-                        test_start = 0
-                        target.info['fail_count'] = 0
-                        while attempts > target.info['fail_count']:
-                            test_start = time()
-                            try:
-                                self.test_target(target)
-                            except Exception:
-                                target.info['fail_count'] += 1
-                                if attempts <= target.info['fail_count']:
-                                    raise
-                            else:
-                                break
+                        test_start = time()
+                        self.test_target(target)
                         target.info['test_time'] = time() - test_start
                         logger.info(
                             'Test of target {} completed in {} sec '
@@ -495,13 +520,22 @@ class BuildContext:
                         logger.info(
                             'Target {} test cached - skipping test run',
                             target.name)
+                built_targets.add(target.name)
+                target.done()
 
                 # write to cache only if build or test was executed
                 if target_built or target_tested:
                     save_target_in_cache(target, self)
             except Exception as ex:
-                target.fail()
-                fatal('`{}\': {}', target.name, ex)
+                target.info['fail_count'] += 1
+                default_attempts = 1
+                if 'testable' in target.tags:
+                    default_attempts = self.conf.test_attempts
+                attempts = max(target.props.attempts, default_attempts)
+                if attempts > target.info['fail_count']:
+                    target.retry()
+                else:
+                    target.fail(ex)
 
         def build_in_pool(seq):
             jobs = self.conf.jobs
@@ -524,4 +558,9 @@ class BuildContext:
                     self.conf.flavor, self.conf.jobs)
         # main pass: build rest of the graph
         build_in_pool(self.target_iter())
-        logger.info('Finished building target graph successfully')
+        if self.failed_nodes:
+            fatal_noexc('Finished building target graph with fails: \n{}\n'
+                        'which caused the following to skip: \n{}',
+                        self.failed_nodes, self.skipped_nodes)
+        else:
+            logger.info('Finished building target graph successfully')

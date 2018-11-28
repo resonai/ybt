@@ -340,3 +340,8 @@ def topological_sort(graph: networkx.DiGraph):
 def get_descendants(graph: networkx.DiGraph, source):
     """Return all nodes reachable from `source` in `graph`."""
     return dag.descendants(graph, source)
+
+
+def get_ancestors(graph: networkx.DiGraph, child):
+    """Return all nodes that have 'child' as a descendant in 'graph'"""
+    return dag.ancestors(graph, child)

@@ -45,6 +45,7 @@ class Config:
 
     attrs_from_args = frozenset((
         'artifacts_metadata_file',
+        'continue_after_fail',
         'bin_output_dir',
         'build_base_images',
         'build_file_name',
