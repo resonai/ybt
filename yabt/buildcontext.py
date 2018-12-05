@@ -289,6 +289,8 @@ class BuildContext:
                             self.skipped_nodes.append(affected_node)
                             graph_copy.remove_node(affected_node)
                     if self.conf.continue_after_fail:
+                        logger.info('Failed target: {} due to error: {}',
+                                    target.name, ex)
                         produced_event.set()
                     else:
                         failed_event.set()
