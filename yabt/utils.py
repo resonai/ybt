@@ -80,10 +80,10 @@ def rmtree(path: str):
 
 def link_func(src: str, dst: str, force: bool=False):
     if (force):
-      try:
-        os.remove(dst)
-      except FileNotFoundError:
-        pass
+        try:
+            os.remove(dst)
+        except FileNotFoundError:
+            pass
     try:
         os.link(src, dst)
     except FileExistsError:
