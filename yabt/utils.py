@@ -78,14 +78,19 @@ def rmtree(path: str):
         pass
 
 
-def link_func(src: str, dst: str):
+def link_func(src: str, dst: str, force: bool=False):
+    if (force):
+      try:
+        os.remove(dst)
+      except FileNotFoundError:
+        pass
     try:
         os.link(src, dst)
     except FileExistsError:
         pass
 
 
-def link_node(abs_src: str, abs_dest: str):
+def link_node(abs_src: str, abs_dest: str, force: bool=False):
     """Sync source node (file / dir) to destination path using hard links."""
     dest_parent_dir = split(abs_dest)[0]
     if not isdir(dest_parent_dir):
@@ -94,7 +99,7 @@ def link_node(abs_src: str, abs_dest: str):
         os.makedirs(dest_parent_dir, exist_ok=True)
     if isfile(abs_src):
         # sync file by linking it to dest
-        link_func(abs_src, abs_dest)
+        link_func(abs_src, abs_dest, force)
     elif isdir(abs_src):
         # sync dir by recursively linking files under it to dest
         shutil.copytree(abs_src, abs_dest,
@@ -145,7 +150,7 @@ def link_files(files: set, workspace_src_dir: str,
         abs_src = join(conf.project_root, src)
         abs_dest = join(conf.project_root, workspace_src_dir,
                         relpath(src, base_dir))
-        link_node(abs_src, abs_dest)
+        link_node(abs_src, abs_dest, True)
         num_linked += 1
     return num_linked
 
