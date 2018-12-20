@@ -39,7 +39,6 @@ from .compat import walk
 from .config import Config
 from .utils import hash_tree, norm_proj_path
 
-
 _TARGET_NAMES_WHITELIST = frozenset(('*', '@default'))
 
 
@@ -153,6 +152,7 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         'cachable',
         'copy_generated_to',
         'image_caching_behavior',
+        'test_flags',
     ))
 
     def __init__(self, builder_name):
