@@ -39,6 +39,7 @@ from .compat import walk
 from .config import Config
 from .utils import hash_tree, norm_proj_path
 
+
 _TARGET_NAMES_WHITELIST = frozenset(('*', '@default'))
 
 

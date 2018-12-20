@@ -474,7 +474,6 @@ class BuildContext:
                 # by the build func itself (and may change based on whether
                 # the build was cached or not), but not earlier than here,
                 # so all previous nodes have already been built, including
-
                 # artifacts that this target may rely on in hacky ways, such
                 # as following ExtCommand or Grunt builder with a FileGroup
                 # builder that collects generated files that are not handled
