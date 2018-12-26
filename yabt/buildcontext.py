@@ -511,11 +511,11 @@ class BuildContext:
                         logger.info('Testing target {}', target.name)
                         test_start = time()
                         self.test_target(target)
-                        target.info['test_time'] = time() - test_start
+                        target.summary['test_time'] = time() - test_start
                         logger.info(
                             'Test of target {} completed in {} sec '
                             'with {} fails',
-                            target.name, target.info['test_time'],
+                            target.name, target.summary['test_time'],
                             target.info['fail_count'])
                         target_tested = True
                     else:

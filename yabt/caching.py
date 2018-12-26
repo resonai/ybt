@@ -114,7 +114,6 @@ def write_summary(summary: dict, cache_dir: str):
     with open(join(cache_dir, 'summary.json'), 'w') as summary_file:
         summary_file.write(json.dumps(summary, indent=4, sort_keys=True))
 
-
 def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     """Load `target` from build cache, restoring cached artifacts & summary.
        Return (build_cached, test_cached) tuple.
@@ -129,7 +128,8 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     # read summary file and restore relevant fields into target
     with open(join(cache_dir, 'summary.json'), 'r') as summary_file:
         summary = json.loads(summary_file.read())
-    for field in ('build_time', 'test_time', 'created', 'accessed'):
+    for field in ('build_time', 'test_time', 'created', 'accessed',
+                  'test_hash'):
         target.summary[field] = summary.get(field)
     # compare artifacts hash
     if (hash_tree(join(cache_dir, 'artifacts.json')) !=
@@ -163,7 +163,9 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
             target.artifacts.add(
                 artifact_type, artifact['src'], artifact['dst'])
     write_summary(summary, cache_dir)
-    return True, target.summary['test_time'] is not None
+    return True, (target.summary['test_time'] is not None and
+                  target.summary['test_hash'] ==
+                  target.test_hash(build_context))
 
 
 def copy_artifact(src_path: str, artifact_hash: str, conf: Config):
@@ -274,6 +276,7 @@ def save_target_in_cache(target: Target, build_context):
     summary = dict(target.summary)
     summary['name'] = target.name
     summary['artifacts_hash'] = hash_tree(join(cache_dir, 'artifacts.json'))
+    summary['test_hash'] = target.test_hash(build_context)
     if summary.get('created') is None:
         summary['created'] = time()
     write_summary(summary, cache_dir)
