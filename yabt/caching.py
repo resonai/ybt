@@ -129,8 +129,7 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     # read summary file and restore relevant fields into target
     with open(join(cache_dir, 'summary.json'), 'r') as summary_file:
         summary = json.loads(summary_file.read())
-    for field in ('build_time', 'test_time', 'created', 'accessed',
-                  'test_hash'):
+    for field in ('build_time', 'test_time', 'created', 'accessed'):
         target.summary[field] = summary.get(field)
     # compare artifacts hash
     if (hash_tree(join(cache_dir, 'artifacts.json')) !=

@@ -519,7 +519,7 @@ class BuildContext:
                         logger.info(
                             'Test of target {} completed in {} sec '
                             'with {} fails',
-                            target.name, target.summary['test_time'],
+                            target.name, target.info['test_time'],
                             target.info['fail_count'])
                         target_tested = True
                     else:
