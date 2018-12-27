@@ -164,9 +164,16 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
             target.artifacts.add(
                 artifact_type, artifact['src'], artifact['dst'])
     write_summary(summary, cache_dir)
-    return True, (target.summary['test_time'] is not None and
-                  target.summary['test_hash'] ==
-                  target.test_hash(build_context))
+    # read the test data file
+    with open(join(cache_dir, 'tested.json'), 'r') as tested_file:
+        tested = json.loads(tested_file.read())
+        for test_key in tested.keys():
+            target.tested[test_key] = tested.get(test_key)
+        test_key = target.test_hash(build_context)
+        if test_key in tested:
+            return True, (tested.get(test_key) is not None)
+        else:
+            return True, False
 
 
 def copy_artifact(src_path: str, artifact_hash: str, conf: Config):
@@ -273,11 +280,13 @@ def save_target_in_cache(target: Target, build_context):
     with open(join(cache_dir, 'artifacts.json'), 'w') as artifacts_meta_file:
         artifacts_meta_file.write(json.dumps(artifacts_desc, indent=4,
                                              sort_keys=True))
+    with open(join(cache_dir, 'tested.json'), 'w') as tested_file:
+        tested_file.write(json.dumps(target.tested, indent=4, sort_keys=True))
+
     # copying the summary dict so I can modify it without mutating the target
     summary = dict(target.summary)
     summary['name'] = target.name
     summary['artifacts_hash'] = hash_tree(join(cache_dir, 'artifacts.json'))
-    summary['test_hash'] = target.test_hash(build_context)
     if summary.get('created') is None:
         summary['created'] = time()
     write_summary(summary, cache_dir)

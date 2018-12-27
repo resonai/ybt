@@ -500,6 +500,8 @@ class BuildContext:
                     build_start = time()
                     self.build_target(target)
                     target.summary['build_time'] = time() - build_start
+                    target.info['test_time'] = None
+                    target.tested = {}
                     logger.info('Build of target {} completed in {} sec',
                                 target.name, target.summary['build_time'])
                     target_built = True
@@ -511,7 +513,9 @@ class BuildContext:
                         logger.info('Testing target {}', target.name)
                         test_start = time()
                         self.test_target(target)
-                        target.summary['test_time'] = time() - test_start
+                        target.info['test_time'] = time() - test_start
+                        target.tested.update({target.test_hash(self):
+                                              target.info['test_time']})
                         logger.info(
                             'Test of target {} completed in {} sec '
                             'with {} fails',
