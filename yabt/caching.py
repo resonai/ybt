@@ -169,12 +169,10 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
         return True, False
     # read the testing cache.
     with open(join(cache_dir, 'tested.json'), 'r') as tested_file:
-        tested = json.loads(tested_file.read())
-        for test_key in tested.keys():
-            target.tested[test_key] = tested.get(test_key)
+        target.tested.update(json.loads(tested_file.read()))
         test_key = target.test_hash(build_context)
-        if test_key in tested:
-            return True, (tested.get(test_key) is not None)
+        if test_key in target.tested:
+            return True, (target.tested.get(test_key) is not None)
         else:
             return True, False
 
