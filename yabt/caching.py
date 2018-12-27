@@ -114,6 +114,7 @@ def write_summary(summary: dict, cache_dir: str):
     with open(join(cache_dir, 'summary.json'), 'w') as summary_file:
         summary_file.write(json.dumps(summary, indent=4, sort_keys=True))
 
+
 def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     """Load `target` from build cache, restoring cached artifacts & summary.
        Return (build_cached, test_cached) tuple.
