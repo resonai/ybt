@@ -163,7 +163,11 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
             target.artifacts.add(
                 artifact_type, artifact['src'], artifact['dst'])
     write_summary(summary, cache_dir)
-    # read the test data file
+    # check that the testing cache exists.
+    if not isfile(join(cache_dir, 'tested.json')):
+        logger.debug('No testing cache found for target {}', target.name)
+        return True, False
+    # read the testing cache.
     with open(join(cache_dir, 'tested.json'), 'r') as tested_file:
         tested = json.loads(tested_file.read())
         for test_key in tested.keys():
@@ -279,9 +283,6 @@ def save_target_in_cache(target: Target, build_context):
     with open(join(cache_dir, 'artifacts.json'), 'w') as artifacts_meta_file:
         artifacts_meta_file.write(json.dumps(artifacts_desc, indent=4,
                                              sort_keys=True))
-    with open(join(cache_dir, 'tested.json'), 'w') as tested_file:
-        tested_file.write(json.dumps(target.tested, indent=4, sort_keys=True))
-
     # copying the summary dict so I can modify it without mutating the target
     summary = dict(target.summary)
     summary['name'] = target.name
@@ -289,3 +290,19 @@ def save_target_in_cache(target: Target, build_context):
     if summary.get('created') is None:
         summary['created'] = time()
     write_summary(summary, cache_dir)
+
+
+def save_test_in_cache(target: Target, build_context) -> bool:
+    """Save `target` testing to build cache for future reuse.
+
+    The target hash is used to determine its cache location,
+    where the target testing information is seriazlied to JSON.
+    """
+    cache_dir = build_context.conf.get_cache_dir(target, build_context)
+    if not isdir(cache_dir):
+        logger.debug('Cannot cache test {} - build cache is missing',
+                     target.name)
+        return False
+    with open(join(cache_dir, 'tested.json'), 'w') as tested_file:
+        tested_file.write(json.dumps(target.tested, indent=4, sort_keys=True))
+    return True
