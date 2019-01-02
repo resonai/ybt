@@ -179,7 +179,9 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
             is_dirty=False,
             tested={},
             _hash=None,
-            _json=None)
+            _json=None,
+            _test_json=None,
+        )
 
     def __repr__(self):
         keys = ['name', 'builder_name', 'props', 'deps', 'buildenv', 'tags']
@@ -263,6 +265,7 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         m = md5()
         m.update(self.json(build_context).encode('utf8'))
         self._hash = m.hexdigest()
+        m = md5()
         m.update(self.test_json(build_context).encode('utf8'))
         self._test_hash = m.hexdigest()
 

@@ -171,10 +171,7 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     with open(join(cache_dir, 'tested.json'), 'r') as tested_file:
         target.tested.update(json.loads(tested_file.read()))
         test_key = target.test_hash(build_context)
-        if test_key in target.tested:
-            return True, (target.tested.get(test_key) is not None)
-        else:
-            return True, False
+        return True, (target.tested.get(test_key) is not None)
 
 
 def copy_artifact(src_path: str, artifact_hash: str, conf: Config):
@@ -296,6 +293,8 @@ def save_test_in_cache(target: Target, build_context) -> bool:
     The target hash is used to determine its cache location,
     where the target testing information is seriazlied to JSON.
     """
+    if not target.tested:
+        return True
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if not isdir(cache_dir):
         logger.debug('Cannot cache test {} - build cache is missing',

@@ -178,6 +178,9 @@ def test_save_test_to_cache(basic_conf):
     target_name = ':unzip'
     unzip_target = build_context.targets[target_name]
     unzip_target.summary['build_time'] = 5.432
+    # If there's no test to cache, the caching should always succeed.
+    assert save_test_in_cache(unzip_target, build_context)
+    unzip_target.tested.update({'some_test': 5.434})
     # Cannot cache a test without first caching the target.
     assert not save_test_in_cache(unzip_target, build_context)
     # If the build was cached first, the test can also be cached.
