@@ -29,6 +29,7 @@ import json
 import os
 from pathlib import PurePath
 import platform
+from subprocess import PIPE
 import sys
 import threading
 from time import sleep, time
@@ -79,7 +80,7 @@ class BuildContext:
         self.conf = conf
         # A *thread-safe* targets map
         self.targets = {}
-        self.failed_nodes = []
+        self.failed_nodes = {}
         self.skipped_nodes = []
         # A *thread-safe* map from build module to set of target names
         # that were extracted from that build module
@@ -277,8 +278,10 @@ class BuildContext:
             def fail_notifier(ex):
                 """Mark target as failed, taking it and ancestors
                    out of the queue"""
+                sys.stdout.write(ex.stdout.decode('utf-8'))
+                sys.stderr.write(ex.stderr.decode('utf-8'))
                 if graph_copy.has_node(target.name):
-                    self.failed_nodes.append(target.name)
+                    self.failed_nodes.update({target.name: ex})
                     # removing all ancestors (nodes that depend on this one)
                     affected_nodes = get_ancestors(graph_copy, target.name)
                     graph_copy.remove_node(target.name)
@@ -396,8 +399,11 @@ class BuildContext:
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
                     buildenv_target_name, docker_run)
-        # TODO(bergden): accumulate error prints
-        return run(docker_run, check=True, **kwargs)
+        result = run(docker_run, check=True, stderr=PIPE, stdout=PIPE,
+                     **kwargs)
+        sys.stdout.write(result.stdout.decode('utf-8'))
+        sys.stderr.write(result.stderr.decode('utf-8'))
+        return result
 
     def build_target(self, target: Target):
         """Invoke the builder function for a target."""
@@ -561,8 +567,15 @@ class BuildContext:
         # main pass: build rest of the graph
         build_in_pool(self.target_iter())
         if self.failed_nodes:
+            for failed, ex in self.failed_nodes.items():
+                print('\n\nTest ', failed, ' failed executing command:\n\n',
+                      ex.cmd, '\n')
+                print('\nstdout output for the test:\n  ')
+                print(ex.stdout.decode('utf-8'))
+                print('\nstderr output for the test:\n  ')
+                print(ex.stderr.decode('utf-8'))
             fatal_noexc('Finished building target graph with fails: \n{}\n'
                         'which caused the following to skip: \n{}',
-                        self.failed_nodes, self.skipped_nodes)
+                        self.failed_nodes.keys(), self.skipped_nodes)
         else:
             logger.info('Finished building target graph successfully')
