@@ -401,8 +401,11 @@ class BuildContext:
                     buildenv_target_name, docker_run)
         result = run(docker_run, check=True, stderr=PIPE, stdout=PIPE,
                      **kwargs)
-        sys.stdout.write(result.stdout.decode('utf-8'))
-        sys.stderr.write(result.stderr.decode('utf-8'))
+        if 'stdout' in kwargs:
+            print(result.stdout.decode('utf-8').format([], kwargs))
+        else:
+            sys.stdout.write(result.stdout.decode('utf-8').format([], kwargs))
+        print(result.stderr.decode('utf-8').format([], kwargs))
         return result
 
     def build_target(self, target: Target):
