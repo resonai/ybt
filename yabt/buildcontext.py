@@ -399,10 +399,15 @@ class BuildContext:
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
                     buildenv_target_name, docker_run)
-        result = run(docker_run, check=True, stderr=PIPE, stdout=PIPE,
-                     **kwargs)
-        sys.stdout.write(result.stdout.decode('utf-8').format([], kwargs))
-        sys.stderr.write(result.stderr.decode('utf-8').format([], kwargs))
+        if 'stderr' not in kwargs:
+            kwargs['stderr'] = PIPE
+        if 'stdout' not in kwargs:
+            kwargs['stdout'] = PIPE
+        result = run(docker_run, check=True, **kwargs)
+        if (kwargs['stdout'] is PIPE):
+            sys.stdout.write(result.stdout.decode('utf-8').format([], kwargs))
+        if (kwargs['stderr'] is PIPE):
+            sys.stderr.write(result.stderr.decode('utf-8').format([], kwargs))
         return result
 
     def build_target(self, target: Target):
