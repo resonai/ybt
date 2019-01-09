@@ -64,7 +64,6 @@ def test_python_tester_fail_no_exit(basic_conf, capsys):
 fails: \n['hello_pytest:greet-failing-test']\nwhich caused the \
 following to skip: \n[]\x1b[0m\n"
     expected_error.encode()
-    sys.stderr.write(err)
     assert err == expected_error
 
 
