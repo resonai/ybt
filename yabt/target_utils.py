@@ -154,6 +154,9 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         'copy_generated_to',
         'image_caching_behavior',
     ))
+    _prop_json_testlist = frozenset((
+        'test_flags',
+    ))
 
     def __init__(self, builder_name):
         super().__init__(
@@ -174,8 +177,11 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
                 'fail_count': 0,
             },
             is_dirty=False,
+            tested={},
             _hash=None,
-            _json=None)
+            _json=None,
+            _test_json=None,
+        )
 
     def __repr__(self):
         keys = ['name', 'builder_name', 'props', 'deps', 'buildenv', 'tags']
@@ -206,14 +212,20 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         dir name).
         """
         props = {}
+        test_props = {}
         for prop in self.props:
             if prop in self._prop_json_blacklist:
                 continue
             sig_spec = Plugin.builders[self.builder_name].sig.get(prop)
             if sig_spec is None:
                 continue
-            props[prop] = process_prop(sig_spec.type, self.props[prop],
-                                       build_context)
+            if prop in self._prop_json_testlist:
+                test_props[prop] = process_prop(sig_spec.type,
+                                                self.props[prop],
+                                                build_context)
+            else:
+                props[prop] = process_prop(sig_spec.type, self.props[prop],
+                                           build_context)
         json_dict = dict(
             # TODO: avoid including the name in the hashed json...
             name=self.name,
@@ -225,13 +237,25 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
             flavor=build_context.conf.flavor,  # TODO: any other conf args?
             # yabt_version=__version__,  # TODO: is this needed?
         )
+        json_test_dict = dict(
+            props=test_props,
+        )
+
         self._json = json.dumps(json_dict, sort_keys=True, indent=4)
+        self._test_json = json.dumps(json_test_dict, sort_keys=True, indent=4)
 
     def json(self, build_context) -> str:
         """Return JSON serialization of this target for caching purposes."""
         if self._json is None:
             self.compute_json(build_context)
         return self._json
+
+    def test_json(self, build_context) -> str:
+        """Return JSON serialization of the test target for caching purposes.
+        """
+        if self._test_json is None:
+            self.compute_json(build_context)
+        return self._test_json
 
     def compute_hash(self, build_context):
         """Compute and store the hash of this target for caching purposes.
@@ -241,12 +265,21 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         m = md5()
         m.update(self.json(build_context).encode('utf8'))
         self._hash = m.hexdigest()
+        m = md5()
+        m.update(self.test_json(build_context).encode('utf8'))
+        self._test_hash = m.hexdigest()
 
     def hash(self, build_context) -> str:
         """Return the hash of this target for caching purposes."""
         if self._hash is None:
             self.compute_hash(build_context)
         return self._hash
+
+    def test_hash(self, build_context) -> str:
+        """Return the hash of this test target for caching purposes."""
+        if self._test_hash is None:
+            self.compute_hash(build_context)
+        return self._test_hash
 
 
 class ImageCachingBehavior(types.SimpleNamespace):

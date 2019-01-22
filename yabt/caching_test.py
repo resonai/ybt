@@ -26,7 +26,8 @@ from os.path import isdir, isfile, join
 
 import pytest
 
-from .caching import get_prebuilt_targets, save_target_in_cache
+from .caching import (get_prebuilt_targets, save_target_in_cache,
+                      save_test_in_cache)
 from .buildcontext import BuildContext
 from .graph import populate_targets_graph
 from .utils import rmtree
@@ -165,3 +166,34 @@ def test_save_target_to_cache(basic_conf):
                 'name')) == set(summary.keys())
     assert summary['build_time'] == 5.432
     assert summary['name'] == target_name
+
+
+@pytest.mark.usefixtures('in_caching_project')
+def test_save_test_to_cache(basic_conf):
+    cache_dir = join(basic_conf.project_root, 'yabtwork', '.cache')
+    rmtree(cache_dir)
+    basic_conf.targets = [':all-images']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    target_name = ':unzip'
+    unzip_target = build_context.targets[target_name]
+    unzip_target.summary['build_time'] = 5.432
+    # If there's no test to cache, the caching should always succeed.
+    assert save_test_in_cache(unzip_target, build_context)
+    unzip_target.tested.update({'some_test': 5.434})
+    # Cannot cache a test without first caching the target.
+    assert not save_test_in_cache(unzip_target, build_context)
+    # If the build was cached first, the test can also be cached.
+    save_target_in_cache(unzip_target, build_context)
+    assert save_test_in_cache(unzip_target, build_context)
+    target_cache_dir = join(cache_dir, 'targets',
+                            unzip_target.hash(build_context))
+    assert isdir(target_cache_dir)
+    target_json_path = join(target_cache_dir, 'target.json')
+    artifacts_json_path = join(target_cache_dir, 'artifacts.json')
+    summary_json_path = join(target_cache_dir, 'summary.json')
+    tested_json_path = join(target_cache_dir, 'tested.json')
+    assert isfile(target_json_path)
+    assert isfile(artifacts_json_path)
+    assert isfile(summary_json_path)
+    assert isfile(tested_json_path)

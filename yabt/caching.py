@@ -163,7 +163,15 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
             target.artifacts.add(
                 artifact_type, artifact['src'], artifact['dst'])
     write_summary(summary, cache_dir)
-    return True, target.summary['test_time'] is not None
+    # check that the testing cache exists.
+    if not isfile(join(cache_dir, 'tested.json')):
+        logger.debug('No testing cache found for target {}', target.name)
+        return True, False
+    # read the testing cache.
+    with open(join(cache_dir, 'tested.json'), 'r') as tested_file:
+        target.tested = json.loads(tested_file.read())
+        test_key = target.test_hash(build_context)
+        return True, (target.tested.get(test_key) is not None)
 
 
 def copy_artifact(src_path: str, artifact_hash: str, conf: Config):
@@ -277,3 +285,21 @@ def save_target_in_cache(target: Target, build_context):
     if summary.get('created') is None:
         summary['created'] = time()
     write_summary(summary, cache_dir)
+
+
+def save_test_in_cache(target: Target, build_context) -> bool:
+    """Save `target` testing to build cache for future reuse.
+
+    The target hash is used to determine its cache location,
+    where the target testing information is seriazlied to JSON.
+    """
+    if not target.tested:
+        return True
+    cache_dir = build_context.conf.get_cache_dir(target, build_context)
+    if not isdir(cache_dir):
+        logger.debug('Cannot cache test {} - build cache is missing',
+                     target.name)
+        return False
+    with open(join(cache_dir, 'tested.json'), 'w') as tested_file:
+        tested_file.write(json.dumps(target.tested, indent=4, sort_keys=True))
+    return True
