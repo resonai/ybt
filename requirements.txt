@@ -12,6 +12,6 @@ scandir>=1.2
 
 # For testing
 pytest>=2.9
-pytest-cov==2.6.0
+pytest-cov>=2.2
 pytest-pep8>=1.0
 tox>=2.3

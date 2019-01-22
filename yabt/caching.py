@@ -169,7 +169,7 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
         return True, False
     # read the testing cache.
     with open(join(cache_dir, 'tested.json'), 'r') as tested_file:
-        target.tested.update(json.loads(tested_file.read()))
+        target.tested = json.loads(tested_file.read())
         test_key = target.test_hash(build_context)
         return True, (target.tested.get(test_key) is not None)
 
