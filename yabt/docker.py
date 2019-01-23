@@ -472,7 +472,7 @@ def build_docker_image(
                 dockerfile.extend([
                     'COPY {} /usr/src/\n'.format(req_fname),
                     'RUN {upgrade_pip}'
-                    '{pip} install --no-cache-dir -r /usr/src/{reqs}\n'
+                    '{pip} install  -r /usr/src/{reqs}\n'
                     .format(upgrade_pip=upgrade_pip, pip=pkg_type,
                             reqs=req_fname)
                 ])
