@@ -88,7 +88,7 @@ def test_package_managers_install_order(basic_conf):
         'ruby2.3 ruby2.3-dev && rm -rf /var/lib/apt/lists/*\n',
         'COPY requirements_pip_1.txt /usr/src/\n',
         'RUN pip install --no-cache-dir --upgrade pip && '
-        'pip install  -r /usr/src/requirements_pip_1.txt\n',
+        'pip install -r /usr/src/requirements_pip_1.txt\n',
         'RUN npm install left-pad --global\n',
         'RUN gem install compass\n',
         'COPY requirements_pip_2.txt /usr/src/\n',
