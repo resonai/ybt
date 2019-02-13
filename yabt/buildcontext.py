@@ -38,8 +38,8 @@ import networkx as nx
 from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
 
-from .caching import (
-    get_prebuilt_targets, load_target_from_cache, save_target_in_cache)
+from .caching import (get_prebuilt_targets, load_target_from_cache,
+                      save_target_in_cache, save_test_in_cache)
 from .config import Config
 from .docker import format_qualified_image_name
 from .extend import Plugin
@@ -511,9 +511,14 @@ class BuildContext:
                     build_start = time()
                     self.build_target(target)
                     target.summary['build_time'] = time() - build_start
+                    target.info['test_time'] = None
+                    target.tested = {}
                     logger.info('Build of target {} completed in {} sec',
                                 target.name, target.summary['build_time'])
                     target_built = True
+                # write to cache only if build was executed
+                if target_built:
+                    save_target_in_cache(target, self)
 
                 # TODO: collect stats and print report at the end
                 target_tested = False
@@ -523,6 +528,8 @@ class BuildContext:
                         test_start = time()
                         self.test_target(target)
                         target.info['test_time'] = time() - test_start
+                        target.tested[target.test_hash(self)] = target.info[
+                          'test_time']
                         logger.info(
                             'Test of target {} completed in {} sec '
                             'with {} fails',
@@ -536,9 +543,9 @@ class BuildContext:
                 built_targets.add(target.name)
                 target.done()
 
-                # write to cache only if build or test was executed
-                if target_built or target_tested:
-                    save_target_in_cache(target, self)
+                # write to cache only if test was executed
+                if target_tested:
+                    save_test_in_cache(target, self)
             except Exception as ex:
                 target.info['fail_count'] += 1
                 default_attempts = 1
