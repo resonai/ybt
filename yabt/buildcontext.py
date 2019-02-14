@@ -579,15 +579,23 @@ class BuildContext:
         # main pass: build rest of the graph
         build_in_pool(self.target_iter())
         if self.failed_nodes:
+            print('\n===========', '\n   Done!', '\n===========')
+            sep = " "
             for failed, ex in self.failed_nodes.items():
                 print('\n\nTest ', failed, ' failed executing command:\n\n',
-                      ex.cmd, '\n')
-                print('\nstdout output for the test:\n  ')
-                print(ex.stdout.decode('utf-8'))
-                print('\nstderr output for the test:\n  ')
-                print(ex.stderr.decode('utf-8'))
+                      sep.join(ex.cmd[0]), '\n')
+                if ex.stdout:
+                    print('\n===========================',
+                          '\nstdout output for the test:',
+                          '\n===========================\n')
+                    print(ex.stdout.decode('utf-8'))
+                if ex.stderr:
+                    print('\n===========================',
+                          '\nstderr output for the test:',
+                          '\n===========================')
+                    print(ex.stderr.decode('utf-8'))
             fatal_noexc('Finished building target graph with fails: \n{}\n'
                         'which caused the following to skip: \n{}',
-                        self.failed_nodes.keys(), self.skipped_nodes)
+                        list(self.failed_nodes), self.skipped_nodes)
         else:
             logger.info('Finished building target graph successfully')
