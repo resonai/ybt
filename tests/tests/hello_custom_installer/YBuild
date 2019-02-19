@@ -1,0 +1,16 @@
+CustomInstaller(
+    'custom-installer-test',
+    fetch=':custom-installer-test-zip.zip',
+    script='custom-installer-test.sh')
+
+ExtDockerImage('python', image='python', tag='3.7')
+
+DockerImage('custom-installer-image',
+            base_image=':python',
+            deps=':custom-installer-test')
+
+PythonApp(
+  'custom-installer-test-app',
+  base_image=':custom-installer-image',
+  main='hello_world.py',
+  full_path_cmd=True)
