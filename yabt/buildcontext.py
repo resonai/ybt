@@ -23,6 +23,7 @@ yabt Build context module
 
 
 from collections import defaultdict, deque
+from colorama import Fore, Style
 from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
 import json
@@ -281,7 +282,7 @@ class BuildContext:
                 sys.stdout.write(ex.stdout.decode('utf-8'))
                 sys.stderr.write(ex.stderr.decode('utf-8'))
                 if graph_copy.has_node(target.name):
-                    self.failed_nodes.update({target.name: ex})
+                    self.failed_nodes[target.name] = ex
                     # removing all ancestors (nodes that depend on this one)
                     affected_nodes = get_ancestors(graph_copy, target.name)
                     graph_copy.remove_node(target.name)
@@ -399,15 +400,16 @@ class BuildContext:
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
                     buildenv_target_name, docker_run)
+        # TODO: Consider changing the PIPEs to temp files.
         if 'stderr' not in kwargs:
             kwargs['stderr'] = PIPE
         if 'stdout' not in kwargs:
             kwargs['stdout'] = PIPE
         result = run(docker_run, check=True, **kwargs)
-        if (kwargs['stdout'] is PIPE):
-            sys.stdout.write(result.stdout.decode('utf-8').format([], kwargs))
-        if (kwargs['stderr'] is PIPE):
-            sys.stderr.write(result.stderr.decode('utf-8').format([], kwargs))
+        if kwargs['stdout'] is PIPE:
+            sys.stdout.write(result.stdout, kwargs)
+        if kwargs['stderr'] is PIPE:
+            sys.stderr.write(result.stderr, kwargs)
         return result
 
     def build_target(self, target: Target):
@@ -579,11 +581,16 @@ class BuildContext:
         # main pass: build rest of the graph
         build_in_pool(self.target_iter())
         if self.failed_nodes:
-            print('\n===========', '\n   Done!', '\n===========')
-            sep = " "
-            for failed, ex in self.failed_nodes.items():
-                print('\n\nTest ', failed, ' failed executing command:\n\n',
-                      sep.join(ex.cmd[0]), '\n')
+            print(Fore.RED +
+                  '\n=============================',
+                  '\n   Finished with failures.',
+                  '\n=============================' +
+                  Style.RESET_ALL)
+            for target_name, ex in self.failed_nodes.items():
+                print('\n\nTest', target_name,
+                      'failed executing command:\n\n')
+                print(' '.join(ex.cmd[0]))
+                print('\n')
                 if ex.stdout:
                     print('\n===========================',
                           '\nstdout output for the test:',
