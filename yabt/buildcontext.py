@@ -407,7 +407,7 @@ class BuildContext:
             kwargs['stdout'] = PIPE
         result = run(docker_run, check=True, **kwargs)
         if kwargs['stdout'] is PIPE:
-            sys.stdout.write(result.stdout)
+            sys.stdout.write(ex.stderr)
         if kwargs['stderr'] is PIPE:
             sys.stderr.write(result.stderr)
         return result
@@ -587,19 +587,19 @@ class BuildContext:
                   '\n=============================' +
                   Style.RESET_ALL)
             for target_name, ex in self.failed_nodes.items():
-                print('\n\nTest', target_name,
+                print('\n\nTarget', target_name,
                       'failed executing command:\n\n')
                 print(' '.join(ex.cmd[0]))
                 print('\n')
                 if ex.stdout:
-                    print('\n===========================',
-                          '\nstdout output for the test:',
-                          '\n===========================\n')
+                    print('\n=============================',
+                          '\nstdout output for the target:',
+                          '\n=============================\n')
                     print(ex.stdout.decode('utf-8'))
                 if ex.stderr:
-                    print('\n===========================',
-                          '\nstderr output for the test:',
-                          '\n===========================')
+                    print('\n=============================',
+                          '\nstderr output for the target:',
+                          '\n=============================')
                     print(ex.stderr.decode('utf-8'))
             fatal_noexc('Finished building target graph with fails: \n{}\n'
                         'which caused the following to skip: \n{}',
