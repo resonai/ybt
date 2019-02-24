@@ -23,7 +23,6 @@ yabt Build context module
 
 
 from collections import defaultdict, deque
-from colorama import Fore, Style
 from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
 import json
@@ -36,6 +35,7 @@ import threading
 from time import sleep, time
 
 import networkx as nx
+from colorama import Fore, Style
 from ostrich.utils.proc import run
 from ostrich.utils.text import get_safe_path
 
@@ -407,9 +407,9 @@ class BuildContext:
             kwargs['stdout'] = PIPE
         result = run(docker_run, check=True, **kwargs)
         if kwargs['stdout'] is PIPE:
-            sys.stdout.write(result.stdout, kwargs)
+            sys.stdout.write(result.stdout)
         if kwargs['stderr'] is PIPE:
-            sys.stderr.write(result.stderr, kwargs)
+            sys.stderr.write(result.stderr)
         return result
 
     def build_target(self, target: Target):
