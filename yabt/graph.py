@@ -27,7 +27,7 @@ from os.path import relpath
 import networkx
 from networkx.algorithms import dag
 
-from .caching import load_target_from_cache
+from yabt import caching
 from .buildfile_parser import process_build_file
 from .compat import walk
 from .config import Config
@@ -328,8 +328,8 @@ def write_dot(build_context, conf: Config, out_f):
     """Write build graph in dot format to `out_f` file-like object."""
     out_f.write('strict digraph  {\n')
     for node in build_context.target_graph.nodes:
-        cached = load_target_from_cache(build_context.targets[node], build_context)[0]
-        color = '[color="grey"]' if cached else ''
+        cached = caching.load_target_from_cache(build_context.targets[node], build_context)[0]
+        color = '[fillcolor="grey",style=filled]' if cached else ''
         out_f.write('  "{}" {};\n'.format(node, color))
     out_f.writelines('  "{}" -> "{}";\n'.format(u, v)
                      for u, v in build_context.target_graph.edges)
