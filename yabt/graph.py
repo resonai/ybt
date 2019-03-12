@@ -40,6 +40,12 @@ from .utils import yprint
 logger = make_logger(__name__)
 
 
+TARGETS_COLORS = {'Python': 'red', 'PythonTest': 'pink',
+                  'PythonPackage': 'purple', 'CppLib': 'blue',
+                  'AptPackage': 'brown4', 'CostomInstaller': 'brown',
+                  'Proto': 'green'}
+
+
 def stable_reverse_topological_sort(graph):
     """Return a list of nodes in topological sort order.
 
@@ -329,8 +335,9 @@ def write_dot(build_context, conf: Config, out_f):
     out_f.write('strict digraph  {\n')
     for node in build_context.target_graph.nodes:
         cached = caching.load_target_from_cache(build_context.targets[node], build_context)[0]
-        color = '[fillcolor="grey",style=filled]' if cached else ''
-        out_f.write('  "{}" {};\n'.format(node, color))
+        fillcolor = 'fillcolor="grey",style=filled' if cached else ''
+        color = TARGETS_COLORS.get(build_context.targets[node].builder_name, 'black')
+        out_f.write('  "{}" [color="{}",{}];\n'.format(node, color, fillcolor))
     out_f.writelines('  "{}" -> "{}";\n'.format(u, v)
                      for u, v in build_context.target_graph.edges)
     out_f.write('}\n\n')
