@@ -33,8 +33,8 @@ import pytest
 
 from .buildcontext import BuildContext
 from .graph import (
-    get_descendants, populate_targets_graph, topological_sort, write_dot,
-    TARGETS_COLORS)
+    get_descendants, populate_targets_graph, topological_sort)
+from .dot import write_dot, TARGETS_COLORS
 from .extend import Plugin
 
 
