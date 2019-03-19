@@ -334,7 +334,7 @@ def write_dot(build_context, conf: Config, out_f):
     """Write build graph in dot format to `out_f` file-like object."""
     buildenvs = set(target.buildenv for target in
                     build_context.targets.values() if target.buildenv is not None)
-    buildenv_targets = set()
+    buildenv_targets = set(buildenvs)
     for buildenv in buildenvs:
         buildenv_targets = buildenv_targets.union(
             descendants(build_context.target_graph, buildenv))
