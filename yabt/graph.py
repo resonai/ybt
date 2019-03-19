@@ -332,8 +332,9 @@ def populate_targets_graph(build_context, conf: Config):
 
 def write_dot(build_context, conf: Config, out_f):
     """Write build graph in dot format to `out_f` file-like object."""
-    buildenvs = set(target.buildenv for target in
-                    build_context.targets.values() if target.buildenv is not None)
+    buildenvs = set(
+        target.buildenv for target in build_context.targets.values()
+        if target.buildenv is not None)
     buildenv_targets = set(buildenvs)
     for buildenv in buildenvs:
         buildenv_targets = buildenv_targets.union(
@@ -341,10 +342,13 @@ def write_dot(build_context, conf: Config, out_f):
     out_f.write('strict digraph  {\n')
     for node in build_context.target_graph.nodes:
         if conf.show_buildenv_deps or node not in buildenv_targets:
-            cached = caching.load_target_from_cache(build_context.targets[node], build_context)[0]
+            cached = caching.load_target_from_cache(
+                build_context.targets[node], build_context)[0]
             fillcolor = 'fillcolor="grey",style=filled' if cached else ''
-            color = TARGETS_COLORS.get(build_context.targets[node].builder_name, 'black')
-            out_f.write('  "{}" [color="{}",{}];\n'.format(node, color, fillcolor))
+            color = TARGETS_COLORS.get(
+                build_context.targets[node].builder_name, 'black')
+            out_f.write('  "{}" [color="{}",{}];\n'.format(node, color,
+                                                           fillcolor))
     out_f.writelines('  "{}" -> "{}";\n'.format(u, v)
                      for u, v in build_context.target_graph.edges
                      if conf.show_buildenv_deps or
