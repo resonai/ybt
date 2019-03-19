@@ -24,7 +24,7 @@ Creates the dot graph
 
 from networkx.algorithms import descendants
 
-from .caching import load_target_from_cache
+from .caching import get_prebuilt_targets
 from .config import Config
 
 
@@ -43,11 +43,11 @@ def write_dot(build_context, conf: Config, out_f):
     for buildenv in buildenvs:
         buildenv_targets = buildenv_targets.union(
             descendants(build_context.target_graph, buildenv))
+    prebuilt_targets = get_prebuilt_targets(build_context)
     out_f.write('strict digraph  {\n')
     for node in build_context.target_graph.nodes:
         if conf.show_buildenv_deps or node not in buildenv_targets:
-            cached = load_target_from_cache(
-                build_context.targets[node], build_context)[0]
+            cached = node in prebuilt_targets
             fillcolor = 'fillcolor="grey",style=filled' if cached else ''
             color = TARGETS_COLORS.get(
                 build_context.targets[node].builder_name, 'black')
