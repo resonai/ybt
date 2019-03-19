@@ -69,6 +69,7 @@ class Config:
         'with_tini_entrypoint',
         # logging-related
         'loglevel', 'logtostderr', 'logtostdout',
+        'show_buildenv_deps',
     ))
 
     def __init__(self, args, project_root_dir: str, work_dir: str,

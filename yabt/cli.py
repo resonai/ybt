@@ -123,6 +123,9 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    help='Whether to log to STDOUT')
         PARSER.add('--loglevel', default='INFO', choices=LOG_LEVELS_CHOICES,
                    help='Log level threshold')
+        PARSER.add('--show-buildenv-deps', type=bool, default=False,
+                   help='When runing dot, if set to True than the buildenv '
+                        'targets are printed to the graph too')
         PARSER.add('cmd', choices=['build', 'dot', 'test', 'tree', 'version'])
         PARSER.add('targets', nargs='*')
     return PARSER
