@@ -32,7 +32,8 @@ import pytest
 
 from .buildcontext import BuildContext
 from .graph import (
-    get_descendants, populate_targets_graph, topological_sort, write_dot)
+    get_descendants, populate_targets_graph, topological_sort, write_dot,
+    TARGETS_COLORS)
 from .extend import Plugin
 
 
@@ -336,3 +337,18 @@ def test_graph_dot_generation(basic_conf):
         assert '}' == dot_lines[-1]
         assert expected_dot_nodes == set(dot_lines[1:9])
         assert expected_dot_edges == set(dot_lines[9:18])
+
+
+@pytest.mark.usefixtures('in_simpleflat_project')
+def test_graph_dot_generation_colors(basic_conf):
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    expected_targets = {':flask-0.10.1': TARGETS_COLORS['PythonPackage'],
+                        ':flask-hello-app': TARGETS_COLORS['Python']}
+    expected_dot_nodes = ['  "{}" [color="{}",];'.format(target, color)
+                          for target, color in expected_targets.items()]
+    with io.StringIO() as dot_io:
+        write_dot(build_context, basic_conf, dot_io)
+        dot_lines = dot_io.getvalue().strip('\n').split('\n')
+        for dot_node in expected_dot_nodes:
+            assert dot_node in dot_lines

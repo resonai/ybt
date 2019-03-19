@@ -57,6 +57,9 @@ def yabt_project_fixture(project):
 def in_simple_project():
     yield from yabt_project_fixture('simple')
 
+@yield_fixture
+def in_simpleflat_project():
+    yield from yabt_project_fixture('simpleflat')
 
 @yield_fixture
 def in_dag_project():
