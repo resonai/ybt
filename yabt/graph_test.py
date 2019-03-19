@@ -376,9 +376,8 @@ def test_cached_targets_different_color(basic_conf):
     basic_conf.targets = [':builder']
     build_context = BuildContext(basic_conf)
     populate_targets_graph(build_context, basic_conf)
-    cached_targets = {':unzip'}
-    other_targets = {':builder', ':builder-base', ':build-tools', ':tools',
-                     ':ubuntu'}
+    cached_targets = {':build-tools', ':tools', ':unzip', ':ubuntu'}
+    other_targets = {':builder', ':builder-base'}
     expected_dot_nodes = set([
         '  "{}" \[color=".*",fillcolor="grey",style=filled\];'.format(target)
         for target in cached_targets] + [
