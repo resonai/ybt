@@ -26,6 +26,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
 import io
 import random
+import re
 
 import networkx
 import pytest
@@ -367,3 +368,25 @@ def test_no_buildenv_deps_in_dot(basic_conf):
         all_targets = set(dot_io.getvalue().split('"'))
         assert not buildenv_targets.intersection(all_targets)
         assert expected_targets.intersection(all_targets) == expected_targets
+
+
+@slow
+@pytest.mark.usefixtures('in_caching_project')
+def test_cached_targets_different_color(basic_conf):
+    basic_conf.targets = [':builder']
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    cached_targets = {':unzip'}
+    other_targets = {':builder', ':builder-base', ':build-tools', ':tools',
+                     ':ubuntu'}
+    expected_dot_nodes = set([
+        '  "{}" \[color=".*",fillcolor="grey",style=filled\];'.format(target)
+        for target in cached_targets] + [
+        '  "{}" \[color=".*",\];'.format(target) for target in other_targets])
+    with io.StringIO() as dot_io:
+        write_dot(build_context, basic_conf, dot_io)
+        dot_lines = dot_io.getvalue().strip('\n').split('\n')
+        assert set(filter(lambda expected:
+                          any(filter(lambda line: re.match(expected, line),
+                                     dot_lines[1:7])),
+                          expected_dot_nodes)) == expected_dot_nodes
