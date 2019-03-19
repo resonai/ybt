@@ -352,3 +352,18 @@ def test_graph_dot_generation_colors(basic_conf):
         dot_lines = dot_io.getvalue().strip('\n').split('\n')
         for dot_node in expected_dot_nodes:
             assert dot_node in dot_lines
+
+
+@pytest.mark.usefixtures('in_cpp_project')
+def test_no_buildenv_deps_in_dot(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['hello:hello-app']
+    populate_targets_graph(build_context, basic_conf)
+    buildenv_targets = {':builder', ':ubuntu-gpg', ':clang', ':ubuntu',
+                        ':gnupg'}
+    expected_targets = {'hello:hello-app', 'hello:hello'}
+    with io.StringIO() as dot_io:
+        write_dot(build_context, basic_conf, dot_io)
+        all_targets = set(dot_io.getvalue().split('"'))
+        assert not buildenv_targets.intersection(all_targets)
+        assert expected_targets.intersection(all_targets) == expected_targets
