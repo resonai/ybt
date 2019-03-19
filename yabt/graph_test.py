@@ -316,10 +316,11 @@ def test_dep_name_typo(basic_conf):
 def test_graph_dot_generation(basic_conf):
     build_context = BuildContext(basic_conf)
     populate_targets_graph(build_context, basic_conf)
-    expected_dot_nodes = set([
-        '  ":flask";', '  ":gunicorn";', '  "common:logging";',
-        '  "common:base";', '  "fe:fe";', '  "yapi/server:users";',
-        '  "yapi/server:yapi";', '  "yapi/server:yapi-gunicorn";'])
+    expected_targets = {':flask', ':gunicorn', 'common:logging', 'common:base',
+                        'fe:fe', 'yapi/server:users', 'yapi/server:yapi',
+                        'yapi/server:yapi-gunicorn'}
+    expected_dot_nodes = {'  "{}" [color="black",];'.format(target)
+                          for target in expected_targets}
     expected_dot_edges = set([
         '  "common:base" -> "common:logging";',
         '  "fe:fe" -> "yapi/server:users";', '  "fe:fe" -> "common:base";',
