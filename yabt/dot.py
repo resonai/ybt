@@ -31,7 +31,7 @@ from .config import Config
 TARGETS_COLORS = {'Python': 'red', 'PythonTest': 'pink',
                   'PythonPackage': 'purple', 'CppLib': 'blue',
                   'CppProg': 'cornflowerblue', 'CppGTest': 'deepskyblue4',
-                  'AptPackage': 'brown4', 'CostomInstaller': 'brown',
+                  'AptPackage': 'brown4', 'CustomInstaller': 'brown',
                   'Proto': 'green'}
 
 
