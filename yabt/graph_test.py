@@ -32,9 +32,9 @@ import networkx
 import pytest
 
 from .buildcontext import BuildContext
+from .dot import write_dot, TARGETS_COLORS
 from .graph import (
     get_descendants, populate_targets_graph, topological_sort)
-from .dot import write_dot, TARGETS_COLORS
 from .extend import Plugin
 
 
