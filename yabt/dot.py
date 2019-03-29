@@ -28,11 +28,16 @@ from .caching import get_prebuilt_targets
 from .config import Config
 
 
-TARGETS_COLORS = {'Python': 'red', 'PythonTest': 'pink',
-                  'PythonPackage': 'purple', 'CppLib': 'blue',
-                  'CppProg': 'cornflowerblue', 'CppGTest': 'deepskyblue4',
-                  'AptPackage': 'brown4', 'CustomInstaller': 'brown',
-                  'Proto': 'green'}
+TARGETS_COLORS = {'AptPackage': 'brown4',
+                  'CppGTest': 'deepskyblue4',
+                  'CppLib': 'blue',
+                  'CppProg': 'cornflowerblue',
+                  'CustomInstaller': 'brown',
+                  'Proto': 'green',
+                  'Python': 'red',
+                  'PythonPackage': 'purple',
+                  'PythonTest': 'pink'
+                  }
 
 
 def write_dot(build_context, conf: Config, out_f):
