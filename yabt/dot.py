@@ -22,8 +22,6 @@ Creates the dot graph
 """
 
 
-from networkx.algorithms import descendants
-
 from .caching import get_prebuilt_targets
 from .config import Config
 
@@ -40,19 +38,34 @@ TARGETS_COLORS = {'AptPackage': 'brown4',
                   }
 
 
-def write_dot(build_context, conf: Config, out_f):
-    """Write build graph in dot format to `out_f` file-like object."""
+def get_not_buildenv_targets(build_context):
+    roots = [n for n, d in build_context.target_graph.in_degree() if d == 0]
     buildenvs = set(
         target.buildenv for target in build_context.targets.values()
         if target.buildenv is not None)
-    buildenv_targets = set(buildenvs)
-    for buildenv in buildenvs:
-        buildenv_targets = buildenv_targets.union(
-            descendants(build_context.target_graph, buildenv))
+    visited = set()
+    to_do = []
+    for root in roots:
+        if root not in buildenvs:
+            to_do.append(root)
+
+    while to_do:
+        node = to_do.pop(-1)
+        if node not in visited:
+            visited.add(node)
+            for successor in build_context.target_graph.successors(node):
+                if successor not in buildenvs:
+                    to_do.append(successor)
+    return visited
+
+
+def write_dot(build_context, conf: Config, out_f):
+    """Write build graph in dot format to `out_f` file-like object."""
+    not_buildenv_targets = get_not_buildenv_targets(build_context)
     prebuilt_targets = get_prebuilt_targets(build_context)
     out_f.write('strict digraph  {\n')
     for node in build_context.target_graph.nodes:
-        if conf.show_buildenv_deps or node not in buildenv_targets:
+        if conf.show_buildenv_deps or node in not_buildenv_targets:
             cached = node in prebuilt_targets
             fillcolor = 'fillcolor="grey",style=filled' if cached else ''
             color = TARGETS_COLORS.get(
@@ -62,5 +75,5 @@ def write_dot(build_context, conf: Config, out_f):
     out_f.writelines('  "{}" -> "{}";\n'.format(u, v)
                      for u, v in build_context.target_graph.edges
                      if conf.show_buildenv_deps or
-                     (u not in buildenv_targets and v not in buildenv_targets))
+                     (u in not_buildenv_targets and v in not_buildenv_targets))
     out_f.write('}\n\n')
