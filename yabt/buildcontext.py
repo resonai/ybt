@@ -279,6 +279,9 @@ class BuildContext:
             def fail_notifier(ex):
                 """Mark target as failed, taking it and ancestors
                    out of the queue"""
+                # TODO(Dana) separate "failed to build target" errors from
+                # "failed to run" errors.
+                # see: https://github.com/resonai/ybt/issues/124
                 if isinstance(ex, CalledProcessError):
                     sys.stdout.write(ex.stdout.decode('utf-8'))
                     sys.stderr.write(ex.stderr.decode('utf-8'))
