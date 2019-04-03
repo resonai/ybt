@@ -407,9 +407,9 @@ class BuildContext:
             kwargs['stdout'] = PIPE
         result = run(docker_run, check=True, **kwargs)
         if kwargs['stdout'] is PIPE:
-            sys.stdout.write(result.stdout)
+            sys.stdout.write(result.stdout.decode('utf-8'))
         if kwargs['stderr'] is PIPE:
-            sys.stderr.write(result.stderr)
+            sys.stderr.write(result.stderr.decode('utf-8'))
         return result
 
     def build_target(self, target: Target):
