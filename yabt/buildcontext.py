@@ -36,7 +36,7 @@ from time import sleep, time
 
 import networkx as nx
 from colorama import Fore, Style
-from ostrich.utils.proc import run
+from ostrich.utils.proc import run, CalledProcessError
 from ostrich.utils.text import get_safe_path
 
 from .caching import (get_prebuilt_targets, load_target_from_cache,
@@ -279,8 +279,9 @@ class BuildContext:
             def fail_notifier(ex):
                 """Mark target as failed, taking it and ancestors
                    out of the queue"""
-                sys.stdout.write(ex.stdout.decode('utf-8'))
-                sys.stderr.write(ex.stderr.decode('utf-8'))
+                if isinstance(ex, CalledProcessError):
+                    sys.stdout.write(ex.stdout.decode('utf-8'))
+                    sys.stderr.write(ex.stderr.decode('utf-8'))
                 if graph_copy.has_node(target.name):
                     self.failed_nodes[target.name] = ex
                     # removing all ancestors (nodes that depend on this one)
