@@ -104,7 +104,8 @@ def link_node(abs_src: str, abs_dest: str, force: bool=False):
     elif isdir(abs_src):
         # sync dir by recursively linking files under it to dest
         shutil.copytree(abs_src, abs_dest,
-                        copy_function=functools.partial(link_func, force=force),
+                        copy_function=functools.partial(link_func,
+                                                        force=force),
                         ignore=shutil.ignore_patterns('.git'))
     else:
         raise FileNotFoundError(abs_src)
