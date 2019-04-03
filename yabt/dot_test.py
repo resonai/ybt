@@ -23,12 +23,11 @@ dot generation tests
 
 
 import io
+import pytest
 import re
 
-import pytest
-
 from yabt.buildcontext import BuildContext
-from yabt.dot import TARGETS_COLORS, write_dot
+from yabt.dot import TARGETS_COLORS, write_dot, get_not_buildenv_targets
 from yabt.graph import populate_targets_graph
 
 
@@ -110,3 +109,11 @@ def test_cached_targets_different_color(basic_conf):
                           any(filter(lambda line: re.match(expected, line),
                                      dot_lines[1:7])),
                           expected_dot_nodes)) == expected_dot_nodes
+
+
+@pytest.mark.usefixtures('in_cpp_project')
+def test_buildenv_and_target_dep(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['hello_lib:hello-gnupg']
+    populate_targets_graph(build_context, basic_conf)
+    assert ':gnupg' in get_not_buildenv_targets(build_context)
