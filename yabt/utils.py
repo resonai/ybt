@@ -22,6 +22,7 @@ yabt utils
 """
 
 
+import functools
 import hashlib
 import os
 from os.path import isdir, isfile, join, normpath, relpath, split
@@ -101,8 +102,10 @@ def link_node(abs_src: str, abs_dest: str, force: bool=False):
         # sync file by linking it to dest
         link_func(abs_src, abs_dest, force)
     elif isdir(abs_src):
-        raise ValueError('try to link: {} which is a directory and not a file',
-                         abs_src)
+        # sync dir by recursively linking files under it to dest
+        shutil.copytree(abs_src, abs_dest,
+                        copy_function=functools.partial(link_func, force=force),
+                        ignore=shutil.ignore_patterns('.git'))
     else:
         raise FileNotFoundError(abs_src)
 
