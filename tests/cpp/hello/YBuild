@@ -1,3 +1,9 @@
 CppProg('hello', sources='hello.cc', in_buildenv='//:builder')
 
 CppApp('hello-app', base_image='//:ubuntu', main=':hello')
+
+FileGroup('hello-data',
+          files='data')
+
+CppApp('hello-with-data', base_image='//:ubuntu', main=':hello',
+       deps=':hello-data')
