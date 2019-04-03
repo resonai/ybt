@@ -82,9 +82,8 @@ def test_no_buildenv_deps_in_dot(basic_conf):
     build_context = BuildContext(basic_conf)
     basic_conf.targets = ['hello:hello-app']
     populate_targets_graph(build_context, basic_conf)
-    buildenv_targets = {':builder', ':ubuntu-gpg', ':clang', ':ubuntu',
-                        ':gnupg'}
-    expected_targets = {'hello:hello-app', 'hello:hello'}
+    buildenv_targets = {':builder', ':ubuntu-gpg', ':clang', ':gnupg'}
+    expected_targets = {'hello:hello-app', 'hello:hello', ':ubuntu'}
     with io.StringIO() as dot_io:
         write_dot(build_context, basic_conf, dot_io)
         all_targets = set(dot_io.getvalue().split('"'))
