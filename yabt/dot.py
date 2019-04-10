@@ -47,15 +47,15 @@ def get_not_buildenv_targets(build_context):
     to_do = []
     for root in roots:
         if root not in buildenvs:
+            visited.add(root)
             to_do.append(root)
 
     while to_do:
         node = to_do.pop(-1)
-        if node not in visited:
-            visited.add(node)
-            for successor in build_context.target_graph.successors(node):
-                if successor not in buildenvs:
-                    to_do.append(successor)
+        for successor in build_context.target_graph.successors(node):
+            if successor not in visited and successor not in buildenvs:
+                visited.add(successor)
+                to_do.append(successor)
     return visited
 
 
