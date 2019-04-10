@@ -24,7 +24,6 @@ yabt target graph tests
 
 from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
-import io
 import random
 
 import networkx
@@ -32,8 +31,7 @@ import pytest
 
 from .buildcontext import BuildContext
 from .graph import (
-    get_descendants, populate_targets_graph, topological_sort, write_dot)
-from .extend import Plugin
+    get_descendants, populate_targets_graph, topological_sort)
 
 
 slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
@@ -310,28 +308,3 @@ def test_dep_name_typo(basic_conf):
     assert 'typo:zapi - dependency of typo:foo' in ex_msg
     # # expecting 5 unresolved targets (so error message will have 6 lines)
     assert 6 == len(ex_msg.split('\n'))
-
-
-@pytest.mark.usefixtures('in_dag_project')
-def test_graph_dot_generation(basic_conf):
-    build_context = BuildContext(basic_conf)
-    populate_targets_graph(build_context, basic_conf)
-    expected_dot_nodes = set([
-        '  ":flask";', '  ":gunicorn";', '  "common:logging";',
-        '  "common:base";', '  "fe:fe";', '  "yapi/server:users";',
-        '  "yapi/server:yapi";', '  "yapi/server:yapi-gunicorn";'])
-    expected_dot_edges = set([
-        '  "common:base" -> "common:logging";',
-        '  "fe:fe" -> "yapi/server:users";', '  "fe:fe" -> "common:base";',
-        '  "fe:fe" -> ":flask";', '  "yapi/server:yapi" -> "common:base";',
-        '  "yapi/server:yapi" -> ":flask";',
-        '  "yapi/server:yapi-gunicorn" -> "yapi/server:yapi";',
-        '  "yapi/server:yapi-gunicorn" -> "common:base";',
-        '  "yapi/server:yapi-gunicorn" -> ":gunicorn";'])
-    with io.StringIO() as dot_io:
-        write_dot(build_context, basic_conf, dot_io)
-        dot_lines = dot_io.getvalue().strip('\n').split('\n')
-        assert 'strict digraph  {' == dot_lines[0]
-        assert '}' == dot_lines[-1]
-        assert expected_dot_nodes == set(dot_lines[1:9])
-        assert expected_dot_edges == set(dot_lines[9:18])

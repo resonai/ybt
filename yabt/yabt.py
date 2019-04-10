@@ -31,7 +31,8 @@ from .buildcontext import BuildContext
 from .cli import init_and_get_conf
 from .config import Config, BUILD_PROJ_FILE
 from .extend import Plugin
-from .graph import populate_targets_graph, write_dot
+from .graph import populate_targets_graph
+from .dot import write_dot
 from .logging import make_logger
 from .target_utils import parse_target_selectors, split, Target
 from .utils import fatal

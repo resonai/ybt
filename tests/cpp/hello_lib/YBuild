@@ -13,3 +13,11 @@ CppProg(
 )
 
 CppApp('hello-app', base_image='//:ubuntu', main=':hello')
+
+
+CppProg(
+    'hello-gnupg',
+    sources='hello-world.cc',
+    in_buildenv='//:builder',
+    deps=[':hello-greet', '//:gnupg']
+)

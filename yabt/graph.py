@@ -323,16 +323,6 @@ def populate_targets_graph(build_context, conf: Config):
                 build_context.target_graph.size())
 
 
-def write_dot(build_context, conf: Config, out_f):
-    """Write build graph in dot format to `out_f` file-like object."""
-    out_f.write('strict digraph  {\n')
-    out_f.writelines('  "{}";\n'.format(node)
-                     for node in build_context.target_graph.nodes)
-    out_f.writelines('  "{}" -> "{}";\n'.format(u, v)
-                     for u, v in build_context.target_graph.edges)
-    out_f.write('}\n\n')
-
-
 def topological_sort(graph: networkx.DiGraph):
     yield from stable_reverse_topological_sort(graph)
 
