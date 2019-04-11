@@ -145,7 +145,10 @@ CPP_SIG = [
 
 
 register_app_builder_sig(
-    'CppApp', [('executable', PT.File, None), ('main', PT.Target, None)])
+    'CppApp',
+    [('executable', PT.File, None),
+     ('main', PT.Target, None),
+     ('runtime', PT.str, None)])
 
 
 @register_manipulate_target_hook('CppApp')
@@ -190,6 +193,7 @@ register_builder_sig(
     CPP_SIG + [
         ('test_flags', PT.StrList, None),  # flags to append to test command
         ('test_env', None),  # env vars to inject in test process
+        ('runtime', PT.str, None)
         # TODO: support different testenv image for test execution
         # ('in_testenv', PT.Target, None),
     ]
@@ -368,7 +372,9 @@ def cpp_gtest_tester(build_context, target):
     test_cmd.extend(target.props.test_flags)
     build_context.run_in_buildenv(
         # TODO: target.props.in_testenv,
-        target.props.in_buildenv, test_cmd, target.props.test_env)
+        target.props.in_buildenv, test_cmd, target.props.test_env,
+        None, True, target.props.runtime
+    )
 
 
 register_builder_sig('CppLib', CPP_SIG)
