@@ -190,7 +190,7 @@ register_builder_sig(
     CPP_SIG + [
         ('test_flags', PT.StrList, None),  # flags to append to test command
         ('test_env', None),  # env vars to inject in test process
-        ('runtime', PT.str, None)
+        ('runtime', PT.str, None),
         # TODO: support different testenv image for test execution
         # ('in_testenv', PT.Target, None),
     ]
