@@ -382,7 +382,7 @@ class BuildContext:
             container_work_dir /= work_dir
         if runtime:
             docker_run.extend([
-                '--runtime', runtime
+                '--runtime', runtime,
             ])
 
         docker_run.extend([
