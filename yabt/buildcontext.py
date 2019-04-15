@@ -384,7 +384,6 @@ class BuildContext:
             docker_run.extend([
                 '--runtime', runtime
             ])
-            logger.info('Running with runtime {}', runtime)
 
         docker_run.extend([
             '--rm',
