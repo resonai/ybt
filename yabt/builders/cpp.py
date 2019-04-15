@@ -372,7 +372,7 @@ def cpp_gtest_tester(build_context, target):
     build_context.run_in_buildenv(
         # TODO: target.props.in_testenv,
         target.props.in_buildenv, test_cmd, target.props.test_env,
-        None, True, target.props.runtime
+        runtime=target.props.runtime
     )
 
 
