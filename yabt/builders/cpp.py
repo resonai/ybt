@@ -145,9 +145,7 @@ CPP_SIG = [
 
 
 register_app_builder_sig(
-    'CppApp',
-    [('executable', PT.File, None),
-     ('main', PT.Target, None)])
+    'CppApp', [('executable', PT.File, None), ('main', PT.Target, None)])
 
 
 @register_manipulate_target_hook('CppApp')
