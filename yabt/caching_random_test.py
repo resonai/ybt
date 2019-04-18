@@ -59,21 +59,21 @@ def random_string():
 
 
 def generate_dag_with_targets(size):
-    targets_names = [random_string() for _ in range(size)]
-    target_graph = generate_random_dag(targets_names)
-    for target_name in targets_names:
-        generate_cpp_main(target_name)
-    generate_yroot(target_graph, targets_names)
+    targets = [random_string() for _ in range(size)]
+    target_graph = generate_random_dag(targets)
+    for target in targets:
+        generate_cpp_main(target)
+    generate_yroot(target_graph, targets)
     shutil.copyfile(YSETTINGS, 'YSettings')
-    return targets_names, target_graph
+    return targets, target_graph
 
 
-def generate_yroot(target_graph, targets_names):
+def generate_yroot(target_graph, targets):
     yroot = []
-    for target_name in targets_names:
+    for target in targets:
         deps = [':' + dep for dep, target in target_graph.edges
-                if target == target_name]
-        yroot.append(CPP_TARGET.format(target_name, get_file_name(target_name),
+                if target == target]
+        yroot.append(CPP_TARGET.format(target, get_file_name(target),
                                        deps))
     with open(YROOT_TMPL, 'r') as yroot_tmpl_file:
         yroot_data = yroot_tmpl_file.read()
@@ -81,27 +81,26 @@ def generate_yroot(target_graph, targets_names):
         yroot_file.write(yroot_data + '\n\n'.join(yroot))
 
 
-def generate_cpp_main(target_name, string_to_print=None):
+def generate_cpp_main(target, string_to_print=None):
     if string_to_print is None:
-        string_to_print = target_name
+        string_to_print = target
     with open(CPP_TMPL, 'r') as tmpl:
         code = tmpl.read().format(string_to_print)
-    with open(get_file_name(target_name), 'w') as target_file:
+    with open(get_file_name(target), 'w') as target_file:
         target_file.write(code)
 
 
-def get_file_name(target_name):
-    return join(target_name + '.cc')
+def get_file_name(target):
+    return join(target + '.cc')
 
 
-def rebuild(basic_conf, targets_modified, targets_names, targets_graph):
+def rebuild(basic_conf, targets_modified, targets, targets_graph):
     build(basic_conf)
-    check_modified_targets(basic_conf, targets_modified, targets_names, [])
+    check_modified_targets(basic_conf, targets_modified, targets, [])
 
 
-def rebuild_after_modify(basic_conf, targets_modified, targets_names,
-                         targets_graph):
-    target_to_change = random.choice(targets_names)
+def rebuild_after_modify(basic_conf, targets_modified, targets, targets_graph):
+    target_to_change = random.choice(targets)
     logger.info('modifing target: {}'.format(target_to_change))
     generate_cpp_main(target_to_change, random_string())
     build(basic_conf)
@@ -109,13 +108,13 @@ def rebuild_after_modify(basic_conf, targets_modified, targets_names,
     targets_to_build = list(nx.descendants(targets_graph, target_to_change))
     targets_to_build.append(target_to_change)
 
-    check_modified_targets(basic_conf, targets_modified, targets_names,
+    check_modified_targets(basic_conf, targets_modified, targets,
                            targets_to_build)
 
 
-def check_modified_targets(basic_conf, targets_modified, targets_names,
+def check_modified_targets(basic_conf, targets_modified, targets,
                            targets_to_build):
-    for target in targets_names:
+    for target in targets:
         last_modified = get_last_modified(basic_conf, target)
         if target in targets_to_build:
             assert last_modified != targets_modified[target], \
@@ -129,8 +128,8 @@ def check_modified_targets(basic_conf, targets_modified, targets_names,
 
 
 def delete_file_and_return_no_modify(basic_conf, targets_modified,
-                                     targets_names, targets_graph):
-    target_to_delete = random.choice(targets_names)
+                                     targets, targets_graph):
+    target_to_delete = random.choice(targets)
     logger.info('deleting and returning the same for target: {}'
                 .format(target_to_delete))
     file_name = get_file_name(target_to_delete)
@@ -141,22 +140,22 @@ def delete_file_and_return_no_modify(basic_conf, targets_modified,
         target_file.write(curr_content)
 
     build(basic_conf)
-    check_modified_targets(basic_conf, targets_modified, targets_names, [])
+    check_modified_targets(basic_conf, targets_modified, targets, [])
 
 
-def add_dependency(basic_conf, targets_modified, targets_names, targets_graph):
-    new_target_name = random_string()
-    logger.info('adding target: ' + new_target_name)
-    targets_names.append(new_target_name)
-    basic_conf.targets.append(':' + new_target_name)
-    generate_cpp_main(new_target_name)
-    targets_graph.add_node(new_target_name)
-    targets_graph.add_edges_from((new_target_name, targets_names[i])
-                                 for i in range(len(targets_names) - 1)
+def add_dependency(basic_conf, targets_modified, targets, targets_graph):
+    new_target = random_string()
+    logger.info('adding target: ' + new_target)
+    targets.append(new_target)
+    basic_conf.targets.append(':' + new_target)
+    generate_cpp_main(new_target)
+    targets_graph.add_node(new_target)
+    targets_graph.add_edges_from((new_target, targets[i])
+                                 for i in range(len(targets) - 1)
                                  if random.random() > 0.8)
-    generate_yroot(targets_graph, targets_names)
-    targets_to_build = nx.descendants(targets_graph, new_target_name)
-    check_modified_targets(basic_conf, targets_modified, targets_names,
+    generate_yroot(targets_graph, targets)
+    targets_to_build = nx.descendants(targets_graph, new_target)
+    check_modified_targets(basic_conf, targets_modified, targets,
                            targets_to_build)
 
 
@@ -167,17 +166,17 @@ def get_last_modified(basic_conf, target):
 
 @slow
 def test_caching(tmp_dir):
-    targets_names, targets_graph = generate_dag_with_targets(NUM_TARGETS)
+    targets, targets_graph = generate_dag_with_targets(NUM_TARGETS)
     reset_parser()
     basic_conf = cli.init_and_get_conf(['--non-interactive', 'build'])
     extend.Plugin.load_plugins(basic_conf)
-    basic_conf.targets = [':' + target for target in targets_names]
+    basic_conf.targets = [':' + target for target in targets]
 
     build(basic_conf)
     logger.info('done first build')
 
     targets_modified = {}
-    for target in targets_names:
+    for target in targets:
         targets_modified[target] = get_last_modified(basic_conf, target)
 
     tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify,
@@ -186,7 +185,7 @@ def test_caching(tmp_dir):
         test_func = random.choice(tests)
         logger.info('starting build number: {} with func: {}'.format(
             i + 2, test_func.__name__))
-        test_func(basic_conf, targets_modified, targets_names, targets_graph)
+        test_func(basic_conf, targets_modified, targets, targets_graph)
 
 
 def build(basic_conf):
