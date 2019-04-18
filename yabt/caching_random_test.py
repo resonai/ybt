@@ -23,13 +23,14 @@ yabt caching random tests
 import random
 import shutil
 import string
-from os.path import join, dirname, abspath
+from os.path import join, dirname, abspath, getmtime
 import pytest
 
 from conftest import reset_parser
 from yabt import config, cli, extend
 from yabt.buildcontext import BuildContext
 from yabt.graph import populate_targets_graph
+from yabt.logging import make_logger
 from yabt.test_utils import generate_random_dag
 
 CPP_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
@@ -42,6 +43,8 @@ YSETTINGS = join(dirname(abspath(__file__)), '..', 'tests', 'data',
 
 slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
                           reason='need --with-slow option to run')
+
+logger = make_logger(__name__)
 
 def generate_dag_with_targets(size):
     targets_names = [''.join([random.choice(
@@ -75,4 +78,22 @@ def test_caching(tmp_dir):
     basic_conf.targets = [':' + target for target in targets_names]
     build_context = BuildContext(basic_conf)
     populate_targets_graph(build_context, basic_conf)
+
     build_context.build_graph()
+    logger.info('done first build')
+    targets_modified = {}
+    for target in targets_names:
+        targets_modified[target] = get_last_modified(basic_conf, target)
+
+    logger.info('starting second build')
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    build_context.build_graph()
+    for target in targets_names:
+        assert targets_modified[target] == \
+               get_last_modified(basic_conf, target)
+
+
+def get_last_modified(basic_conf, target):
+    return getmtime(join(basic_conf.builders_workspace_dir, 'release_flavor',
+                         'CppProg', '_' + target, target + '.o'))
