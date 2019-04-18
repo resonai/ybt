@@ -70,9 +70,7 @@ def generate_dag_with_targets(size):
 def test_caching(tmp_dir):
     targets_names, targets_graph = generate_dag_with_targets(10)
     reset_parser()
-    basic_conf = cli.init_and_get_conf([
-        '--non-interactive', '--no-build-cache', '--no-test-cache',
-        '--no-docker-cache', 'build'])
+    basic_conf = cli.init_and_get_conf(['--non-interactive', 'build'])
     extend.Plugin.load_plugins(basic_conf)
     basic_conf.targets = [':' + target for target in targets_names]
     build_context = BuildContext(basic_conf)
