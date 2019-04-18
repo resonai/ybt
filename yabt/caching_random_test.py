@@ -96,10 +96,7 @@ def get_file_name(target_name):
 
 def rebuild(basic_conf, targets_modified, targets_names, targets_graph):
     build(basic_conf)
-    for target in targets_names:
-        assert targets_modified[target] == \
-               get_last_modified(basic_conf, target),\
-            "target: {} was modified and it wasn't supposed to".format(target)
+    check_modified_targets(basic_conf, targets_modified, targets_modified, [])
 
 
 def rebuild_after_modify(basic_conf, targets_modified, targets_names,
@@ -112,15 +109,21 @@ def rebuild_after_modify(basic_conf, targets_modified, targets_names,
     targets_to_build = list(nx.descendants(targets_graph, target_to_change))
     targets_to_build.append(target_to_change)
 
+    check_modified_targets(basic_conf, targets_modified, targets_names,
+                           targets_to_build)
+
+
+def check_modified_targets(basic_conf, targets_modified, targets_names,
+                           targets_to_build):
     for target in targets_names:
         last_modified = get_last_modified(basic_conf, target)
         if target in targets_to_build:
-            assert last_modified != targets_modified[target],\
+            assert last_modified != targets_modified[target], \
                 "target: {} was supposed to be built again and" \
                 " wasn't".format(target)
             targets_modified[target] = last_modified
         else:
-            assert last_modified == targets_modified[target],\
+            assert last_modified == targets_modified[target], \
                 "target: {} was modified and it wasn't supposed" \
                 " to".format(target)
 
@@ -138,10 +141,7 @@ def delete_file_and_return_no_modify(basic_conf, targets_modified,
         target_file.write(curr_content)
 
     build(basic_conf)
-
-    for target in targets_names:
-        assert targets_modified[target] == \
-               get_last_modified(basic_conf, target)
+    check_modified_targets(basic_conf, targets_modified, targets_names, [])
 
 
 def get_last_modified(basic_conf, target):
