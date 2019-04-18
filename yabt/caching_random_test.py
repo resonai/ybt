@@ -179,7 +179,8 @@ def test_caching(tmp_dir):
     for target in targets_names:
         targets_modified[target] = get_last_modified(basic_conf, target)
 
-    tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify]
+    tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify,
+             add_dependency]
     for i in range(NUM_TESTS):
         test_func = random.choice(tests)
         logger.info('starting build number: {} with func: {}'.format(
