@@ -146,6 +146,7 @@ def delete_file_and_return_no_modify(basic_conf, targets_modified,
 
 def add_dependency(basic_conf, targets_modified, targets_names, targets_graph):
     new_target_name = random_string()
+    logger.info('adding target: ' + new_target_name)
     targets_names.append(new_target_name)
     basic_conf.targets.append(':' + new_target_name)
     generate_cpp_main(new_target_name)
