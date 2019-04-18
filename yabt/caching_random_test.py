@@ -96,7 +96,7 @@ def get_file_name(target_name):
 
 def rebuild(basic_conf, targets_modified, targets_names, targets_graph):
     build(basic_conf)
-    check_modified_targets(basic_conf, targets_modified, targets_modified, [])
+    check_modified_targets(basic_conf, targets_modified, targets_names, [])
 
 
 def rebuild_after_modify(basic_conf, targets_modified, targets_names,
