@@ -20,11 +20,12 @@ yabt caching random tests
 
 :author: Dana Shamir
 """
+import networkx as nx
+from os.path import join, dirname, abspath, getmtime
+import pytest
 import random
 import shutil
 import string
-from os.path import join, dirname, abspath, getmtime
-import pytest
 
 from conftest import reset_parser
 from yabt import config, cli, extend
@@ -98,7 +99,7 @@ def rebuild_after_modify(basic_conf, targets_modified, targets_names,
     generate_cpp_main(target_to_change, random_string())
     build(basic_conf)
 
-    targets_to_build = list(targets_graph[target_to_change])
+    targets_to_build = list(nx.descendants(targets_graph, target_to_change))
     targets_to_build.append(target_to_change)
 
     for target in targets_names:
