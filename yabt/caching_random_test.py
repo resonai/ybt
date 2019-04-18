@@ -82,6 +82,40 @@ def generate_cpp_main(target_name, string_to_print=None):
     return file_name
 
 
+def rebuild(basic_conf, targets_modified, targets_names):
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    build_context.build_graph()
+    for target in targets_names:
+        assert targets_modified[target] == \
+               get_last_modified(basic_conf, target)
+
+
+def rebuild_after_modify(basic_conf, targets_modified, targets_names,
+                         targets_graph):
+    target_to_change = random.choice(targets_names)
+    generate_cpp_main(target_to_change, random_string())
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    build_context.build_graph()
+
+    targets_to_build = list(targets_graph[target_to_change])
+    targets_to_build.append(target_to_change)
+
+    for target in targets_names:
+        last_modified = get_last_modified(basic_conf, target)
+        if target in targets_to_build:
+            assert last_modified != targets_modified[target]
+            targets_modified[target] = last_modified
+        else:
+            assert last_modified == targets_modified[target]
+
+
+def get_last_modified(basic_conf, target):
+    return getmtime(join(basic_conf.builders_workspace_dir, 'release_flavor',
+                         'CppProg', '_' + target, target + '.o'))
+
+
 @slow
 def test_caching(tmp_dir):
     targets_names, targets_graph = generate_dag_with_targets(NUM_TARGETS)
@@ -99,22 +133,8 @@ def test_caching(tmp_dir):
         targets_modified[target] = get_last_modified(basic_conf, target)
 
     logger.info('starting second build')
-    test_rebuild(basic_conf, targets_modified, targets_names)
+    rebuild(basic_conf, targets_modified, targets_names)
 
-
-def test_rebuild(basic_conf, targets_modified, targets_names):
-    build_context = BuildContext(basic_conf)
-    populate_targets_graph(build_context, basic_conf)
-    build_context.build_graph()
-    for target in targets_names:
-        assert targets_modified[target] == \
-               get_last_modified(basic_conf, target)
-
-def test_rebuild_after_modify(basic_conf, targets_modified, targets_names):
-    target = random.choice(targets_names)
-
-
-
-def get_last_modified(basic_conf, target):
-    return getmtime(join(basic_conf.builders_workspace_dir, 'release_flavor',
-                         'CppProg', '_' + target, target + '.o'))
+    logger.info('starting third build')
+    rebuild_after_modify(basic_conf, targets_modified, targets_names,
+                         targets_graph)
