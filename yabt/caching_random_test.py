@@ -34,6 +34,7 @@ from yabt.logging import make_logger
 from yabt.test_utils import generate_random_dag
 
 NUM_TARGETS = 10
+NUM_TESTS = 10
 
 CPP_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
                 'caching', 'cpp_prog.cc.tmpl')
@@ -82,16 +83,18 @@ def generate_cpp_main(target_name, string_to_print=None):
     return file_name
 
 
-def rebuild(basic_conf, targets_modified, targets_names):
+def rebuild(basic_conf, targets_modified, targets_names, targets_graph):
     build(basic_conf)
     for target in targets_names:
         assert targets_modified[target] == \
-               get_last_modified(basic_conf, target)
+               get_last_modified(basic_conf, target),\
+            "target: {} was modified and it wasn't supposed to".format(target)
 
 
 def rebuild_after_modify(basic_conf, targets_modified, targets_names,
                          targets_graph):
     target_to_change = random.choice(targets_names)
+    logger.info('modifing target: {}'.format(target_to_change))
     generate_cpp_main(target_to_change, random_string())
     build(basic_conf)
 
@@ -101,10 +104,14 @@ def rebuild_after_modify(basic_conf, targets_modified, targets_names,
     for target in targets_names:
         last_modified = get_last_modified(basic_conf, target)
         if target in targets_to_build:
-            assert last_modified != targets_modified[target]
+            assert last_modified != targets_modified[target],\
+                "target: {} was supposed to be built again and" \
+                " wasn't".format(target)
             targets_modified[target] = last_modified
         else:
-            assert last_modified == targets_modified[target]
+            assert last_modified == targets_modified[target],\
+                "target: {} was modified and it wasn't supposed" \
+                " to".format(target)
 
 
 def get_last_modified(basic_conf, target):
@@ -127,12 +134,12 @@ def test_caching(tmp_dir):
     for target in targets_names:
         targets_modified[target] = get_last_modified(basic_conf, target)
 
-    logger.info('starting second build')
-    rebuild(basic_conf, targets_modified, targets_names)
-
-    logger.info('starting third build')
-    rebuild_after_modify(basic_conf, targets_modified, targets_names,
-                         targets_graph)
+    tests = [rebuild, rebuild_after_modify]
+    for i in range(NUM_TESTS):
+        test_func = random.choice(tests)
+        logger.info('starting build number: {} with func: {}'.format(
+            i + 2, test_func.__name__))
+        test_func(basic_conf, targets_modified, targets_names, targets_graph)
 
 
 def build(basic_conf):
