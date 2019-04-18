@@ -24,6 +24,7 @@ import random
 import shutil
 import string
 from os.path import join, dirname, abspath
+import pytest
 
 from conftest import reset_parser
 from yabt import config, cli, extend
@@ -39,6 +40,8 @@ YROOT_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
 YSETTINGS = join(dirname(abspath(__file__)), '..', 'tests', 'data',
                  'caching', 'YSettings')
 
+slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
+                          reason='need --with-slow option to run')
 
 def generate_dag_with_targets(size):
     targets_names = [''.join([random.choice(
@@ -63,6 +66,7 @@ def generate_dag_with_targets(size):
     return targets_names, target_graph
 
 
+@slow
 def test_caching(tmp_dir):
     targets_names, targets_graph = generate_dag_with_targets(10)
     reset_parser()
