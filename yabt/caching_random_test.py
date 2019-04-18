@@ -20,6 +20,8 @@ yabt caching random tests
 
 :author: Dana Shamir
 """
+import os
+
 import networkx as nx
 from os.path import join, dirname, abspath, getmtime
 import pytest
@@ -118,6 +120,25 @@ def rebuild_after_modify(basic_conf, targets_modified, targets_names,
                 " to".format(target)
 
 
+def delete_file_and_return_no_modify(basic_conf, targets_modified,
+                                     targets_names, targets_graph):
+    target_to_delete = random.choice(targets_names)
+    logger.info('deleting and returning the same for target: {}'
+                .format(target_to_delete))
+    file_name = get_file_name(target_to_delete)
+    with open(file_name) as target_file:
+        curr_content = target_file.read()
+    os.remove(file_name)
+    with open(file_name, 'w') as target_file:
+        target_file.write(curr_content)
+
+    build(basic_conf)
+
+    for target in targets_names:
+        assert targets_modified[target] == \
+               get_last_modified(basic_conf, target)
+
+
 def get_last_modified(basic_conf, target):
     return getmtime(join(basic_conf.builders_workspace_dir, 'release_flavor',
                          'CppProg', '_' + target, target + '.o'))
@@ -138,7 +159,7 @@ def test_caching(tmp_dir):
     for target in targets_names:
         targets_modified[target] = get_last_modified(basic_conf, target)
 
-    tests = [rebuild, rebuild_after_modify]
+    tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify]
     for i in range(NUM_TESTS):
         test_func = random.choice(tests)
         logger.info('starting build number: {} with func: {}'.format(
