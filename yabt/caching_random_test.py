@@ -61,9 +61,16 @@ def random_string():
 def generate_dag_with_targets(size):
     targets_names = [random_string() for _ in range(size)]
     target_graph = generate_random_dag(targets_names)
-    yroot = []
     for target_name in targets_names:
         generate_cpp_main(target_name)
+    generate_yroot(target_graph, targets_names)
+    shutil.copyfile(YSETTINGS, 'YSettings')
+    return targets_names, target_graph
+
+
+def generate_yroot(target_graph, targets_names):
+    yroot = []
+    for target_name in targets_names:
         deps = [':' + dep for dep, target in target_graph.edges
                 if target == target_name]
         yroot.append(CPP_TARGET.format(target_name, get_file_name(target_name),
@@ -72,8 +79,6 @@ def generate_dag_with_targets(size):
         yroot_data = yroot_tmpl_file.read()
     with open(config.BUILD_PROJ_FILE, 'w') as yroot_file:
         yroot_file.write(yroot_data + '\n\n'.join(yroot))
-    shutil.copyfile(YSETTINGS, 'YSettings')
-    return targets_names, target_graph
 
 
 def generate_cpp_main(target_name, string_to_print=None):
