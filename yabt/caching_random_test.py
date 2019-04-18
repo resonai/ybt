@@ -33,6 +33,8 @@ from yabt.graph import populate_targets_graph
 from yabt.logging import make_logger
 from yabt.test_utils import generate_random_dag
 
+NUM_TARGETS = 10
+
 CPP_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
                 'caching', 'cpp_prog.cc.tmpl')
 CPP_TARGET = """CppProg('{}', sources='{}', in_buildenv=':builder', deps={})"""
@@ -46,20 +48,20 @@ slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
 
 logger = make_logger(__name__)
 
+
+def random_string():
+    return ''.join([random.choice(string.ascii_letters + string.digits)
+                    for _ in range(random.randint(20, 40))])
+
+
 def generate_dag_with_targets(size):
-    targets_names = [''.join([random.choice(
-        string.ascii_letters + string.digits) for _ in range(32)])
-        for _ in range(size)]
+    targets_names = [random_string() for _ in range(size)]
     target_graph = generate_random_dag(targets_names)
     yroot = []
     for target_name in targets_names:
-        file_name = join(target_name + '.cc')
+        file_name = generate_cpp_main(target_name)
         deps = [':' + dep for dep, target in target_graph.edges
                 if target == target_name]
-        with open(CPP_TMPL, 'r') as tmpl:
-            code = tmpl.read().format(target_name)
-        with open(file_name, 'w') as target_file:
-            target_file.write(code)
         yroot.append(CPP_TARGET.format(target_name, file_name, deps))
     with open(YROOT_TMPL, 'r') as yroot_tmpl_file:
         yroot_data = yroot_tmpl_file.read()
@@ -69,9 +71,20 @@ def generate_dag_with_targets(size):
     return targets_names, target_graph
 
 
+def generate_cpp_main(target_name, string_to_print=None):
+    if string_to_print is None:
+        string_to_print = target_name
+    file_name = join(target_name + '.cc')
+    with open(CPP_TMPL, 'r') as tmpl:
+        code = tmpl.read().format(string_to_print)
+    with open(file_name, 'w') as target_file:
+        target_file.write(code)
+    return file_name
+
+
 @slow
 def test_caching(tmp_dir):
-    targets_names, targets_graph = generate_dag_with_targets(10)
+    targets_names, targets_graph = generate_dag_with_targets(NUM_TARGETS)
     reset_parser()
     basic_conf = cli.init_and_get_conf(['--non-interactive', 'build'])
     extend.Plugin.load_plugins(basic_conf)
@@ -86,12 +99,20 @@ def test_caching(tmp_dir):
         targets_modified[target] = get_last_modified(basic_conf, target)
 
     logger.info('starting second build')
+    test_rebuild(basic_conf, targets_modified, targets_names)
+
+
+def test_rebuild(basic_conf, targets_modified, targets_names):
     build_context = BuildContext(basic_conf)
     populate_targets_graph(build_context, basic_conf)
     build_context.build_graph()
     for target in targets_names:
         assert targets_modified[target] == \
                get_last_modified(basic_conf, target)
+
+def test_rebuild_after_modify(basic_conf, targets_modified, targets_names):
+    target = random.choice(targets_names)
+
 
 
 def get_last_modified(basic_conf, target):
