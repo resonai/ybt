@@ -20,9 +20,9 @@ yabt caching random tests
 
 :author: Dana Shamir
 """
-import os
 
 import networkx as nx
+import os
 from os.path import join, dirname, abspath, getmtime
 import pytest
 import random
@@ -37,7 +37,7 @@ from yabt.logging import make_logger
 from yabt.test_utils import generate_random_dag
 
 NUM_TARGETS = 10
-NUM_TESTS = 10
+NUM_TESTS = 20
 
 CPP_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
                 'caching', 'cpp_prog.cc.tmpl')
@@ -142,6 +142,21 @@ def delete_file_and_return_no_modify(basic_conf, targets_modified,
 
     build(basic_conf)
     check_modified_targets(basic_conf, targets_modified, targets_names, [])
+
+
+def add_dependency(basic_conf, targets_modified, targets_names, targets_graph):
+    new_target_name = random_string()
+    targets_names.append(new_target_name)
+    basic_conf.targets.append(':' + new_target_name)
+    generate_cpp_main(new_target_name)
+    targets_graph.add_node(new_target_name)
+    targets_graph.add_edges_from((new_target_name, targets_names[i])
+                                 for i in range(len(targets_names) - 1)
+                                 if random.random() > 0.8)
+    generate_yroot(targets_graph, targets_names)
+    targets_to_build = nx.descendants(targets_graph, new_target_name)
+    check_modified_targets(basic_conf, targets_modified, targets_names,
+                           targets_to_build)
 
 
 def get_last_modified(basic_conf, target):
