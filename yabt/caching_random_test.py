@@ -61,10 +61,11 @@ def generate_dag_with_targets(size):
     target_graph = generate_random_dag(targets_names)
     yroot = []
     for target_name in targets_names:
-        file_name = generate_cpp_main(target_name)
+        generate_cpp_main(target_name)
         deps = [':' + dep for dep, target in target_graph.edges
                 if target == target_name]
-        yroot.append(CPP_TARGET.format(target_name, file_name, deps))
+        yroot.append(CPP_TARGET.format(target_name, get_file_name(target_name),
+                                       deps))
     with open(YROOT_TMPL, 'r') as yroot_tmpl_file:
         yroot_data = yroot_tmpl_file.read()
     with open(config.BUILD_PROJ_FILE, 'w') as yroot_file:
@@ -76,12 +77,14 @@ def generate_dag_with_targets(size):
 def generate_cpp_main(target_name, string_to_print=None):
     if string_to_print is None:
         string_to_print = target_name
-    file_name = join(target_name + '.cc')
     with open(CPP_TMPL, 'r') as tmpl:
         code = tmpl.read().format(string_to_print)
-    with open(file_name, 'w') as target_file:
+    with open(get_file_name(target_name), 'w') as target_file:
         target_file.write(code)
-    return file_name
+
+
+def get_file_name(target_name):
+    return join(target_name + '.cc')
 
 
 def rebuild(basic_conf, targets_modified, targets_names, targets_graph):
