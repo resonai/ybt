@@ -1,0 +1,24 @@
+ExtDockerImage('ubuntu', image='ubuntu', tag='18.04')
+
+AptPackage('gnupg', package='gnupg')
+
+DockerImage('ubuntu-gpg', base_image=':ubuntu', deps=':gnupg')
+
+AptGroup(
+    'clang',
+    packages=[
+        'clang-5.0',
+        'libclang-common-5.0-dev',
+        'libclang-5.0-dev',
+        'libllvm5.0',
+        'lldb-5.0',
+        'llvm-5.0',
+        'llvm-5.0-dev',
+        'llvm-5.0-runtime',
+    ],
+    repository='deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-5.0 main',
+    repo_key='15CF4D18AF4F7421'
+)
+
+DockerImage('builder', base_image=':ubuntu-gpg', deps=':clang')
+

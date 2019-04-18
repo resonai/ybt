@@ -20,49 +20,57 @@ yabt caching random tests
 
 :author: Dana Shamir
 """
-import os
 import random
+import shutil
 import string
-import tempfile
 from os.path import join, dirname, abspath
 
-from yabt import config
+from conftest import reset_parser
+from yabt import config, cli, extend
 from yabt.buildcontext import BuildContext
-from yabt.buildfile_parser import process_build_file
+from yabt.graph import populate_targets_graph
 from yabt.test_utils import generate_random_dag
 
-PYTHON_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
-                   'caching', 'python_target.py.tmpl')
-PYTHON_TARGET = """Python('{}', sources='{}')"""
+CPP_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
+                'caching', 'cpp_prog.cc.tmpl')
+CPP_TARGET = """CppProg('{}', sources='{}', in_buildenv=':builder', deps={})"""
+YROOT_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
+                'caching', 'YRoot.tmpl')
+YSETTINGS = join(dirname(abspath(__file__)), '..', 'tests', 'data',
+                 'caching', 'YSettings')
 
 
 def generate_dag_with_targets(size):
     targets_names = [''.join([random.choice(
         string.ascii_letters + string.digits) for _ in range(32)])
         for _ in range(size)]
-    target_graph = generate_random_dag(
-        [':' + target for target in targets_names])
+    target_graph = generate_random_dag(targets_names)
     yroot = []
     for target_name in targets_names:
-        file_name = join(target_name + '.py')
-        with open(PYTHON_TMPL, 'r') as tmpl:
+        file_name = join(target_name + '.cc')
+        deps = [':' + dep for dep, target in target_graph.edges
+                if target == target_name]
+        with open(CPP_TMPL, 'r') as tmpl:
             code = tmpl.read().format(target_name)
         with open(file_name, 'w') as target_file:
             target_file.write(code)
-        yroot.append(PYTHON_TARGET.format(target_name, file_name))
+        yroot.append(CPP_TARGET.format(target_name, file_name, deps))
+    with open(YROOT_TMPL, 'r') as yroot_tmpl_file:
+        yroot_data = yroot_tmpl_file.read()
     with open(config.BUILD_PROJ_FILE, 'w') as yroot_file:
-        yroot_file.write('\n\n'.join(yroot))
+        yroot_file.write(yroot_data + '\n\n'.join(yroot))
+    shutil.copyfile(YSETTINGS, 'YSettings')
     return targets_names, target_graph
 
 
-def test_caching(basic_conf):
-    dir = tempfile.mkdtemp()
-    os.chdir(dir)
-    basic_conf.project_root = dir
+def test_caching(tmp_dir):
     targets_names, targets_graph = generate_dag_with_targets(10)
+    reset_parser()
+    basic_conf = cli.init_and_get_conf([
+        '--non-interactive', '--no-build-cache', '--no-test-cache',
+        '--no-docker-cache', 'build'])
+    extend.Plugin.load_plugins(basic_conf)
     basic_conf.targets = [':' + target for target in targets_names]
     build_context = BuildContext(basic_conf)
-    process_build_file(basic_conf.get_project_build_file(), build_context,
-                       basic_conf)
-    build_context.target_graph = targets_graph
+    populate_targets_graph(build_context, basic_conf)
     build_context.build_graph()
