@@ -83,9 +83,7 @@ def generate_cpp_main(target_name, string_to_print=None):
 
 
 def rebuild(basic_conf, targets_modified, targets_names):
-    build_context = BuildContext(basic_conf)
-    populate_targets_graph(build_context, basic_conf)
-    build_context.build_graph()
+    build(basic_conf)
     for target in targets_names:
         assert targets_modified[target] == \
                get_last_modified(basic_conf, target)
@@ -95,9 +93,7 @@ def rebuild_after_modify(basic_conf, targets_modified, targets_names,
                          targets_graph):
     target_to_change = random.choice(targets_names)
     generate_cpp_main(target_to_change, random_string())
-    build_context = BuildContext(basic_conf)
-    populate_targets_graph(build_context, basic_conf)
-    build_context.build_graph()
+    build(basic_conf)
 
     targets_to_build = list(targets_graph[target_to_change])
     targets_to_build.append(target_to_change)
@@ -123,11 +119,10 @@ def test_caching(tmp_dir):
     basic_conf = cli.init_and_get_conf(['--non-interactive', 'build'])
     extend.Plugin.load_plugins(basic_conf)
     basic_conf.targets = [':' + target for target in targets_names]
-    build_context = BuildContext(basic_conf)
-    populate_targets_graph(build_context, basic_conf)
 
-    build_context.build_graph()
+    build(basic_conf)
     logger.info('done first build')
+
     targets_modified = {}
     for target in targets_names:
         targets_modified[target] = get_last_modified(basic_conf, target)
@@ -138,3 +133,9 @@ def test_caching(tmp_dir):
     logger.info('starting third build')
     rebuild_after_modify(basic_conf, targets_modified, targets_names,
                          targets_graph)
+
+
+def build(basic_conf):
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    build_context.build_graph()
