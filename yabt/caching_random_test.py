@@ -85,7 +85,7 @@ def random_string():
                     for _ in range(random.randint(20, 40))])
 
 
-def generate_dag_with_targets(size) -> ProjectContext:
+def generate_random_project(size) -> ProjectContext:
     project = ProjectContext()
     targets = [random_string() for _ in range(size)]
     project.targets_graph = generate_random_dag(targets)
@@ -250,7 +250,7 @@ def get_test_cache(basic_conf, target, build_context):
 
 @slow
 def test_caching(tmp_dir):
-    project = generate_dag_with_targets(NUM_TARGETS)
+    project = generate_random_project(NUM_TARGETS)
     reset_parser()
     project.conf = cli.init_and_get_conf(['--non-interactive',
                                           '--continue-after-fail', 'build'])
