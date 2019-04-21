@@ -30,11 +30,11 @@ import shutil
 import string
 
 from conftest import reset_parser
-from yabt import config, cli, extend
-from yabt.buildcontext import BuildContext
-from yabt.graph import populate_targets_graph
-from yabt.logging import make_logger
-from yabt.test_utils import generate_random_dag
+from . import config, cli, extend
+from .buildcontext import BuildContext
+from .graph import populate_targets_graph
+from .logging import make_logger
+from .test_utils import generate_random_dag
 
 NUM_TARGETS = 10
 NUM_TESTS = 20
