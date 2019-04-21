@@ -143,9 +143,8 @@ def rebuild_after_modify(project: ProjectContext):
                   random_string())
     build_context = build(project.conf)
 
-    targets_to_build = list(nx.descendants(project.targets_graph,
-                                           target_to_change))
-    targets_to_build.append(target_to_change)
+    targets_to_build = nx.descendants(project.targets_graph, target_to_change)
+    targets_to_build.add(target_to_change)
 
     check_modified_targets(project, build_context, targets_to_build)
 
