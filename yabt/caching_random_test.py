@@ -58,10 +58,25 @@ YROOT_TMPL = 'YRoot.tmpl'
 INSTALL_GTEST_SCRIPT ='install-gtest.sh'
 YSETTINGS = 'YSettings'
 
+TARGET_TYPES = {
+    'CppProg': (CPP_TMPL, CPP_TARGET),
+    'CppGTest': (CPP_TEST_TMPL, CPP_TEST_TARGET)
+}
+
 slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
                           reason='need --with-slow option to run')
 
 logger = make_logger(__name__)
+
+
+class ProjectContext:
+    def __init__(self):
+        self.targets = {}
+        self.test_targets = []
+        self.targets_graph = None
+        self.last_modified = {}
+        self.last_run_tests = {}
+        self.conf = None
 
 
 def random_string():
@@ -69,28 +84,27 @@ def random_string():
                     for _ in range(random.randint(20, 40))])
 
 
-def generate_dag_with_targets(size):
+def generate_dag_with_targets(size) -> ProjectContext:
+    project = ProjectContext()
     targets = [random_string() for _ in range(size)]
-    test_targets = [random_string() + '_test' for _ in range(size)]
-    target_graph = generate_random_dag(targets + test_targets)
+    project.targets_graph = generate_random_dag(targets)
     for target in targets:
-        generate_cpp_main(target)
-    for test_target in test_targets:
-        generate_cpp_test(test_target)
-    generate_yroot(target_graph, targets, test_targets)
+        target_type = random.choice(list(TARGET_TYPES.keys()))
+        generate_file(target, target_type)
+        project.targets[target] = target_type
+        if target_type == 'CppGTest':
+            project.test_targets.append(target)
+    generate_yroot(project)
     shutil.copyfile(join(TMPL_DIR, YSETTINGS), YSETTINGS)
-    return targets, test_targets, target_graph
+    return project
 
 
-def generate_yroot(target_graph, targets, test_targets):
+def generate_yroot(project: ProjectContext):
     yroot = []
-    for target in targets:
-        yroot.append(CPP_TARGET.format(target, get_file_name(target),
-                                       get_dependencies(target, target_graph)))
-    for target in test_targets:
-        yroot.append(CPP_TEST_TARGET.format(target, get_file_name(target),
-                                            get_dependencies(target,
-                                                             target_graph)))
+    for target, target_type in project.targets.items():
+        yroot.append(TARGET_TYPES[target_type][1].format(
+            target, get_file_name(target),
+            get_dependencies(target, project.targets_graph)))
     with open(join(TMPL_DIR, YROOT_TMPL), 'r') as yroot_tmpl_file:
         yroot_data = yroot_tmpl_file.read()
     with open(config.BUILD_PROJ_FILE, 'w') as yroot_file:
@@ -103,18 +117,11 @@ def get_dependencies(target, target_graph):
             if other_target == target]
 
 
-def generate_cpp_main(target, string_to_print=None):
+def generate_file(target, target_type, string_to_print=None):
     if string_to_print is None:
         string_to_print = target
-    with open(join(TMPL_DIR, CPP_TMPL), 'r') as tmpl:
+    with open(join(TMPL_DIR, TARGET_TYPES[target_type][0]), 'r') as tmpl:
         code = tmpl.read().format(string_to_print)
-    with open(get_file_name(target), 'w') as target_file:
-        target_file.write(code)
-
-
-def generate_cpp_test(target):
-    with open(join(TMPL_DIR, CPP_TEST_TMPL), 'r') as tmpl:
-        code = tmpl.read().format(target)
     with open(get_file_name(target), 'w') as target_file:
         target_file.write(code)
 
@@ -123,46 +130,52 @@ def get_file_name(target):
     return join(target + '.cc')
 
 
-def rebuild(basic_conf, targets_modified, targets, targets_graph, test_tragets):
-    build_context = build(basic_conf)
-    check_modified_targets(basic_conf, targets_modified, targets, [],
-                           build_context)
+def rebuild(project: ProjectContext):
+    build_context = build(project.conf)
+    check_modified_targets(project, build_context, [])
 
 
-def rebuild_after_modify(basic_conf, targets_modified, targets, targets_graph,
-                         test_targets):
-    target_to_change = random.choice(targets)
+def rebuild_after_modify(project: ProjectContext):
+    target_to_change = random.choice(list(project.targets.keys()))
     logger.info('modifing target: {}'.format(target_to_change))
-    generate_cpp_main(target_to_change, random_string())
-    build_context = build(basic_conf)
+    generate_file(target_to_change, project.targets[target_to_change],
+                  random_string())
+    build_context = build(project.conf)
 
-    targets_to_build = list(nx.descendants(targets_graph, target_to_change))
+    targets_to_build = list(nx.descendants(project.targets_graph,
+                                           target_to_change))
     targets_to_build.append(target_to_change)
 
-    check_modified_targets(basic_conf, targets_modified, targets,
-                           targets_to_build, build_context)
+    check_modified_targets(project, build_context, targets_to_build)
 
 
-def check_modified_targets(basic_conf, targets_modified, targets,
-                           targets_to_build, build_context):
-    for target in targets_modified.keys():
-        last_modified = get_last_modified(basic_conf, target) \
-            if target in targets \
-            else get_test_last_modified(basic_conf, target, build_context)
+def check_modified_targets(project: ProjectContext, build_context,
+                           targets_to_build):
+    for target, target_type in project.targets.items():
+        last_modified = get_last_modified(project.conf, target, target_type)
         if target in targets_to_build:
-            assert last_modified != targets_modified[target], \
+            assert last_modified != project.last_modified[target], \
                 "target: {} was supposed to be built again and" \
                 " wasn't".format(target)
-            targets_modified[target] = last_modified
+            project.last_modified[target] = last_modified
         else:
-            assert last_modified == targets_modified[target], \
+            assert last_modified == project.last_modified[target], \
                 "target: {} was modified and it wasn't supposed" \
                 " to".format(target)
 
+    for target in project.test_targets:
+        last_run = get_test_last_modified(project.conf, target, build_context)
+        if target in targets_to_build:
+            assert last_run != project.last_run_tests[target],\
+                "test: {} was supposed to run again but wasn't".format(target)
+            project.last_run_tests[target] = last_run
+        else:
+            assert last_run == project.last_run_tests[target],\
+                "test: {} was rerun and it wasn't supposed to".format(target)
 
-def delete_file_and_return_no_modify(basic_conf, targets_modified,
-                                     targets, targets_graph, test_targets):
-    target_to_delete = random.choice(targets)
+
+def delete_file_and_return_no_modify(project: ProjectContext):
+    target_to_delete = random.choice(list(project.targets.keys()))
     logger.info('deleting and returning the same for target: {}'
                 .format(target_to_delete))
     file_name = get_file_name(target_to_delete)
@@ -172,34 +185,36 @@ def delete_file_and_return_no_modify(basic_conf, targets_modified,
     with open(file_name, 'w') as target_file:
         target_file.write(curr_content)
 
-    build_context = build(basic_conf)
-    check_modified_targets(basic_conf, targets_modified, targets, [],
-                           build_context)
+    build_context = build(project.conf)
+    check_modified_targets(project, build_context, [])
 
 
-def add_dependency(basic_conf, targets_modified, targets, targets_graph,
-                   test_targets):
+def add_dependency(project: ProjectContext):
     new_target = random_string()
-    logger.info('adding target: ' + new_target)
-    targets.append(new_target)
-    basic_conf.targets.append(':' + new_target)
-    generate_cpp_main(new_target)
-    targets_graph.add_node(new_target)
-    targets_graph.add_edges_from((new_target, targets[i])
-                                 for i in range(len(targets) - 1)
-                                 if random.random() > 0.8)
-    generate_yroot(targets_graph, targets, test_targets)
-    targets_modified[new_target] = None
-    build_context = build(basic_conf)
-    targets_to_build = nx.descendants(targets_graph, new_target)
+    target_type = random.choice(list(TARGET_TYPES.keys()))
+    logger.info('adding target: {} of type: {}'.format(new_target, target_type))
+    project.targets[new_target] = target_type
+    project.last_modified[new_target] = None
+    if target_type == 'CppGTest':
+        project.test_targets.append(new_target)
+        project.last_run_tests[new_target] = None
+    project.conf.targets.append(':' + new_target)
+    generate_file(new_target, target_type)
+    project.targets_graph.add_node(new_target)
+    targets = list(project.targets.keys())
+    project.targets_graph.add_edges_from((new_target, targets[i])
+                                         for i in range(len(targets) - 1)
+                                         if random.random() > 0.8)
+    generate_yroot(project)
+    build_context = build(project.conf)
+    targets_to_build = nx.descendants(project.targets_graph, new_target)
     targets_to_build.add(new_target)
-    check_modified_targets(basic_conf, targets_modified, targets,
-                           targets_to_build, build_context)
+    check_modified_targets(project, build_context, targets_to_build)
 
 
-def get_last_modified(basic_conf, target):
+def get_last_modified(basic_conf, target, target_type):
     return getmtime(join(basic_conf.builders_workspace_dir, 'release_flavor',
-                         'CppProg', '_' + target, target + '.o'))
+                         target_type, '_' + target, target + '.o'))
 
 
 def get_test_last_modified(basic_conf, target, build_context):
@@ -209,23 +224,21 @@ def get_test_last_modified(basic_conf, target, build_context):
 
 @slow
 def test_caching(tmp_dir):
-    targets, test_targets, targets_graph =\
-        generate_dag_with_targets(NUM_TARGETS)
+    project = generate_dag_with_targets(NUM_TARGETS)
     reset_parser()
-    basic_conf = cli.init_and_get_conf(['--non-interactive', 'build'])
-    extend.Plugin.load_plugins(basic_conf)
-    basic_conf.targets = [':' + target for target in targets] + \
-                         [':' + target for target in test_targets]
+    project.conf = cli.init_and_get_conf(['--non-interactive', 'build'])
+    extend.Plugin.load_plugins(project.conf)
+    project.conf.targets = [':' + target for target in project.targets.keys()]
 
-    build_context = build(basic_conf)
+    build_context = build(project.conf)
     logger.info('done first build')
 
-    targets_modified = {}
-    for target in targets:
-        targets_modified[target] = get_last_modified(basic_conf, target)
-    for target in test_targets:
-        targets_modified[target] = get_test_last_modified(basic_conf, target,
-                                                          build_context)
+    for target, target_type in project.targets.items():
+        project.last_modified[target] = get_last_modified(project.conf, target,
+                                                          target_type)
+    for target in project.test_targets:
+        project.last_run_tests[target] = get_test_last_modified(
+            project.conf, target, build_context)
 
     tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify,
              add_dependency]
@@ -233,8 +246,7 @@ def test_caching(tmp_dir):
         test_func = random.choice(tests)
         logger.info('starting build number: {} with func: {}'.format(
             i + 2, test_func.__name__))
-        test_func(basic_conf, targets_modified, targets, targets_graph,
-                  test_targets)
+        test_func(project)
 
 
 def build(basic_conf):
