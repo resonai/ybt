@@ -39,10 +39,10 @@ from yabt.test_utils import generate_random_dag
 NUM_TARGETS = 10
 NUM_TESTS = 20
 
-CPP_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
-                'caching', 'cpp_prog.cc.tmpl')
-CPP_TEST_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
-                     'caching', 'cpp_test.cc.tmpl')
+TMPL_DIR = join(dirname(abspath(__file__)), '..', 'tests', 'data',
+                'caching')
+CPP_TMPL = 'cpp_prog.cc.tmpl'
+CPP_TEST_TMPL = 'cpp_test.cc.tmpl'
 CPP_TARGET = """CppProg(
     '{}',
     sources='{}',
@@ -54,12 +54,9 @@ CPP_TEST_TARGET = """CppGTest(
     in_buildenv=':builder-with-gtest',
     deps={}
 )"""
-YROOT_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
-                'caching', 'YRoot.tmpl')
-INSTALL_GTEST_SCRIPT = join(dirname(abspath(__file__)), '..', 'tests', 'data',
-                            'caching', 'install-gtest.sh')
-YSETTINGS = join(dirname(abspath(__file__)), '..', 'tests', 'data',
-                 'caching', 'YSettings')
+YROOT_TMPL = 'YRoot.tmpl'
+INSTALL_GTEST_SCRIPT ='install-gtest.sh'
+YSETTINGS = 'YSettings'
 
 slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
                           reason='need --with-slow option to run')
@@ -81,7 +78,7 @@ def generate_dag_with_targets(size):
     for test_target in test_targets:
         generate_cpp_test(test_target)
     generate_yroot(target_graph, targets, test_targets)
-    shutil.copyfile(YSETTINGS, 'YSettings')
+    shutil.copyfile(join(TMPL_DIR, YSETTINGS), YSETTINGS)
     return targets, test_targets, target_graph
 
 
@@ -94,11 +91,11 @@ def generate_yroot(target_graph, targets, test_targets):
         yroot.append(CPP_TEST_TARGET.format(target, get_file_name(target),
                                             get_dependencies(target,
                                                              target_graph)))
-    with open(YROOT_TMPL, 'r') as yroot_tmpl_file:
+    with open(join(TMPL_DIR, YROOT_TMPL), 'r') as yroot_tmpl_file:
         yroot_data = yroot_tmpl_file.read()
     with open(config.BUILD_PROJ_FILE, 'w') as yroot_file:
         yroot_file.write(yroot_data + '\n\n'.join(yroot))
-    shutil.copyfile(INSTALL_GTEST_SCRIPT, 'install-gtest.sh')
+    shutil.copyfile(join(TMPL_DIR, INSTALL_GTEST_SCRIPT), INSTALL_GTEST_SCRIPT)
 
 
 def get_dependencies(target, target_graph):
@@ -109,14 +106,14 @@ def get_dependencies(target, target_graph):
 def generate_cpp_main(target, string_to_print=None):
     if string_to_print is None:
         string_to_print = target
-    with open(CPP_TMPL, 'r') as tmpl:
+    with open(join(TMPL_DIR, CPP_TMPL), 'r') as tmpl:
         code = tmpl.read().format(string_to_print)
     with open(get_file_name(target), 'w') as target_file:
         target_file.write(code)
 
 
 def generate_cpp_test(target):
-    with open(CPP_TEST_TMPL, 'r') as tmpl:
+    with open(join(TMPL_DIR, CPP_TEST_TMPL), 'r') as tmpl:
         code = tmpl.read().format(target)
     with open(get_file_name(target), 'w') as target_file:
         target_file.write(code)
