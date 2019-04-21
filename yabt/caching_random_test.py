@@ -182,12 +182,14 @@ def add_dependency(project: ProjectContext):
         project.last_run_tests[new_target] = None
     project.conf.targets.append(':' + new_target)
     generate_file(new_target, target_type)
+
     project.targets_graph.add_node(new_target)
     targets = list(project.targets.keys())
     project.targets_graph.add_edges_from(
         (new_target, targets[i]) for i in range(len(targets) - 1)
         if random.random() > 0.8 and targets[i] != new_target)
     generate_yroot(project)
+
     build_context = build(project.conf)
     targets_to_build = nx.descendants(project.targets_graph, new_target)
     targets_to_build.add(new_target)
