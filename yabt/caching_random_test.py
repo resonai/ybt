@@ -205,7 +205,8 @@ def test_caching(tmp_dir):
     reset_parser()
     basic_conf = cli.init_and_get_conf(['--non-interactive', 'build'])
     extend.Plugin.load_plugins(basic_conf)
-    basic_conf.targets = [':' + target for target in targets]
+    basic_conf.targets = [':' + target for target in targets] + \
+                         [':' + target for target in test_targets]
 
     build(basic_conf)
     logger.info('done first build')
@@ -227,4 +228,4 @@ def test_caching(tmp_dir):
 def build(basic_conf):
     build_context = BuildContext(basic_conf)
     populate_targets_graph(build_context, basic_conf)
-    build_context.build_graph()
+    build_context.build_graph(run_tests=True)
