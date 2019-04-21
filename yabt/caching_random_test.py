@@ -71,8 +71,8 @@ def generate_dag_with_targets(size):
 def generate_yroot(target_graph, targets):
     yroot = []
     for target in targets:
-        deps = [':' + dep for dep, target in target_graph.edges
-                if target == target]
+        deps = [':' + dep for dep, other_target in target_graph.edges
+                if other_target == target]
         yroot.append(CPP_TARGET.format(target, get_file_name(target),
                                        deps))
     with open(YROOT_TMPL, 'r') as yroot_tmpl_file:
