@@ -179,6 +179,7 @@ def add_dependency(basic_conf, targets_modified, targets, targets_graph,
                                  for i in range(len(targets) - 1)
                                  if random.random() > 0.8)
     generate_yroot(targets_graph, targets, test_targets)
+    build(basic_conf)
     targets_to_build = nx.descendants(targets_graph, new_target)
     check_modified_targets(basic_conf, targets_modified, targets,
                            targets_to_build)
