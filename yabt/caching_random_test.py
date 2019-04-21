@@ -41,9 +41,14 @@ NUM_TESTS = 20
 
 CPP_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
                 'caching', 'cpp_prog.cc.tmpl')
+CPP_TEST_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
+                     'caching', 'cpp_test.cc.tmpl')
 CPP_TARGET = """CppProg('{}', sources='{}', in_buildenv=':builder', deps={})"""
+CPP_TEST_TARGET = """CppGTest('{}', sources='{}', in_buildenv=':builder-with-gtest', deps={})"""
 YROOT_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
                 'caching', 'YRoot.tmpl')
+INSTALL_GTEST_SCRIPT = join(dirname(abspath(__file__)), '..', 'tests', 'data',
+                            'caching', 'install-gtest.sh')
 YSETTINGS = join(dirname(abspath(__file__)), '..', 'tests', 'data',
                  'caching', 'YSettings')
 
@@ -60,25 +65,36 @@ def random_string():
 
 def generate_dag_with_targets(size):
     targets = [random_string() for _ in range(size)]
-    target_graph = generate_random_dag(targets)
+    test_targets = [random_string() + '_test' for _ in range(size)]
+    target_graph = generate_random_dag(targets + test_targets)
     for target in targets:
         generate_cpp_main(target)
-    generate_yroot(target_graph, targets)
+    for test_target in test_targets:
+        generate_cpp_test(test_target)
+    generate_yroot(target_graph, targets, test_targets)
     shutil.copyfile(YSETTINGS, 'YSettings')
     return targets, target_graph
 
 
-def generate_yroot(target_graph, targets):
+def generate_yroot(target_graph, targets, test_targets):
     yroot = []
     for target in targets:
-        deps = [':' + dep for dep, other_target in target_graph.edges
-                if other_target == target]
         yroot.append(CPP_TARGET.format(target, get_file_name(target),
-                                       deps))
+                                       get_dependencies(target, target_graph)))
+    for target in test_targets:
+        yroot.append(CPP_TEST_TARGET.format(target, get_file_name(target),
+                                            get_dependencies(target,
+                                                             target_graph)))
     with open(YROOT_TMPL, 'r') as yroot_tmpl_file:
         yroot_data = yroot_tmpl_file.read()
     with open(config.BUILD_PROJ_FILE, 'w') as yroot_file:
         yroot_file.write(yroot_data + '\n\n'.join(yroot))
+    shutil.copyfile(INSTALL_GTEST_SCRIPT, 'install-gtest.sh')
+
+
+def get_dependencies(target, target_graph):
+    return [':' + dep for dep, other_target in target_graph.edges
+            if other_target == target]
 
 
 def generate_cpp_main(target, string_to_print=None):
@@ -86,6 +102,13 @@ def generate_cpp_main(target, string_to_print=None):
         string_to_print = target
     with open(CPP_TMPL, 'r') as tmpl:
         code = tmpl.read().format(string_to_print)
+    with open(get_file_name(target), 'w') as target_file:
+        target_file.write(code)
+
+
+def generate_cpp_test(target):
+    with open(CPP_TEST_TMPL, 'r') as tmpl:
+        code = tmpl.read().format(target)
     with open(get_file_name(target), 'w') as target_file:
         target_file.write(code)
 
