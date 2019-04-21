@@ -43,6 +43,7 @@ TMPL_DIR = join(dirname(abspath(__file__)), '..', 'tests', 'data',
                 'caching')
 CPP_TMPL = 'cpp_prog.cc.tmpl'
 CPP_TEST_TMPL = 'cpp_test.cc.tmpl'
+FAILING_TEST_TMPL = 'cpp_failing_test.cc.tmpl'
 CPP_TARGET = """CppProg(
     '{}',
     sources='{}',
@@ -164,7 +165,7 @@ def check_modified_targets(project: ProjectContext, build_context,
                 " to".format(target)
 
     for target in project.test_targets:
-        last_run = get_test_last_modified(project.conf, target, build_context)
+        last_run = getmtime(get_test_cache(project.conf, target, build_context))
         if target in targets_to_build:
             assert last_run != project.last_run_tests[target],\
                 "test: {} was supposed to run again but wasn't".format(target)
@@ -212,21 +213,45 @@ def add_dependency(project: ProjectContext):
     check_modified_targets(project, build_context, targets_to_build)
 
 
+def failing_test(project: ProjectContext):
+    test_to_fail = random.choice(project.test_targets)
+    logger.info('Making target: {} fail'.format(test_to_fail))
+    with open(join(TMPL_DIR, FAILING_TEST_TMPL), 'r') as tmpl:
+        code = tmpl.read().format(test_to_fail)
+    with open(get_file_name(test_to_fail), 'w') as target_file:
+        target_file.write(code)
+
+    build_context = BuildContext(project.conf)
+    populate_targets_graph(build_context, project.conf)
+    with pytest.raises(SystemExit):
+        build_context.build_graph(run_tests=True)
+    test_cache = get_test_cache(project.conf, test_to_fail, build_context)
+    assert not os.path.isfile(test_cache), \
+        "test: {} is failing but was put into cache".format(test_to_fail)
+
+    generate_file(test_to_fail, project.targets[test_to_fail], random_string())
+    build_context = build(project.conf)
+    targets_to_build = nx.descendants(project.targets_graph, test_to_fail)
+    targets_to_build.add(test_to_fail)
+    check_modified_targets(project, build_context, targets_to_build)
+
+
 def get_last_modified(basic_conf, target, target_type):
     return getmtime(join(basic_conf.builders_workspace_dir, 'release_flavor',
                          target_type, '_' + target, target + '.o'))
 
 
-def get_test_last_modified(basic_conf, target, build_context):
-    return getmtime(join(basic_conf.get_cache_dir(
-        build_context.targets[':' + target], build_context), 'tested.json'))
+def get_test_cache(basic_conf, target, build_context):
+    return join(basic_conf.get_cache_dir(build_context.targets[':' + target],
+                                         build_context), 'tested.json')
 
 
 @slow
 def test_caching(tmp_dir):
     project = generate_dag_with_targets(NUM_TARGETS)
     reset_parser()
-    project.conf = cli.init_and_get_conf(['--non-interactive', 'build'])
+    project.conf = cli.init_and_get_conf(['--non-interactive',
+                                          '--continue-after-fail', 'build'])
     extend.Plugin.load_plugins(project.conf)
     project.conf.targets = [':' + target for target in project.targets.keys()]
 
@@ -237,11 +262,11 @@ def test_caching(tmp_dir):
         project.last_modified[target] = get_last_modified(project.conf, target,
                                                           target_type)
     for target in project.test_targets:
-        project.last_run_tests[target] = get_test_last_modified(
-            project.conf, target, build_context)
+        project.last_run_tests[target] = getmtime(get_test_cache(
+            project.conf, target, build_context))
 
     tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify,
-             add_dependency]
+             add_dependency, failing_test]
     for i in range(NUM_TESTS):
         test_func = random.choice(tests)
         logger.info('starting build number: {} with func: {}'.format(
