@@ -110,7 +110,7 @@ def tmp_dir():
     os.chdir(_tmp_dir)
     yield _tmp_dir
     os.chdir(orig_dir)
-    # shutil.rmtree(_tmp_dir)
+    shutil.rmtree(_tmp_dir)
 
 
 @yield_fixture
