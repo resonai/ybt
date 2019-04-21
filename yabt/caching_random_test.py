@@ -124,8 +124,9 @@ def get_file_name(target):
 
 
 def rebuild(basic_conf, targets_modified, targets, targets_graph, test_tragets):
-    build(basic_conf)
-    check_modified_targets(basic_conf, targets_modified, targets, [])
+    build_context = build(basic_conf)
+    check_modified_targets(basic_conf, targets_modified, targets, [],
+                           build_context)
 
 
 def rebuild_after_modify(basic_conf, targets_modified, targets, targets_graph,
@@ -133,19 +134,21 @@ def rebuild_after_modify(basic_conf, targets_modified, targets, targets_graph,
     target_to_change = random.choice(targets)
     logger.info('modifing target: {}'.format(target_to_change))
     generate_cpp_main(target_to_change, random_string())
-    build(basic_conf)
+    build_context = build(basic_conf)
 
     targets_to_build = list(nx.descendants(targets_graph, target_to_change))
     targets_to_build.append(target_to_change)
 
     check_modified_targets(basic_conf, targets_modified, targets,
-                           targets_to_build)
+                           targets_to_build, build_context)
 
 
 def check_modified_targets(basic_conf, targets_modified, targets,
-                           targets_to_build):
-    for target in targets:
-        last_modified = get_last_modified(basic_conf, target)
+                           targets_to_build, build_context):
+    for target in targets_modified.keys():
+        last_modified = get_last_modified(basic_conf, target) \
+            if target in targets \
+            else get_test_last_modified(basic_conf, target, build_context)
         if target in targets_to_build:
             assert last_modified != targets_modified[target], \
                 "target: {} was supposed to be built again and" \
@@ -169,8 +172,9 @@ def delete_file_and_return_no_modify(basic_conf, targets_modified,
     with open(file_name, 'w') as target_file:
         target_file.write(curr_content)
 
-    build(basic_conf)
-    check_modified_targets(basic_conf, targets_modified, targets, [])
+    build_context = build(basic_conf)
+    check_modified_targets(basic_conf, targets_modified, targets, [],
+                           build_context)
 
 
 def add_dependency(basic_conf, targets_modified, targets, targets_graph,
@@ -186,16 +190,21 @@ def add_dependency(basic_conf, targets_modified, targets, targets_graph,
                                  if random.random() > 0.8)
     generate_yroot(targets_graph, targets, test_targets)
     targets_modified[new_target] = None
-    build(basic_conf)
+    build_context = build(basic_conf)
     targets_to_build = nx.descendants(targets_graph, new_target)
     targets_to_build.add(new_target)
     check_modified_targets(basic_conf, targets_modified, targets,
-                           targets_to_build)
+                           targets_to_build, build_context)
 
 
 def get_last_modified(basic_conf, target):
     return getmtime(join(basic_conf.builders_workspace_dir, 'release_flavor',
                          'CppProg', '_' + target, target + '.o'))
+
+
+def get_test_last_modified(basic_conf, target, build_context):
+    return getmtime(join(basic_conf.get_cache_dir(
+        build_context.targets[':' + target], build_context), 'tested.json'))
 
 
 @slow
@@ -208,12 +217,15 @@ def test_caching(tmp_dir):
     basic_conf.targets = [':' + target for target in targets] + \
                          [':' + target for target in test_targets]
 
-    build(basic_conf)
+    build_context = build(basic_conf)
     logger.info('done first build')
 
     targets_modified = {}
     for target in targets:
         targets_modified[target] = get_last_modified(basic_conf, target)
+    for target in test_targets:
+        targets_modified[target] = get_test_last_modified(basic_conf, target,
+                                                          build_context)
 
     tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify,
              add_dependency]
@@ -229,3 +241,4 @@ def build(basic_conf):
     build_context = BuildContext(basic_conf)
     populate_targets_graph(build_context, basic_conf)
     build_context.build_graph(run_tests=True)
+    return build_context
