@@ -102,6 +102,7 @@ def in_cpp_project():
 def in_tests_project():
     yield from yabt_project_fixture('tests')
 
+
 @yield_fixture
 def tmp_dir():
     orig_dir = os.getcwd()
@@ -110,6 +111,7 @@ def tmp_dir():
     yield _tmp_dir
     os.chdir(orig_dir)
     shutil.rmtree(_tmp_dir)
+
 
 @yield_fixture
 def basic_conf():
