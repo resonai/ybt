@@ -39,4 +39,3 @@ def generate_random_dag(nodes, min_rank=0, max_rank=10, edge_prob=0.3):
                          for i in random.sample(range(j), k=rank)
                          if random.random() > edge_prob)
     return g
-

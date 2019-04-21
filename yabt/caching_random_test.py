@@ -56,7 +56,7 @@ CPP_TEST_TARGET = """CppGTest(
     deps={}
 )"""
 YROOT_TMPL = 'YRoot.tmpl'
-INSTALL_GTEST_SCRIPT ='install-gtest.sh'
+INSTALL_GTEST_SCRIPT = 'install-gtest.sh'
 YSETTINGS = 'YSettings'
 
 TARGET_TYPES = {
@@ -165,7 +165,8 @@ def check_modified_targets(project: ProjectContext, build_context,
                 " to".format(target)
 
     for target in project.test_targets:
-        last_run = getmtime(get_test_cache(project.conf, target, build_context))
+        last_run = getmtime(get_test_cache(project.conf, target,
+                                           build_context))
         if target in targets_to_build:
             assert last_run != project.last_run_tests[target],\
                 "test: {} was supposed to run again but wasn't".format(target)
@@ -193,7 +194,8 @@ def delete_file_and_return_no_modify(project: ProjectContext):
 def add_dependency(project: ProjectContext):
     new_target = random_string()
     target_type = random.choice(list(TARGET_TYPES.keys()))
-    logger.info('adding target: {} of type: {}'.format(new_target, target_type))
+    logger.info('adding target: {} of type: {}'.format(new_target,
+                                                       target_type))
     project.targets[new_target] = target_type
     project.last_modified[new_target] = None
     if target_type == 'CppGTest':
