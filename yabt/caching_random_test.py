@@ -43,8 +43,17 @@ CPP_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
                 'caching', 'cpp_prog.cc.tmpl')
 CPP_TEST_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
                      'caching', 'cpp_test.cc.tmpl')
-CPP_TARGET = """CppProg('{}', sources='{}', in_buildenv=':builder', deps={})"""
-CPP_TEST_TARGET = """CppGTest('{}', sources='{}', in_buildenv=':builder-with-gtest', deps={})"""
+CPP_TARGET = """CppProg(
+    '{}',
+    sources='{}',
+    in_buildenv=':builder', deps={}
+)"""
+CPP_TEST_TARGET = """CppGTest(
+    '{}',
+    sources='{}',
+    in_buildenv=':builder-with-gtest',
+    deps={}
+)"""
 YROOT_TMPL = join(dirname(abspath(__file__)), '..', 'tests', 'data',
                 'caching', 'YRoot.tmpl')
 INSTALL_GTEST_SCRIPT = join(dirname(abspath(__file__)), '..', 'tests', 'data',
