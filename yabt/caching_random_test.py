@@ -80,11 +80,6 @@ class ProjectContext:
         self.conf = None
 
 
-def random_string():
-    return ''.join([random.choice(string.ascii_letters + string.digits)
-                    for _ in range(random.randint(20, 40))])
-
-
 def generate_random_project(size) -> ProjectContext:
     project = ProjectContext()
     targets = [random_string() for _ in range(size)]
@@ -98,6 +93,11 @@ def generate_random_project(size) -> ProjectContext:
     generate_yroot(project)
     shutil.copyfile(join(TMPL_DIR, YSETTINGS), YSETTINGS)
     return project
+
+
+def random_string():
+    return ''.join([random.choice(string.ascii_letters + string.digits)
+                    for _ in range(random.randint(20, 40))])
 
 
 def generate_yroot(project: ProjectContext):
@@ -131,6 +131,13 @@ def get_file_name(target):
     return join(target + '.cc')
 
 
+def build(basic_conf):
+    build_context = BuildContext(basic_conf)
+    populate_targets_graph(build_context, basic_conf)
+    build_context.build_graph(run_tests=True)
+    return build_context
+
+
 def rebuild(project: ProjectContext):
     build_context = build(project.conf)
     check_modified_targets(project, build_context, [])
@@ -145,34 +152,7 @@ def rebuild_after_modify(project: ProjectContext):
 
     targets_to_build = nx.descendants(project.targets_graph, target_to_change)
     targets_to_build.add(target_to_change)
-
     check_modified_targets(project, build_context, targets_to_build)
-
-
-def check_modified_targets(project: ProjectContext, build_context,
-                           targets_to_build):
-    for target, target_type in project.targets.items():
-        last_modified = get_last_modified(project.conf, target, target_type)
-        if target in targets_to_build:
-            assert last_modified != project.last_modified[target], \
-                "target: {} was supposed to be built again and" \
-                " wasn't".format(target)
-            project.last_modified[target] = last_modified
-        else:
-            assert last_modified == project.last_modified[target], \
-                "target: {} was modified and it wasn't supposed" \
-                " to".format(target)
-
-    for target in project.test_targets:
-        last_run = getmtime(get_test_cache(project.conf, target,
-                                           build_context))
-        if target in targets_to_build:
-            assert last_run != project.last_run_tests[target],\
-                "test: {} was supposed to run again but wasn't".format(target)
-            project.last_run_tests[target] = last_run
-        else:
-            assert last_run == project.last_run_tests[target],\
-                "test: {} was rerun and it wasn't supposed to".format(target)
 
 
 def delete_file_and_return_no_modify(project: ProjectContext):
@@ -237,6 +217,32 @@ def failing_test(project: ProjectContext):
     check_modified_targets(project, build_context, targets_to_build)
 
 
+def check_modified_targets(project: ProjectContext, build_context,
+                           targets_to_build):
+    for target, target_type in project.targets.items():
+        last_modified = get_last_modified(project.conf, target, target_type)
+        if target in targets_to_build:
+            assert last_modified != project.last_modified[target], \
+                "target: {} was supposed to be built again and" \
+                " wasn't".format(target)
+            project.last_modified[target] = last_modified
+        else:
+            assert last_modified == project.last_modified[target], \
+                "target: {} was modified and it wasn't supposed" \
+                " to".format(target)
+
+    for target in project.test_targets:
+        last_run = getmtime(get_test_cache(project.conf, target,
+                                           build_context))
+        if target in targets_to_build:
+            assert last_run != project.last_run_tests[target],\
+                "test: {} was supposed to run again but wasn't".format(target)
+            project.last_run_tests[target] = last_run
+        else:
+            assert last_run == project.last_run_tests[target],\
+                "test: {} was rerun and it wasn't supposed to".format(target)
+
+
 def get_last_modified(basic_conf, target, target_type):
     return getmtime(join(basic_conf.builders_workspace_dir, 'release_flavor',
                          target_type, '_' + target, target + '.o'))
@@ -273,10 +279,3 @@ def test_caching(tmp_dir):
         logger.info('starting build number: {} with func: {}'.format(
             i + 2, test_func.__name__))
         test_func(project)
-
-
-def build(basic_conf):
-    build_context = BuildContext(basic_conf)
-    populate_targets_graph(build_context, basic_conf)
-    build_context.build_graph(run_tests=True)
-    return build_context
