@@ -24,7 +24,7 @@ TODO: implement also distributed caching
 will require keeping track of which machine produced what, so it is possible
 to rerun "cached" tests on machines with different hardware (for example).
 """
-
+import itertools
 import json
 from os import makedirs
 from os.path import isdir, isfile, join, relpath, split
@@ -113,6 +113,24 @@ def write_summary(summary: dict, cache_dir: str):
     summary['accessed'] = time()
     with open(join(cache_dir, 'summary.json'), 'w') as summary_file:
         summary_file.write(json.dumps(summary, indent=4, sort_keys=True))
+
+
+def load_target_from_global_cache(target: Target, build_context) -> bool:
+    target_hash = target.hash(build_context)
+    if not build_context.global_cache.has_cache(target_hash):
+        return False
+    cache_dir = build_context.conf.get_cache_dir(target, build_context)
+    build_context.global_cache.get_summary(target_hash,
+                                           join(cache_dir, 'summary.json'))
+    build_context.global_cache.get_artifacts_meta(
+        target_hash, join(cache_dir, 'artifacts.json'))
+    with open(join(cache_dir, 'artifacts.json'), 'r') as artifacts_meta_file:
+        artifacts_desc = json.loads(artifacts_meta_file)
+    build_context.global_cache.get_artifacts(
+        [artifact['hash'] for artifact
+         in itertools.chain(*artifacts_desc.values)],
+        build_context.conf.get_artifacts_cache_dir())
+    return True
 
 
 def load_target_from_cache(target: Target, build_context) -> (bool, bool):
