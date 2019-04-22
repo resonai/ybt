@@ -120,15 +120,18 @@ def load_target_from_global_cache(target: Target, build_context) -> bool:
     if not build_context.global_cache.has_cache(target_hash):
         return False
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
+    makedirs(cache_dir, exist_ok=True)
     build_context.global_cache.download_summary(target_hash,
                                                 join(cache_dir, 'summary.json'))
     build_context.global_cache.download_artifacts_meta(
         target_hash, join(cache_dir, 'artifacts.json'))
     with open(join(cache_dir, 'artifacts.json'), 'r') as artifacts_meta_file:
-        artifacts_desc = json.loads(artifacts_meta_file)
+        artifacts_desc = json.load(artifacts_meta_file)
+    makedirs(build_context.conf.get_artifacts_cache_dir(), exist_ok=True)
     build_context.global_cache.download_artifacts(
         [artifact['hash'] for artifact
-         in itertools.chain(*artifacts_desc.values)],
+         in itertools.chain(*artifacts_desc.values())
+         if artifact['hash'] is not None],
         build_context.conf.get_artifacts_cache_dir())
     return True
 
@@ -255,6 +258,22 @@ def restore_artifact(src_path: str, artifact_hash: str, conf: Config):
     return False
 
 
+def save_target_in_global_cache(target: Target, build_context, cache_dir,
+                                artifacts_desc):
+    target_hash = target.hash(build_context)
+    logger.info(target_hash)
+    build_context.global_cache.create_target_cache(target_hash)
+    build_context.global_cache.upload_summary(target_hash,
+                                              join(cache_dir, 'summary.json'))
+    build_context.global_cache.upload_artifacts_meta(
+        target_hash, join(cache_dir, 'artifacts.json'))
+    build_context.global_cache.upload_artifacts(
+        [artifact['hash'] for artifact
+         in itertools.chain(*artifacts_desc.values())
+         if artifact['hash'] is not None],
+        build_context.conf.get_artifacts_cache_dir())
+
+
 def save_target_in_cache(target: Target, build_context):
     """Save `target` to build cache for future reuse.
 
@@ -304,6 +323,8 @@ def save_target_in_cache(target: Target, build_context):
     if summary.get('created') is None:
         summary['created'] = time()
     write_summary(summary, cache_dir)
+    save_target_in_global_cache(target, build_context, cache_dir,
+                                artifacts_desc)
 
 
 def save_test_in_cache(target: Target, build_context) -> bool:

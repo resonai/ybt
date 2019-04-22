@@ -59,6 +59,10 @@ class GlobalCache:
         raise NotImplemented('Method download_artifacts of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
+    def create_target_cache(self, target_hash: str):
+        raise NotImplemented('Method create_target_cache of class {} was not '
+                             'implemented'.format(self.__class__.__name__))
+
     def upload_summary(self, target_hash: str, src: str):
         """
         Upload summary file in `src` describing the target with the given hash

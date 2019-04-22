@@ -20,6 +20,7 @@ A remote cache implemented in local dick
 
 :author: Dana Shamir
 """
+import os
 import shutil
 from os.path import join, isdir
 from typing import List
@@ -52,6 +53,10 @@ class FSGlobalCache(GlobalCache):
         for artifact_hash in artifacts_hashes:
             shutil.copyfile(join(self.artifacts_dir, artifact_hash),
                             join(dst, artifact_hash))
+
+    def create_target_cache(self, target_hash: str):
+        if not isdir(join(self.targets_dir, target_hash)):
+            os.mkdir(join(self.targets_dir, target_hash))
 
     def upload_summary(self, target_hash: str, src: str):
         shutil.copyfile(src,
