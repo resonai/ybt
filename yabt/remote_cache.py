@@ -21,6 +21,8 @@ interface for a remote cache
 :author: Dana Shamir
 """
 
+from typing import List
+
 
 class RemoteCache:
     """
@@ -33,24 +35,26 @@ class RemoteCache:
         raise NotImplemented('Method has_cache of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
-    def get_summary(self, target_hash: str) -> str:
+    def get_summary(self, target_hash: str, dst: str):
         """
-        Returns the summary of a target with the given hash (json).
+        Download the summary file of the target to `dst`
         """
         raise NotImplemented('Method get_summary of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
-    def get_artifacts_meta(self, target_hash: str) -> str:
+    def get_artifacts_meta(self, target_hash: str, dst: str):
         """
-        Returns metadata about the artifcats cached for the target with the
-        given hash (json).
+        Downloads the metadata about the artifcats cached for the target to
+        `dst`.
         """
         raise NotImplemented('Method get_artifacts_meta of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
-    def get_artifact(self, artifact_hash: str) -> str:
+    def get_artifacts(self, artifacts_hashes: List[str]) -> str:
         """
-        Returns the data cached for the artifact with the given hash.
+        Downloads the artifacts to a local directory. There each artifact will
+        be in a file with its hash name.
+        Returns the path to the local dir where the artifacts are.
         """
         raise NotImplemented('Method get_artifact of class {} was not '
                              'implemented'.format(self.__class__.__name__))

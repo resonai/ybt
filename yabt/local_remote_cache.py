@@ -20,7 +20,9 @@ A remote cache implemented in local dick
 
 :author: Dana Shamir
 """
+import shutil
 from os.path import join, isdir
+from typing import List
 
 from yabt.remote_cache import RemoteCache
 
@@ -38,16 +40,13 @@ class LocalRemoteCache(RemoteCache):
     def has_cache(self, target_hash: str):
         return isdir(join(self.targets_dir, target_hash))
 
-    def get_summary(self, target_hash: str):
-        with open(join(self.targets_dir, target_hash,
-                       SUMMARY_FILE)) as summary:
-            return summary.read()
+    def get_summary(self, target_hash: str, dst: str):
+        shutil.copyfile(join(self.targets_dir, target_hash, SUMMARY_FILE),
+                        dst)
 
-    def get_artifacts_meta(self, target_hash: str):
-        with open(join(self.targets_dir, target_hash,
-                       ARTIFACTS_FILE)) as artifacts:
-            return artifacts.read()
+    def get_artifacts_meta(self, target_hash: str, dst: str):
+        shutil.copyfile(join(self.targets_dir, target_hash, ARTIFACTS_FILE),
+                        dst)
 
-    def get_artifact(self, artifact_hash: str):
-        with open(join(self.artifacts_dir, artifact_hash)) as artifact:
-            return artifact.read()
+    def get_artifacts(self, artifacts_hashes: List[str]):
+        return self.artifacts_dir
