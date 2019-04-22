@@ -50,10 +50,33 @@ class GlobalCache:
         raise NotImplemented('Method get_artifacts_meta of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
-    def get_artifacts(self, artifacts_hashes: List[dict], dst: str):
+    def get_artifacts(self, artifacts_hashes: List[str], dst: str):
         """
         Downloads the artifacts to `dst`. In `dst` each artifact will be in a
         file named with its hash.
         """
         raise NotImplemented('Method get_artifacts of class {} was not '
+                             'implemented'.format(self.__class__.__name__))
+
+    def upload_summary(self, target_hash: str, src: str):
+        """
+        Upload summary file in `src` describing the target with the given hash
+        """
+        raise NotImplemented('Method upload_summary of class {} was not '
+                             'implemented'.format(self.__class__.__name__))
+
+    def upload_artifacts_meta(self, target_hash: str, src: str):
+        """
+        Upload the metadata file in `src` describing the artifcats cached for
+        the target.
+        """
+        raise NotImplemented(
+            'Method upload_artifacts_meta of class {} was not '
+            'implemented'.format(self.__class__.__name__))
+
+    def upload_artifacts(self, artifacts_hashes: List[str], src: str):
+        """
+        Upload the artifacts with given hashes in directory `src`.
+        """
+        raise NotImplemented('Method upload_artifacts of class {} was not '
                              'implemented'.format(self.__class__.__name__))
