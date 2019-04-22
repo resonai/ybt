@@ -40,15 +40,15 @@ class FSGlobalCache(GlobalCache):
     def has_cache(self, target_hash: str):
         return isdir(join(self.targets_dir, target_hash))
 
-    def get_summary(self, target_hash: str, dst: str):
+    def download_summary(self, target_hash: str, dst: str):
         shutil.copyfile(join(self.targets_dir, target_hash, SUMMARY_FILE),
                         dst)
 
-    def get_artifacts_meta(self, target_hash: str, dst: str):
+    def download_artifacts_meta(self, target_hash: str, dst: str):
         shutil.copyfile(join(self.targets_dir, target_hash, ARTIFACTS_FILE),
                         dst)
 
-    def get_artifacts(self, artifacts_hashes: List[str], dst: str):
+    def download_artifacts(self, artifacts_hashes: List[str], dst: str):
         for artifact_hash in artifacts_hashes:
             shutil.copyfile(join(self.artifacts_dir, artifact_hash),
                             join(dst, artifact_hash))

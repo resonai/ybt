@@ -120,13 +120,13 @@ def load_target_from_global_cache(target: Target, build_context) -> bool:
     if not build_context.global_cache.has_cache(target_hash):
         return False
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
-    build_context.global_cache.get_summary(target_hash,
-                                           join(cache_dir, 'summary.json'))
-    build_context.global_cache.get_artifacts_meta(
+    build_context.global_cache.download_summary(target_hash,
+                                                join(cache_dir, 'summary.json'))
+    build_context.global_cache.download_artifacts_meta(
         target_hash, join(cache_dir, 'artifacts.json'))
     with open(join(cache_dir, 'artifacts.json'), 'r') as artifacts_meta_file:
         artifacts_desc = json.loads(artifacts_meta_file)
-    build_context.global_cache.get_artifacts(
+    build_context.global_cache.download_artifacts(
         [artifact['hash'] for artifact
          in itertools.chain(*artifacts_desc.values)],
         build_context.conf.get_artifacts_cache_dir())
