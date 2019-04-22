@@ -40,6 +40,7 @@ from colorama import Fore, Style
 from ostrich.utils.proc import run, CalledProcessError
 from ostrich.utils.text import get_safe_path
 
+from .fs_global_cache import FSGlobalCache
 from .caching import (get_prebuilt_targets, load_target_from_cache,
                       save_target_in_cache, save_test_in_cache)
 from .config import Config
@@ -97,6 +98,7 @@ class BuildContext:
         # A dictionary for collecting metadata on build artifacts
         self.artifacts_metadata = {}
         self.context_lock = threading.Lock()
+        self.global_cache = FSGlobalCache('/tmp/remote_cache')
 
     def get_workspace(self, *parts) -> str:
         """Return a path to a private workspace dir.
