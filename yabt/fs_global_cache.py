@@ -24,7 +24,7 @@ import shutil
 from os.path import join, isdir
 from typing import List
 
-from yabt.remote_cache import RemoteCache
+from .global_cache import GlobalCache
 
 SUMMARY_FILE = 'summary.json'
 ARTIFACTS_FILE = 'artifact.json'
@@ -32,7 +32,7 @@ TARGETS_DIR = 'targets'
 ARTIFACTS_DIR = 'artifacts'
 
 
-class LocalRemoteCache(RemoteCache):
+class FSGlobalCache(GlobalCache):
     def __init__(self, directory):
         self.targets_dir = join(directory, TARGETS_DIR)
         self.artifacts_dir = join(directory, ARTIFACTS_DIR)

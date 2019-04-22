@@ -24,7 +24,7 @@ interface for a remote cache
 from typing import List
 
 
-class RemoteCache:
+class GlobalCache:
     """
     An interface for a remote cache
     """
