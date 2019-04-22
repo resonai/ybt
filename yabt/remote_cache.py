@@ -50,11 +50,10 @@ class RemoteCache:
         raise NotImplemented('Method get_artifacts_meta of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
-    def get_artifacts(self, artifacts_hashes: List[str]) -> str:
+    def get_artifacts(self, artifacts_hashes: List[dict], dst: str):
         """
-        Downloads the artifacts to a local directory. There each artifact will
-        be in a file with its hash name.
-        Returns the path to the local dir where the artifacts are.
+        Downloads the artifacts to `dst`. In `dst` each artifact will be in a
+        file named with its hash.
         """
-        raise NotImplemented('Method get_artifact of class {} was not '
+        raise NotImplemented('Method get_artifacts of class {} was not '
                              'implemented'.format(self.__class__.__name__))

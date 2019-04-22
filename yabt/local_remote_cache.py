@@ -48,5 +48,7 @@ class LocalRemoteCache(RemoteCache):
         shutil.copyfile(join(self.targets_dir, target_hash, ARTIFACTS_FILE),
                         dst)
 
-    def get_artifacts(self, artifacts_hashes: List[str]):
-        return self.artifacts_dir
+    def get_artifacts(self, artifacts_hashes: List[str], dst: str):
+        for artifact_hash in artifacts_hashes:
+            shutil.copyfile(join(self.artifacts_dir, artifact_hash),
+                            join(dst, artifact_hash))
