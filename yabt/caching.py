@@ -129,11 +129,15 @@ def load_target_from_global_cache(target: Target, build_context) -> bool:
         artifacts_desc = json.load(artifacts_meta_file)
     makedirs(build_context.conf.get_artifacts_cache_dir(), exist_ok=True)
     build_context.global_cache.download_artifacts(
-        [artifact['hash'] for artifact
-         in itertools.chain(*artifacts_desc.values())
-         if artifact['hash'] is not None],
+        get_artifacts_hashes(artifacts_desc),
         build_context.conf.get_artifacts_cache_dir())
     return True
+
+
+def get_artifacts_hashes(artifacts_desc):
+    return [artifact['hash'] for artifact
+            in itertools.chain(*artifacts_desc.values())
+            if artifact['hash'] is not None]
 
 
 def load_target_from_cache(target: Target, build_context) -> (bool, bool):
@@ -268,9 +272,7 @@ def save_target_in_global_cache(target: Target, build_context, cache_dir,
     build_context.global_cache.upload_artifacts_meta(
         target_hash, join(cache_dir, 'artifacts.json'))
     build_context.global_cache.upload_artifacts(
-        [artifact['hash'] for artifact
-         in itertools.chain(*artifacts_desc.values())
-         if artifact['hash'] is not None],
+        get_artifacts_hashes(artifacts_desc),
         build_context.conf.get_artifacts_cache_dir())
 
 
