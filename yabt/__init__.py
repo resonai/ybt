@@ -24,5 +24,5 @@ yabt root package
 from .config import YSETTINGS_FILE
 
 __author__ = 'Itamar Ostricher'
-__version__ = '0.3.21'
+__version__ = '0.3.22'
 __oneliner__ = 'Yet another Build Tool'
