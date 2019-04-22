@@ -52,3 +52,16 @@ class FSGlobalCache(GlobalCache):
         for artifact_hash in artifacts_hashes:
             shutil.copyfile(join(self.artifacts_dir, artifact_hash),
                             join(dst, artifact_hash))
+
+    def upload_summary(self, target_hash: str, src: str):
+        shutil.copyfile(src,
+                        join(self.targets_dir, target_hash, SUMMARY_FILE))
+
+    def upload_artifacts_meta(self, target_hash: str, src: str):
+        shutil.copyfile(src,
+                        join(self.targets_dir, target_hash, ARTIFACTS_FILE))
+
+    def upload_artifacts(self, artifacts_hashes: List[str], src: str):
+        for artifact_hash in artifacts_hashes:
+            shutil.copyfile(join(src, artifact_hash),
+                            join(self.artifacts_dir, artifact_hash))
