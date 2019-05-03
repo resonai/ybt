@@ -150,7 +150,8 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if not isdir(cache_dir):
         logger.debug('No cache dir found for target {}', target.name)
-        if not load_target_from_global_cache(target, build_context):
+        if (not build_context.conf.use_global_cache or
+                not load_target_from_global_cache(target, build_context)):
             return False, False
     # read summary file and restore relevant fields into target
     with open(join(cache_dir, 'summary.json'), 'r') as summary_file:
@@ -325,8 +326,9 @@ def save_target_in_cache(target: Target, build_context):
     if summary.get('created') is None:
         summary['created'] = time()
     write_summary(summary, cache_dir)
-    save_target_in_global_cache(target, build_context, cache_dir,
-                                artifacts_desc)
+    if build_context.conf.use_global_cache:
+        save_target_in_global_cache(target, build_context, cache_dir,
+                                    artifacts_desc)
 
 
 def save_test_in_cache(target: Target, build_context) -> bool:

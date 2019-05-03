@@ -70,6 +70,7 @@ class Config:
         # logging-related
         'loglevel', 'logtostderr', 'logtostdout',
         'show_buildenv_deps',
+        'use_global_cache',
     ))
 
     def __init__(self, args, project_root_dir: str, work_dir: str,
