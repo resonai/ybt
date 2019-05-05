@@ -23,6 +23,8 @@ yabt py.test conftest
 
 
 import os
+import shutil
+import tempfile
 
 import configargparse
 import pytest
@@ -99,6 +101,16 @@ def in_cpp_project():
 @yield_fixture
 def in_tests_project():
     yield from yabt_project_fixture('tests')
+
+
+@yield_fixture
+def tmp_dir():
+    orig_dir = os.getcwd()
+    _tmp_dir = tempfile.mkdtemp()
+    os.chdir(_tmp_dir)
+    yield _tmp_dir
+    os.chdir(orig_dir)
+    shutil.rmtree(_tmp_dir)
 
 
 @yield_fixture
