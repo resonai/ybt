@@ -126,9 +126,11 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         PARSER.add('--show-buildenv-deps', type=bool, default=False,
                    help='When running dot, if set to True then the buildenv '
                         'targets are printed to the graph too')
-        PARSER.add('--use-global-cache', type=bool, default=False,
-                   help="upload to global cache and read from global cache "
-                        "if target isn't cached locally")
+        PARSER.add('--download-from-global-cache', type=bool, default=False,
+                   help='download from global cache targets that are not '
+                        'cached locally')
+        PARSER.add('--upload-to-global-cache', type=bool, default=False,
+                   help='upload to global cache targets that were built')
         PARSER.add('cmd', choices=['build', 'dot', 'test', 'tree', 'version'])
         PARSER.add('targets', nargs='*')
     return PARSER
