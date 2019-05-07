@@ -30,28 +30,13 @@ from unittest.mock import Mock
 import networkx
 import pytest
 
+from .test_utils import generate_random_dag
 from .buildcontext import BuildContext
-from .graph import (
-    get_descendants, populate_targets_graph, topological_sort)
+from .graph import (get_descendants, populate_targets_graph, topological_sort)
 
 
 slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
                           reason='need --with-slow option to run')
-
-
-def generate_random_dag(num_nodes, min_rank=0, max_rank=10, edge_prob=0.3):
-    """Return a random DAG with `num_nodes` nodes.
-
-    Nodes values will be (0..num_nodes-1),
-    and edges can only go from i -> j if i < j (guaranteeing DAGness).
-    """
-    g = networkx.DiGraph()
-    g.add_nodes_from(range(num_nodes))
-    for j in range(1, num_nodes):
-        rank = random.randint(min_rank, min(j, max_rank))
-        g.add_edges_from((i, j) for i in random.sample(range(j), k=rank)
-                         if random.random() > edge_prob)
-    return g
 
 
 def make_random_dag_build_context(
@@ -64,7 +49,8 @@ def make_random_dag_build_context(
             self.value = n
 
     # Use random DAG to create a build context with dummy targets
-    g = generate_random_dag(num_nodes, min_rank, max_rank, edge_prob)
+    g = generate_random_dag(list(range(num_nodes)),
+                            min_rank, max_rank, edge_prob)
     build_context = BuildContext(Mock())
     build_context.target_graph = g
     for n in g.nodes():
