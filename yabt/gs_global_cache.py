@@ -62,7 +62,7 @@ class GSGlobalCache(GlobalCache):
     def download_artifacts(self, artifacts_hashes: List[str], dst: str):
         if artifacts_hashes:
             # TODO(Dana): make this work in batch.
-            # see: https://github.com/googleapis/google-cloud-python/issues/3139
+            # see https://github.com/googleapis/google-cloud-python/issues/3139
             for artifact_hash in artifacts_hashes:
                 self.bucket.blob(join(self.artifacts_dir, artifact_hash))\
                     .download_to_filename(join(dst, artifact_hash))
