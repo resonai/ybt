@@ -133,8 +133,6 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         PARSER.add('--upload-to-global-cache', default=False,
                    action='store_true',
                    help='upload to global cache targets that were built')
-        PARSER.add('--global-cache-type', choices=('gcs', 'fs'),
-                   default='gcs')
         PARSER.add('cmd', choices=['build', 'dot', 'test', 'tree', 'version'])
         PARSER.add('targets', nargs='*')
     return PARSER
