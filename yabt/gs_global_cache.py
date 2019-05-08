@@ -28,9 +28,6 @@ from typing import List
 from .global_cache import GlobalCache
 from .logging import make_logger
 
-CACHE_BUCKET = 'ywz-tmp'
-CACHE_DIR = 'dana/global_cache'
-GCE_PROJECT = 'yowza3d'
 SUMMARY_FILE = 'summary.json'
 ARTIFACTS_FILE = 'artifact.json'
 TARGETS_DIR = 'targets'
@@ -41,11 +38,13 @@ logger = make_logger(__name__)
 
 
 class GSGlobalCache(GlobalCache):
-    def __init__(self):
-        self.storage_client = storage.Client(GCE_PROJECT)
-        self.bucket = self.storage_client.get_bucket(CACHE_BUCKET)
-        self.targets_dir = join(CACHE_DIR, TARGETS_DIR)
-        self.artifacts_dir = join(CACHE_DIR, ARTIFACTS_DIR)
+    def __init__(self, gce_project, bucket, directory=None):
+        self.storage_client = storage.Client(gce_project)
+        self.bucket = self.storage_client.get_bucket(bucket)
+        self.targets_dir = join(directory, TARGETS_DIR) if directory else \
+            TARGETS_DIR
+        self.artifacts_dir = join(directory, ARTIFACTS_DIR) if directory \
+            else ARTIFACTS_DIR
 
     def has_cache(self, target_hash: str):
         return self.bucket.blob(join(self.targets_dir, target_hash,
