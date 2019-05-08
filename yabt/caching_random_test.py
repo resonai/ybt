@@ -64,6 +64,8 @@ TARGET_TYPES = {
     'CppGTest': (CPP_TEST_TMPL, CPP_TEST_TARGET)
 }
 
+GLOBAL_CACHE_DIR = '.global_cache'
+
 slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
                           reason='need --with-slow option to run')
 
@@ -91,7 +93,10 @@ def generate_random_project(size) -> ProjectContext:
         if target_type == 'CppGTest':
             project.test_targets.append(target)
     generate_yroot(project)
-    shutil.copyfile(join(TMPL_DIR, YSETTINGS), YSETTINGS)
+    with open(join(TMPL_DIR, YSETTINGS + '.tmpl'), 'r') as tmpl:
+        ysettings = tmpl.read().format(GLOBAL_CACHE_DIR)
+    with open(YSETTINGS, 'w') as ysettings_file:
+        ysettings_file.write(ysettings)
     return project
 
 
@@ -131,15 +136,26 @@ def get_file_name(target):
     return join(target + '.cc')
 
 
-def build(basic_conf):
-    build_context = BuildContext(basic_conf)
-    populate_targets_graph(build_context, basic_conf)
+def init_project_and_build(project):
+    init_conf(project)
+    build_context = BuildContext(project.conf)
+    populate_targets_graph(build_context, project.conf)
     build_context.build_graph(run_tests=True)
     return build_context
 
 
+def init_conf(project):
+    reset_parser()
+    project.conf = cli.init_and_get_conf(['--non-interactive',
+                                          '--continue-after-fail', 'build',
+                                          '--upload-to-global-cache',
+                                          '--download-from-global-cache'])
+    extend.Plugin.load_plugins(project.conf)
+    project.conf.targets = [':' + target for target in project.targets.keys()]
+
+
 def rebuild(project: ProjectContext):
-    build_context = build(project.conf)
+    build_context = init_project_and_build(project)
     check_modified_targets(project, build_context, [])
 
 
@@ -148,7 +164,7 @@ def rebuild_after_modify(project: ProjectContext):
     logger.info('modifing target: {}'.format(target_to_change))
     generate_file(target_to_change, project.targets[target_to_change],
                   random_string())
-    build_context = build(project.conf)
+    build_context = init_project_and_build(project)
 
     targets_to_build = nx.descendants(project.targets_graph, target_to_change)
     targets_to_build.add(target_to_change)
@@ -166,7 +182,7 @@ def delete_file_and_return_no_modify(project: ProjectContext):
     with open(file_name, 'w') as target_file:
         target_file.write(curr_content)
 
-    build_context = build(project.conf)
+    build_context = init_project_and_build(project)
     check_modified_targets(project, build_context, [])
 
 
@@ -190,7 +206,7 @@ def add_dependency(project: ProjectContext):
         if random.random() > 0.8 and targets[i] != new_target)
     generate_yroot(project)
 
-    build_context = build(project.conf)
+    build_context = init_project_and_build(project)
     targets_to_build = nx.descendants(project.targets_graph, new_target)
     targets_to_build.add(new_target)
     check_modified_targets(project, build_context, targets_to_build)
@@ -204,6 +220,7 @@ def failing_test(project: ProjectContext):
     with open(get_file_name(test_to_fail), 'w') as target_file:
         target_file.write(code)
 
+    init_conf(project)
     build_context = BuildContext(project.conf)
     populate_targets_graph(build_context, project.conf)
     with pytest.raises(SystemExit):
@@ -213,7 +230,7 @@ def failing_test(project: ProjectContext):
         "test: {} is failing but was put into cache".format(test_to_fail)
 
     generate_file(test_to_fail, project.targets[test_to_fail], random_string())
-    build_context = build(project.conf)
+    build_context = init_project_and_build(project)
     targets_to_build = nx.descendants(project.targets_graph, test_to_fail)
     targets_to_build.add(test_to_fail)
     check_modified_targets(project, build_context, targets_to_build)
@@ -258,13 +275,8 @@ def get_test_cache(basic_conf, target, build_context):
 @slow
 def test_caching(tmp_dir):
     project = generate_random_project(NUM_TARGETS)
-    reset_parser()
-    project.conf = cli.init_and_get_conf(['--non-interactive',
-                                          '--continue-after-fail', 'build'])
-    extend.Plugin.load_plugins(project.conf)
-    project.conf.targets = [':' + target for target in project.targets.keys()]
 
-    build_context = build(project.conf)
+    build_context = init_project_and_build(project)
     logger.info('done first build')
 
     for target, target_type in project.targets.items():

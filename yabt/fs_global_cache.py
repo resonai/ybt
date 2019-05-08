@@ -31,13 +31,14 @@ SUMMARY_FILE = 'summary.json'
 ARTIFACTS_FILE = 'artifact.json'
 TARGETS_DIR = 'targets'
 ARTIFACTS_DIR = 'artifacts'
-DIRECTORY = '/tmp/cache'
 
 
 class FSGlobalCache(GlobalCache):
-    def __init__(self):
-        self.targets_dir = join(DIRECTORY, TARGETS_DIR)
-        self.artifacts_dir = join(DIRECTORY, ARTIFACTS_DIR)
+    def __init__(self, directory='/tmp/cache'):
+        self.targets_dir = join(directory, TARGETS_DIR)
+        self.artifacts_dir = join(directory, ARTIFACTS_DIR)
+        os.makedirs(self.targets_dir, exist_ok=True)
+        os.makedirs(self.artifacts_dir, exist_ok=True)
 
     def has_cache(self, target_hash: str):
         return isdir(join(self.targets_dir, target_hash))
