@@ -211,6 +211,19 @@ def add_dependency(project: ProjectContext):
     check_modified_targets(project, build_context, targets_to_build)
 
 
+def download_from_global_cache(project: ProjectContext):
+    target = random.choice(list(project.targets.keys()))
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
+    check_modified_targets(project, build_context, [])
+    cache_dir = project.conf.get_cache_dir(
+        build_context.targets[':' + target], build_context)
+    logger.info('removing cache from: {}'.format(cache_dir))
+    shutil.rmtree(cache_dir)
+    build_context.build_graph(run_tests=True)
+    check_modified_targets(project, build_context, [])
+
+
 def failing_test(project: ProjectContext):
     test_to_fail = random.choice(project.test_targets)
     logger.info('Making target: {} fail'.format(test_to_fail))
@@ -286,7 +299,7 @@ def test_caching(tmp_dir):
             project.conf, target, build_context))
 
     tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify,
-             add_dependency, failing_test]
+             add_dependency, failing_test, download_from_global_cache]
     for i in range(NUM_TESTS):
         test_func = random.choice(tests)
         logger.info('starting build number: {} with func: {}'.format(
