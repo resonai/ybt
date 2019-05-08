@@ -149,7 +149,6 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     """
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if not isdir(cache_dir):
-        logger.info('trying to load from global cache')
         logger.debug('No cache dir found for target {}', target.name)
         if (not build_context.conf.download_from_global_cache or
                 not load_target_from_global_cache(target, build_context)):
