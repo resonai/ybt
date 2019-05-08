@@ -15,7 +15,7 @@
 # limitations under the License.
 
 """
-A remote cache implemented in local dick
+A global cache implemented in local dick
 ~~~~~~~~~~~~~~~~~~~
 
 :author: Dana Shamir

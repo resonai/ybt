@@ -15,7 +15,7 @@
 # limitations under the License.
 
 """
-A remote cache implemented with google cloud storage
+A global cache implemented with google cloud storage
 ~~~~~~~~~~~~~~~~~~~
 
 :author: Dana Shamir

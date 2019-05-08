@@ -15,7 +15,7 @@
 # limitations under the License.
 
 """
-interface for a remote cache
+interface for a global cache
 ~~~~~~~~~~~~~~~~~~~
 
 :author: Dana Shamir
