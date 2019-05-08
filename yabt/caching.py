@@ -266,7 +266,6 @@ def restore_artifact(src_path: str, artifact_hash: str, conf: Config):
 def save_target_in_global_cache(target: Target, build_context, cache_dir,
                                 artifacts_desc):
     target_hash = target.hash(build_context)
-    logger.info(target_hash)
     build_context.global_cache.create_target_cache(target_hash)
     build_context.global_cache.upload_summary(target_hash,
                                               join(cache_dir, 'summary.json'))
