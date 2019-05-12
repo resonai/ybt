@@ -148,6 +148,7 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     `build_cached` is True if target restored successfully.
     `test_cached` is True if build is cached and test_time metadata is valid.
     """
+    # TODO(Dana): support partially deleted cache
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if not isdir(cache_dir):
         logger.debug('No cache dir found for target {}', target.name)
