@@ -64,6 +64,8 @@ TARGET_TYPES = {
     'CppGTest': (CPP_TEST_TMPL, CPP_TEST_TARGET)
 }
 
+GLOBAL_CACHE_DIR = '.global_cache'
+
 slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
                           reason='need --with-slow option to run')
 
@@ -91,7 +93,10 @@ def generate_random_project(size) -> ProjectContext:
         if target_type == 'CppGTest':
             project.test_targets.append(target)
     generate_yroot(project)
-    shutil.copyfile(join(TMPL_DIR, YSETTINGS), YSETTINGS)
+    with open(join(TMPL_DIR, YSETTINGS + '.tmpl'), 'r') as tmpl:
+        ysettings = tmpl.read().format(GLOBAL_CACHE_DIR)
+    with open(YSETTINGS, 'w') as ysettings_file:
+        ysettings_file.write(ysettings)
     return project
 
 
@@ -131,15 +136,22 @@ def get_file_name(target):
     return join(target + '.cc')
 
 
-def build(basic_conf):
-    build_context = BuildContext(basic_conf)
-    populate_targets_graph(build_context, basic_conf)
-    build_context.build_graph(run_tests=True)
+def init_project(project):
+    reset_parser()
+    project.conf = cli.init_and_get_conf(['--non-interactive',
+                                          '--continue-after-fail', 'build',
+                                          '--upload-to-global-cache',
+                                          '--download-from-global-cache'])
+    extend.Plugin.load_plugins(project.conf)
+    project.conf.targets = [':' + target for target in project.targets.keys()]
+    build_context = BuildContext(project.conf)
+    populate_targets_graph(build_context, project.conf)
     return build_context
 
 
 def rebuild(project: ProjectContext):
-    build_context = build(project.conf)
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
     check_modified_targets(project, build_context, [])
 
 
@@ -148,7 +160,8 @@ def rebuild_after_modify(project: ProjectContext):
     logger.info('modifing target: {}'.format(target_to_change))
     generate_file(target_to_change, project.targets[target_to_change],
                   random_string())
-    build_context = build(project.conf)
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
 
     targets_to_build = nx.descendants(project.targets_graph, target_to_change)
     targets_to_build.add(target_to_change)
@@ -166,7 +179,8 @@ def delete_file_and_return_no_modify(project: ProjectContext):
     with open(file_name, 'w') as target_file:
         target_file.write(curr_content)
 
-    build_context = build(project.conf)
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
     check_modified_targets(project, build_context, [])
 
 
@@ -190,9 +204,42 @@ def add_dependency(project: ProjectContext):
         if random.random() > 0.8 and targets[i] != new_target)
     generate_yroot(project)
 
-    build_context = build(project.conf)
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
     targets_to_build = nx.descendants(project.targets_graph, new_target)
     targets_to_build.add(new_target)
+    check_modified_targets(project, build_context, targets_to_build)
+
+
+def download_from_global_cache(project: ProjectContext):
+    target = random.choice(list(project.targets.keys()))
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
+    check_modified_targets(project, build_context, [])
+    cache_dir = project.conf.get_cache_dir(
+        build_context.targets[':' + target], build_context)
+    logger.info('removing cache from: {}'.format(cache_dir))
+    shutil.rmtree(cache_dir)
+    build_context.build_graph(run_tests=True)
+
+    # We don't support globally caching tests yet
+    check_modified_targets(project, build_context, [], [target])
+
+
+def no_cache_at_all(project: ProjectContext):
+    target_name = random.choice(list(project.targets.keys()))
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
+    check_modified_targets(project, build_context, [])
+    target = build_context.targets[':' + target_name]
+    logger.info('removing local and global cache of target: {}'.format(
+        target_name))
+    shutil.rmtree(project.conf.get_cache_dir(target, build_context))
+    shutil.rmtree(join(GLOBAL_CACHE_DIR, 'targets',
+                       target.hash(build_context)))
+    build_context.build_graph(run_tests=True)
+    targets_to_build = nx.descendants(project.targets_graph, target_name)
+    targets_to_build.add(target_name)
     check_modified_targets(project, build_context, targets_to_build)
 
 
@@ -204,8 +251,7 @@ def failing_test(project: ProjectContext):
     with open(get_file_name(test_to_fail), 'w') as target_file:
         target_file.write(code)
 
-    build_context = BuildContext(project.conf)
-    populate_targets_graph(build_context, project.conf)
+    build_context = init_project(project)
     with pytest.raises(SystemExit):
         build_context.build_graph(run_tests=True)
     test_cache = get_test_cache(project.conf, test_to_fail, build_context)
@@ -213,14 +259,15 @@ def failing_test(project: ProjectContext):
         "test: {} is failing but was put into cache".format(test_to_fail)
 
     generate_file(test_to_fail, project.targets[test_to_fail], random_string())
-    build_context = build(project.conf)
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
     targets_to_build = nx.descendants(project.targets_graph, test_to_fail)
     targets_to_build.add(test_to_fail)
     check_modified_targets(project, build_context, targets_to_build)
 
 
 def check_modified_targets(project: ProjectContext, build_context,
-                           targets_to_build):
+                           targets_to_build, tests_to_build=None):
     for target, target_type in project.targets.items():
         last_modified = get_last_modified(project.conf, target, target_type)
         if target in targets_to_build:
@@ -233,10 +280,11 @@ def check_modified_targets(project: ProjectContext, build_context,
                 "target: {} was modified and it wasn't supposed" \
                 " to".format(target)
 
+    tests_to_build = tests_to_build or targets_to_build
     for target in project.test_targets:
         last_run = getmtime(get_test_cache(project.conf, target,
                                            build_context))
-        if target in targets_to_build:
+        if target in tests_to_build:
             assert last_run != project.last_run_tests[target],\
                 "test: {} was supposed to run again but wasn't".format(target)
             project.last_run_tests[target] = last_run
@@ -258,13 +306,9 @@ def get_test_cache(basic_conf, target, build_context):
 @slow
 def test_caching(tmp_dir):
     project = generate_random_project(NUM_TARGETS)
-    reset_parser()
-    project.conf = cli.init_and_get_conf(['--non-interactive',
-                                          '--continue-after-fail', 'build'])
-    extend.Plugin.load_plugins(project.conf)
-    project.conf.targets = [':' + target for target in project.targets.keys()]
 
-    build_context = build(project.conf)
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
     logger.info('done first build')
 
     for target, target_type in project.targets.items():
@@ -275,7 +319,8 @@ def test_caching(tmp_dir):
             project.conf, target, build_context))
 
     tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify,
-             add_dependency, failing_test]
+             add_dependency, failing_test, download_from_global_cache,
+             no_cache_at_all]
     for i in range(NUM_TESTS):
         test_func = random.choice(tests)
         logger.info('starting build number: {} with func: {}'.format(

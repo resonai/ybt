@@ -40,6 +40,7 @@ from colorama import Fore, Style
 from ostrich.utils.proc import run, CalledProcessError
 from ostrich.utils.text import get_safe_path
 
+from yabt.cli import call_user_func
 from .caching import (get_prebuilt_targets, load_target_from_cache,
                       save_target_in_cache, save_test_in_cache)
 from .config import Config
@@ -97,6 +98,8 @@ class BuildContext:
         # A dictionary for collecting metadata on build artifacts
         self.artifacts_metadata = {}
         self.context_lock = threading.Lock()
+        self.global_cache = call_user_func(conf.settings, 'get_global_cache')
+        self.global_cache_failures = 0
 
     def get_workspace(self, *parts) -> str:
         """Return a path to a private workspace dir.

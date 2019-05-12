@@ -1,3 +1,5 @@
+from yabt.fs_global_cache import FSGlobalCache
+
 def known_flavors():
     return ['debug', 'release']
 
@@ -6,23 +8,26 @@ def default_flavor():
 
 def get_common_config(config, args):
     clang = 'clang++-5.0'
-    return {
+    return {{
         'compiler': clang,
         'linker': clang,
         'compile_flags': ['-std=c++14', '-Wall', '-fcolor-diagnostics'],
-        'gtest_params': {
+        'gtest_params': {{
             'extra_compile_flags': [],
             'extra_link_flags': ['-lgtest', '-lpthread'],
             'extra_exec_flags': [],
-        }
-    }
+        }}
+    }}
 
 def get_flavored_config(config, args):
-    return {
-        'release': {
+    return {{
+        'release': {{
             'compile_flags': ['$*', '-O2', '-DDEBUG'],
-        },
-        'debug': {
+        }},
+        'debug': {{
             'compile_flags': ['$*', '-g', '-DDEBUG'],
-        },
-    }.get(config.flavor, {})
+        }},
+    }}.get(config.flavor, {{}})
+
+def get_global_cache():
+    return FSGlobalCache('{}')

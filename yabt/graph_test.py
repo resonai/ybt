@@ -25,6 +25,7 @@ yabt target graph tests
 from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
 import random
+from unittest.mock import Mock
 
 import networkx
 import pytest
@@ -50,7 +51,7 @@ def make_random_dag_build_context(
     # Use random DAG to create a build context with dummy targets
     g = generate_random_dag(list(range(num_nodes)),
                             min_rank, max_rank, edge_prob)
-    build_context = BuildContext(None)
+    build_context = BuildContext(Mock())
     build_context.target_graph = g
     for n in g.nodes():
         build_context.targets[n] = DummyTarget(n)

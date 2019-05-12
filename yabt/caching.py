@@ -24,7 +24,7 @@ TODO: implement also distributed caching
 will require keeping track of which machine produced what, so it is possible
 to rerun "cached" tests on machines with different hardware (for example).
 """
-
+import itertools
 import json
 from os import makedirs
 from os.path import isdir, isfile, join, relpath, split
@@ -45,6 +45,7 @@ from .utils import hash_tree, rmnode, rmtree
 logger = make_logger(__name__)
 
 _NO_CACHE_TYPES = frozenset((AT.app, AT.docker_image))
+MAX_FAILS_FROM_GLOBAL = 5
 
 
 class CachedDescendants(dict):
@@ -115,6 +116,31 @@ def write_summary(summary: dict, cache_dir: str):
         summary_file.write(json.dumps(summary, indent=4, sort_keys=True))
 
 
+def load_target_from_global_cache(target: Target, build_context) -> bool:
+    target_hash = target.hash(build_context)
+    if not build_context.global_cache.has_cache(target_hash):
+        return False
+    cache_dir = build_context.conf.get_cache_dir(target, build_context)
+    makedirs(cache_dir, exist_ok=True)
+    build_context.global_cache.download_summary(
+        target_hash, join(cache_dir, 'summary.json'))
+    build_context.global_cache.download_artifacts_meta(
+        target_hash, join(cache_dir, 'artifacts.json'))
+    with open(join(cache_dir, 'artifacts.json'), 'r') as artifacts_meta_file:
+        artifacts_desc = json.load(artifacts_meta_file)
+    makedirs(build_context.conf.get_artifacts_cache_dir(), exist_ok=True)
+    build_context.global_cache.download_artifacts(
+        get_artifacts_hashes(artifacts_desc),
+        build_context.conf.get_artifacts_cache_dir())
+    return True
+
+
+def get_artifacts_hashes(artifacts_desc):
+    return [artifact['hash'] for artifact
+            in itertools.chain(*artifacts_desc.values())
+            if 'hash' in artifact and artifact['hash'] is not None]
+
+
 def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     """Load `target` from build cache, restoring cached artifacts & summary.
        Return (build_cached, test_cached) tuple.
@@ -122,10 +148,27 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     `build_cached` is True if target restored successfully.
     `test_cached` is True if build is cached and test_time metadata is valid.
     """
+    # TODO(Dana): support partially deleted cache
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if not isdir(cache_dir):
         logger.debug('No cache dir found for target {}', target.name)
-        return False, False
+        has_global_cache = False
+        if build_context.global_cache and \
+            build_context.conf.download_from_global_cache and \
+                build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
+            logger.info('trying to load target {} from global cache'
+                        .format(target.name))
+            try:
+                has_global_cache = load_target_from_global_cache(
+                    target, build_context)
+            except Exception as e:
+                logger.warning('an error occurred while trying to download '
+                               'target {} from global cache'
+                               .format(target.name))
+                logger.warning(str(e))
+                build_context.global_cache_failures += 1
+        if not has_global_cache:
+            return False, False
     # read summary file and restore relevant fields into target
     with open(join(cache_dir, 'summary.json'), 'r') as summary_file:
         summary = json.loads(summary_file.read())
@@ -236,6 +279,19 @@ def restore_artifact(src_path: str, artifact_hash: str, conf: Config):
     return False
 
 
+def save_target_in_global_cache(target: Target, build_context, cache_dir,
+                                artifacts_desc):
+    target_hash = target.hash(build_context)
+    build_context.global_cache.create_target_cache(target_hash)
+    build_context.global_cache.upload_summary(target_hash,
+                                              join(cache_dir, 'summary.json'))
+    build_context.global_cache.upload_artifacts_meta(
+        target_hash, join(cache_dir, 'artifacts.json'))
+    build_context.global_cache.upload_artifacts(
+        get_artifacts_hashes(artifacts_desc),
+        build_context.conf.get_artifacts_cache_dir())
+
+
 def save_target_in_cache(target: Target, build_context):
     """Save `target` to build cache for future reuse.
 
@@ -285,6 +341,19 @@ def save_target_in_cache(target: Target, build_context):
     if summary.get('created') is None:
         summary['created'] = time()
     write_summary(summary, cache_dir)
+
+    if build_context.global_cache and \
+        build_context.conf.upload_to_global_cache and \
+            build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
+        try:
+            save_target_in_global_cache(target, build_context, cache_dir,
+                                        artifacts_desc)
+        except Exception as e:
+            logger.warning('an error occurred while trying to upload '
+                           'target {} to global cache'
+                           .format(target.name))
+            logger.warning(str(e))
+            build_context.global_cache_failures += 1
 
 
 def save_test_in_cache(target: Target, build_context) -> bool:
