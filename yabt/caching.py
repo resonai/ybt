@@ -138,7 +138,7 @@ def load_target_from_global_cache(target: Target, build_context) -> bool:
 def get_artifacts_hashes(artifacts_desc):
     return [artifact['hash'] for artifact
             in itertools.chain(*artifacts_desc.values())
-            if artifact['hash'] is not None]
+            if 'hash' in artifact and artifact['hash'] is not None]
 
 
 def load_target_from_cache(target: Target, build_context) -> (bool, bool):
