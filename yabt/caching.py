@@ -152,7 +152,8 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     if not isdir(cache_dir):
         logger.debug('No cache dir found for target {}', target.name)
         has_global_cache = False
-        if build_context.conf.download_from_global_cache and \
+        if build_context.global_cache and \
+            build_context.conf.download_from_global_cache and \
                 build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
             logger.info('trying to load target {} from global cache'
                         .format(target.name))
@@ -339,9 +340,19 @@ def save_target_in_cache(target: Target, build_context):
     if summary.get('created') is None:
         summary['created'] = time()
     write_summary(summary, cache_dir)
-    if build_context.conf.upload_to_global_cache:
-        save_target_in_global_cache(target, build_context, cache_dir,
-                                    artifacts_desc)
+
+    if build_context.global_cache and \
+        build_context.conf.upload_to_global_cache and \
+            build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
+        try:
+            save_target_in_global_cache(target, build_context, cache_dir,
+                                        artifacts_desc)
+        except Exception as e:
+            logger.warning('an error occurred while trying to upload '
+                           'target {} to global cache'
+                           .format(target.name))
+            logger.warning(str(e))
+            build_context.global_cache_failures += 1
 
 
 def save_test_in_cache(target: Target, build_context) -> bool:
