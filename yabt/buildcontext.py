@@ -99,6 +99,7 @@ class BuildContext:
         self.artifacts_metadata = {}
         self.context_lock = threading.Lock()
         self.global_cache = call_user_func(conf.settings, 'get_global_cache')
+        self.global_cache_failures = 0
 
     def get_workspace(self, *parts) -> str:
         """Return a path to a private workspace dir.
