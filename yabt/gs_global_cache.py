@@ -50,21 +50,31 @@ class GSGlobalCache(GlobalCache):
         return self.bucket.blob(join(self.targets_dir, target_hash,
                                      SUMMARY_FILE)).exists()
 
-    def download_summary(self, target_hash: str, dst: str):
-        self.bucket.blob(join(self.targets_dir, target_hash,
-                              SUMMARY_FILE)).download_to_filename(dst)
+    def download_summary(self, target_hash: str, dst: str) -> bool:
+        src_blob = self.bucket.blob(join(self.targets_dir, target_hash,
+                                         SUMMARY_FILE))
+        if not src_blob.exists():
+            return False
+        src_blob.download_to_filename(dst)
+        return True
 
-    def download_artifacts_meta(self, target_hash: str, dst: str):
-        self.bucket.blob(join(self.targets_dir, target_hash,
-                              ARTIFACTS_FILE)).download_to_filename(dst)
+    def download_artifacts_meta(self, target_hash: str, dst: str) -> bool:
+        src_blob = self.bucket.blob(join(self.targets_dir, target_hash,
+                                         ARTIFACTS_FILE))
+        if not src_blob.exists():
+            return False
+        src_blob.download_to_filename(dst)
+        return True
 
     def download_artifacts(self, artifacts_hashes: List[str], dst: str):
         if artifacts_hashes:
             # TODO(Dana): make this work in batch.
             # see https://github.com/googleapis/google-cloud-python/issues/3139
             for artifact_hash in artifacts_hashes:
-                self.bucket.blob(join(self.artifacts_dir, artifact_hash))\
-                    .download_to_filename(join(dst, artifact_hash))
+                src_blob = self.bucket.blob(join(self.artifacts_dir,
+                                                 artifact_hash))
+                if src_blob.exists():
+                    src_blob.download_to_filename(join(dst, artifact_hash))
 
     def create_target_cache(self, target_hash: str):
         pass

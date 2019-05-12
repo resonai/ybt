@@ -22,7 +22,7 @@ A global cache implemented in local dick
 """
 import os
 import shutil
-from os.path import join, isdir
+from os.path import join, isdir, isfile
 from typing import List
 
 from .global_cache import GlobalCache
@@ -34,7 +34,7 @@ ARTIFACTS_DIR = 'artifacts'
 
 
 class FSGlobalCache(GlobalCache):
-    def __init__(self, directory='/tmp/cache'):
+    def __init__(self, directory='/tmp/ybt_cache'):
         self.targets_dir = join(directory, TARGETS_DIR)
         self.artifacts_dir = join(directory, ARTIFACTS_DIR)
         os.makedirs(self.targets_dir, exist_ok=True)
@@ -43,18 +43,28 @@ class FSGlobalCache(GlobalCache):
     def has_cache(self, target_hash: str):
         return isdir(join(self.targets_dir, target_hash))
 
-    def download_summary(self, target_hash: str, dst: str):
+    def download_summary(self, target_hash: str, dst: str) -> bool:
+        src = join(self.targets_dir, target_hash, SUMMARY_FILE)
+        if not isfile(src):
+            return False
         shutil.copyfile(join(self.targets_dir, target_hash, SUMMARY_FILE),
                         dst)
+        return True
 
-    def download_artifacts_meta(self, target_hash: str, dst: str):
+    def download_artifacts_meta(self, target_hash: str, dst: str) -> bool:
+        src = join(self.targets_dir, target_hash, ARTIFACTS_FILE)
+        if not isfile(src):
+            return False
         shutil.copyfile(join(self.targets_dir, target_hash, ARTIFACTS_FILE),
                         dst)
+        return True
 
     def download_artifacts(self, artifacts_hashes: List[str], dst: str):
         for artifact_hash in artifacts_hashes:
-            shutil.copyfile(join(self.artifacts_dir, artifact_hash),
-                            join(dst, artifact_hash))
+            file_path = join(self.artifacts_dir, artifact_hash)
+            if isfile(file_path):
+                shutil.copyfile(join(self.artifacts_dir, artifact_hash),
+                                join(dst, artifact_hash))
 
     def create_target_cache(self, target_hash: str):
         if not isdir(join(self.targets_dir, target_hash)):

@@ -35,17 +35,21 @@ class GlobalCache:
         raise NotImplemented('Method has_cache of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
-    def download_summary(self, target_hash: str, dst: str):
+    def download_summary(self, target_hash: str, dst: str) -> bool:
         """
         Download the summary file of the target to `dst`
+
+        Returns True if download worked, False otherwise
         """
         raise NotImplemented('Method download_summary of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
-    def download_artifacts_meta(self, target_hash: str, dst: str):
+    def download_artifacts_meta(self, target_hash: str, dst: str) -> bool:
         """
         Downloads the metadata about the artifcats cached for the target to
         `dst`.
+
+        Returns True if download worked, False otherwise
         """
         raise NotImplemented(
             'Method download_artifacts_meta of class {} was not '
@@ -55,6 +59,7 @@ class GlobalCache:
         """
         Downloads the artifacts to `dst`. In `dst` each artifact will be in a
         file named with its hash.
+        Skips artifacts that don't exist.
         """
         raise NotImplemented('Method download_artifacts of class {} was not '
                              'implemented'.format(self.__class__.__name__))
