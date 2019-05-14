@@ -53,7 +53,7 @@ class FSGlobalCache(GlobalCache):
         src_path = join(self.targets_dir, target_hash, src)
         if not isfile(src_path):
             return False
-        shutil.copyfile(src, dst)
+        shutil.copyfile(src_path, dst)
         return True
 
     def download_artifacts(self, artifacts_hashes: List[str], dst: str):
