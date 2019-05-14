@@ -75,6 +75,7 @@ setup(
         'ostrichlib',
         'requests>=2.18.0',
         'scandir',
+        'google-cloud-storage',
     ],
     setup_requires=['pytest-runner'],
     extras_require={

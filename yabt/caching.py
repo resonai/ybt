@@ -140,7 +140,7 @@ def load_target_from_global_cache(target: Target, build_context) -> bool:
 def get_artifacts_hashes(artifacts_desc):
     return [artifact['hash'] for artifact
             in itertools.chain(*artifacts_desc.values())
-            if artifact['hash'] is not None]
+            if 'hash' in artifact and artifact['hash'] is not None]
 
 
 def load_target_from_cache(target: Target, build_context) -> (bool, bool):
@@ -150,6 +150,7 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     `build_cached` is True if target restored successfully.
     `test_cached` is True if build is cached and test_time metadata is valid.
     """
+    # TODO(Dana): support partially deleted cache
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if not isdir(cache_dir):
         logger.debug('No cache dir found for target {}', target.name)
