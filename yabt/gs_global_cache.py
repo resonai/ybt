@@ -39,26 +39,38 @@ logger = make_logger(__name__)
 
 class GSGlobalCache(GlobalCache):
     def __init__(self, gce_project, bucket, directory=None):
-        self.storage_client = storage.Client(gce_project)
-        self.bucket = self.storage_client.get_bucket(bucket)
+        self.gce_project = gce_project
+        self.bucket_name = bucket
         self.targets_dir = join(directory, TARGETS_DIR) if directory else \
             TARGETS_DIR
         self.artifacts_dir = join(directory, ARTIFACTS_DIR) if directory \
             else ARTIFACTS_DIR
+        self.storage_client = None
+        self.bucket = None
+
+    def _create_client(self):
+        if not self.storage_client:
+            self.storage_client = storage.Client(self.gce_project)
+        if not self.bucket:
+            self.bucket = self.storage_client.get_bucket(self.bucket_name)
 
     def has_cache(self, target_hash: str):
+        self._create_client()
         return self.bucket.blob(join(self.targets_dir, target_hash,
                                      SUMMARY_FILE)).exists()
 
     def download_summary(self, target_hash: str, dst: str):
+        self._create_client()
         self.bucket.blob(join(self.targets_dir, target_hash,
                               SUMMARY_FILE)).download_to_filename(dst)
 
     def download_artifacts_meta(self, target_hash: str, dst: str):
+        self._create_client()
         self.bucket.blob(join(self.targets_dir, target_hash,
                               ARTIFACTS_FILE)).download_to_filename(dst)
 
     def download_artifacts(self, artifacts_hashes: List[str], dst: str):
+        self._create_client()
         if artifacts_hashes:
             # TODO(Dana): make this work in batch.
             # see https://github.com/googleapis/google-cloud-python/issues/3139
@@ -70,14 +82,17 @@ class GSGlobalCache(GlobalCache):
         pass
 
     def upload_summary(self, target_hash: str, src: str):
+        self._create_client()
         self.bucket.blob(join(self.targets_dir, target_hash, SUMMARY_FILE))\
             .upload_from_filename(src)
 
     def upload_artifacts_meta(self, target_hash: str, src: str):
+        self._create_client()
         self.bucket.blob(join(self.targets_dir, target_hash, ARTIFACTS_FILE))\
             .upload_from_filename(src)
 
     def upload_artifacts(self, artifacts_hashes: List[str], src: str):
+        self._create_client()
         if artifacts_hashes:
             # TODO(Dana): make this work in batch
             for artifact_hash in artifacts_hashes:
