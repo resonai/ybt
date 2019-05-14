@@ -44,19 +44,16 @@ class FSGlobalCache(GlobalCache):
         return isdir(join(self.targets_dir, target_hash))
 
     def download_summary(self, target_hash: str, dst: str) -> bool:
-        src = join(self.targets_dir, target_hash, SUMMARY_FILE)
-        if not isfile(src):
-            return False
-        shutil.copyfile(join(self.targets_dir, target_hash, SUMMARY_FILE),
-                        dst)
-        return True
+        return self.download_meta_file(target_hash, SUMMARY_FILE, dst)
 
     def download_artifacts_meta(self, target_hash: str, dst: str) -> bool:
-        src = join(self.targets_dir, target_hash, ARTIFACTS_FILE)
-        if not isfile(src):
+        return self.download_meta_file(target_hash, ARTIFACTS_FILE, dst)
+
+    def download_meta_file(self, target_hash: str, src: str, dst: str) -> bool:
+        src_path = join(self.targets_dir, target_hash, src)
+        if not isfile(src_path):
             return False
-        shutil.copyfile(join(self.targets_dir, target_hash, ARTIFACTS_FILE),
-                        dst)
+        shutil.copyfile(src, dst)
         return True
 
     def download_artifacts(self, artifacts_hashes: List[str], dst: str):

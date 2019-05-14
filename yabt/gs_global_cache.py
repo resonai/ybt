@@ -51,16 +51,13 @@ class GSGlobalCache(GlobalCache):
                                      SUMMARY_FILE)).exists()
 
     def download_summary(self, target_hash: str, dst: str) -> bool:
-        src_blob = self.bucket.blob(join(self.targets_dir, target_hash,
-                                         SUMMARY_FILE))
-        if not src_blob.exists():
-            return False
-        src_blob.download_to_filename(dst)
-        return True
+        return self.download_meta_file(target_hash, SUMMARY_FILE, dst)
 
     def download_artifacts_meta(self, target_hash: str, dst: str) -> bool:
-        src_blob = self.bucket.blob(join(self.targets_dir, target_hash,
-                                         ARTIFACTS_FILE))
+        return self.download_meta_file(target_hash, ARTIFACTS_FILE, dst)
+
+    def download_meta_file(self, target_hash: str, src: str, dst: str) -> bool:
+        src_blob = self.bucket.blob(join(self.targets_dir, target_hash, src))
         if not src_blob.exists():
             return False
         src_blob.download_to_filename(dst)
