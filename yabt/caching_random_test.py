@@ -219,7 +219,8 @@ def download_from_global_cache(project: ProjectContext):
     check_modified_targets(project, build_context, [])
     cache_dir = project.conf.get_cache_dir(
         build_context.targets[':' + target], build_context)
-    logger.info('removing cache from: {}'.format(cache_dir))
+    logger.info('removing cache from: {} of target: {}'.format(cache_dir,
+                                                               target))
     shutil.rmtree(cache_dir)
     build_context.build_graph(run_tests=True)
 
@@ -351,6 +352,7 @@ def test_caching(tmp_dir):
     tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify,
              add_dependency, failing_test, download_from_global_cache,
              no_cache_at_all]
+    # tests = [download_from_global_cache]
     for i in range(NUM_TESTS):
         test_func = random.choice(tests)
         logger.info('starting build number: {} with func: {}'.format(
