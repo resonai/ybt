@@ -21,6 +21,7 @@ yabt caching random tests
 :author: Dana Shamir
 """
 
+import json
 import networkx as nx
 import os
 from os.path import join, dirname, abspath, getmtime
@@ -264,6 +265,33 @@ def failing_test(project: ProjectContext):
     targets_to_build = nx.descendants(project.targets_graph, test_to_fail)
     targets_to_build.add(test_to_fail)
     check_modified_targets(project, build_context, targets_to_build)
+
+
+def randomly_delete_global_cache(project: ProjectContext):
+    paths_to_delete, targets_to_delete = delete_random_targets(project)
+    for path in paths_to_delete:
+        os.remove(join(path, 'summary.json'))
+
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
+
+    targets_to_build = set(targets_to_delete)
+    for target in targets_to_delete:
+        targets_to_build.update(nx.descendants(project.targets_graph, target))
+    check_modified_targets(project, build_context, targets_to_build)
+
+
+def delete_random_targets(project: ProjectContext):
+    targets_dir = join(GLOBAL_CACHE_DIR, 'targets')
+    all_targets = os.listdir(targets_dir)
+    paths_to_delete = [join(targets_dir, filename) for filename in
+                       random.sample(all_targets, len(all_targets) // 10)]
+    targets_to_delete = []
+    for path in paths_to_delete:
+        with open(join(path, 'summary.json'), 'rb') as summary_file:
+            summary = json.loads(summary_file.read().decode('utf-8'))
+        targets_to_delete.append(summary['name'].strip(':'))
+    return paths_to_delete, targets_to_delete
 
 
 def check_modified_targets(project: ProjectContext, build_context,
