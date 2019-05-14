@@ -292,7 +292,9 @@ def delete_random_targets(project: ProjectContext):
         with open(join(path, 'summary.json'), 'rb') as summary_file:
             summary = json.loads(summary_file.read().decode('utf-8'))
         target = summary['name'].strip(':')
-        if summary['created'] == project.last_modified[target]:
+        if target not in project.targets:
+            paths_to_delete.remove(path)
+        elif summary['created'] == project.last_modified[target]:
             targets_to_delete.append(target)
     return paths_to_delete, targets_to_delete
 
@@ -351,7 +353,7 @@ def test_caching(tmp_dir):
 
     tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify,
              add_dependency, failing_test, download_from_global_cache,
-             no_cache_at_all, delete_random_targets]
+             no_cache_at_all, get_random_targets_to_delete]
     for i in range(NUM_TESTS):
         test_func = random.choice(tests)
         logger.info('starting build number: {} with func: {}'.format(
