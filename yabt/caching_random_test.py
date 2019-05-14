@@ -290,7 +290,9 @@ def delete_random_targets(project: ProjectContext):
     for path in paths_to_delete:
         with open(join(path, 'summary.json'), 'rb') as summary_file:
             summary = json.loads(summary_file.read().decode('utf-8'))
-        targets_to_delete.append(summary['name'].strip(':'))
+        target = summary['name'].strip(':')
+        if summary['created'] == project.last_modified[target]:
+            targets_to_delete.append(target)
     return paths_to_delete, targets_to_delete
 
 
