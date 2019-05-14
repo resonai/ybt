@@ -269,7 +269,7 @@ def failing_test(project: ProjectContext):
 
 
 def randomly_delete_global_cache(project: ProjectContext):
-    paths_to_delete, targets_to_delete = delete_random_targets(project)
+    paths_to_delete, targets_to_delete = get_random_targets_to_delete(project)
     for path in paths_to_delete:
         os.remove(join(path, 'summary.json'))
 
@@ -282,7 +282,7 @@ def randomly_delete_global_cache(project: ProjectContext):
     check_modified_targets(project, build_context, targets_to_build)
 
 
-def delete_random_targets(project: ProjectContext):
+def get_random_targets_to_delete(project: ProjectContext):
     targets_dir = join(GLOBAL_CACHE_DIR, 'targets')
     all_targets = os.listdir(targets_dir)
     paths_to_delete = [join(targets_dir, filename) for filename in
