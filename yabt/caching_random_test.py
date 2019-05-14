@@ -352,7 +352,6 @@ def test_caching(tmp_dir):
     tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify,
              add_dependency, failing_test, download_from_global_cache,
              no_cache_at_all]
-    # tests = [download_from_global_cache]
     for i in range(NUM_TESTS):
         test_func = random.choice(tests)
         logger.info('starting build number: {} with func: {}'.format(
