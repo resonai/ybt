@@ -27,7 +27,7 @@ to rerun "cached" tests on machines with different hardware (for example).
 import itertools
 import json
 from os import makedirs
-from os.path import isdir, isfile, join, relpath, split
+from os.path import isdir, isfile, join, relpath, split, dirname
 import shutil
 from time import time
 
@@ -272,6 +272,7 @@ def restore_artifact(src_path: str, artifact_hash: str, conf: Config):
             rmnode(abs_src_path)
         logger.debug('Restoring cached artifact {} to {}',
                      artifact_hash, src_path)
+        makedirs(dirname(abs_src_path), exist_ok=True)
         shutil.copy(cached_artifact_path, abs_src_path)
         return True
     logger.debug('No cached artifact for {} with hash {}',
