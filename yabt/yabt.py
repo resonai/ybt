@@ -130,6 +130,7 @@ def main():
     """Main `ybt` console script entry point - run YABT from command-line."""
     conf = init_and_get_conf()
     logger = make_logger(__name__)
+    logger.info('Running from branch some-branch')
     logger.info('YaBT version {}', __version__)
     handlers = {
         'build': YabtCommand(func=cmd_build, requires_project=True),
