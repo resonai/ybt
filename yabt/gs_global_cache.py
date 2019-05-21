@@ -21,7 +21,7 @@ A global cache implemented with google cloud storage
 :author: Dana Shamir
 """
 
-from google.cloud import storage
+from google.cloud import storage, exceptions
 from os.path import join
 from typing import List
 
@@ -68,9 +68,10 @@ class GSGlobalCache(GlobalCache):
     def download_meta_file(self, target_hash: str, src: str, dst: str) -> bool:
         self._create_client()
         src_blob = self.bucket.blob(join(self.targets_dir, target_hash, src))
-        if not src_blob.exists():
+        try:
+            src_blob.download_to_filename(dst)
+        except exceptions.NotFound:
             return False
-        src_blob.download_to_filename(dst)
         return True
 
     def download_artifacts(self, artifacts_hashes: List[str], dst: str):
@@ -81,8 +82,10 @@ class GSGlobalCache(GlobalCache):
             for artifact_hash in artifacts_hashes:
                 src_blob = self.bucket.blob(join(self.artifacts_dir,
                                                  artifact_hash))
-                if src_blob.exists():
+                try:
                     src_blob.download_to_filename(join(dst, artifact_hash))
+                except exceptions.NotFound:
+                    pass
 
     def create_target_cache(self, target_hash: str):
         pass
