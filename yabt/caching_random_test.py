@@ -24,7 +24,7 @@ yabt caching random tests
 import json
 import networkx as nx
 import os
-from os.path import join, dirname, abspath, getmtime
+from os.path import join, dirname, abspath, getmtime, isfile
 import pytest
 import random
 import shutil
@@ -268,10 +268,11 @@ def failing_test(project: ProjectContext):
     check_modified_targets(project, build_context, targets_to_build)
 
 
-def randomly_delete_global_cache(project: ProjectContext):
+def randomly_delete_global_cache(project: ProjectContext, file_to_delete):
     paths_to_delete, targets_to_delete = get_random_targets_to_delete(project)
     for path in paths_to_delete:
-        os.remove(join(path, 'summary.json'))
+        if isfile(join(path, file_to_delete)):
+            os.remove(join(path, file_to_delete))
 
     build_context = init_project(project)
     build_context.build_graph(run_tests=True)
@@ -282,6 +283,14 @@ def randomly_delete_global_cache(project: ProjectContext):
     check_modified_targets(project, build_context, targets_to_build)
 
 
+def randomly_delete_summary_from_global_cache(project: ProjectContext):
+    randomly_delete_global_cache(project, 'summary.json')
+
+
+def randomly_delete_artifacts_desc_from_global_cache(project: ProjectContext):
+    randomly_delete_global_cache(project, 'artifacts.json')
+
+
 def get_random_targets_to_delete(project: ProjectContext):
     targets_dir = join(GLOBAL_CACHE_DIR, 'targets')
     all_targets = os.listdir(targets_dir)
@@ -289,13 +298,14 @@ def get_random_targets_to_delete(project: ProjectContext):
                        random.sample(all_targets, len(all_targets) // 10)]
     targets_to_delete = []
     for path in paths_to_delete:
-        with open(join(path, 'summary.json'), 'rb') as summary_file:
-            summary = json.loads(summary_file.read().decode('utf-8'))
-        target = summary['name'].strip(':')
-        if target not in project.targets:
-            paths_to_delete.remove(path)
-        elif summary['created'] == project.last_modified[target]:
-            targets_to_delete.append(target)
+        if isfile(join(path, 'summary.json')):
+            with open(join(path, 'summary.json'), 'rb') as summary_file:
+                summary = json.loads(summary_file.read().decode('utf-8'))
+            target = summary['name'].strip(':')
+            if target not in project.targets:
+                paths_to_delete.remove(path)
+            elif summary['created'] == project.last_modified[target]:
+                targets_to_delete.append(target)
     return paths_to_delete, targets_to_delete
 
 
@@ -353,7 +363,8 @@ def test_caching(tmp_dir):
 
     tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify,
              add_dependency, failing_test, download_from_global_cache,
-             no_cache_at_all, get_random_targets_to_delete]
+             no_cache_at_all, randomly_delete_summary_from_global_cache,
+             randomly_delete_artifacts_desc_from_global_cache]
     for i in range(NUM_TESTS):
         test_func = random.choice(tests)
         logger.info('starting build number: {} with func: {}'.format(
