@@ -170,6 +170,8 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
                 logger.warning(str(e))
                 build_context.global_cache_failures += 1
         if not has_global_cache:
+            if isdir(cache_dir):
+                shutil.rmtree(cache_dir)
             return False, False
     # read summary file and restore relevant fields into target
     with open(join(cache_dir, 'summary.json'), 'r') as summary_file:
