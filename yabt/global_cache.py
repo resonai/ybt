@@ -55,11 +55,13 @@ class GlobalCache:
             'Method download_artifacts_meta of class {} was not '
             'implemented'.format(self.__class__.__name__))
 
-    def download_artifacts(self, artifacts_hashes: List[str], dst: str):
+    def download_artifacts(self, artifacts_hashes: List[str],
+                           dst: str) -> bool:
         """
         Downloads the artifacts to `dst`. In `dst` each artifact will be in a
         file named with its hash.
-        Skips artifacts that don't exist.
+
+        Returns True if download worked, False otherwise
         """
         raise NotImplemented('Method download_artifacts of class {} was not '
                              'implemented'.format(self.__class__.__name__))

@@ -59,9 +59,11 @@ class FSGlobalCache(GlobalCache):
     def download_artifacts(self, artifacts_hashes: List[str], dst: str):
         for artifact_hash in artifacts_hashes:
             file_path = join(self.artifacts_dir, artifact_hash)
-            if isfile(file_path):
-                shutil.copyfile(join(self.artifacts_dir, artifact_hash),
-                                join(dst, artifact_hash))
+            if not isfile(file_path):
+                return False
+            shutil.copyfile(join(self.artifacts_dir, artifact_hash),
+                            join(dst, artifact_hash))
+        return True
 
     def create_target_cache(self, target_hash: str):
         if not isdir(join(self.targets_dir, target_hash)):

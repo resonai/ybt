@@ -85,7 +85,8 @@ class GSGlobalCache(GlobalCache):
                 try:
                     src_blob.download_to_filename(join(dst, artifact_hash))
                 except exceptions.NotFound:
-                    pass
+                    return False
+        return True
 
     def create_target_cache(self, target_hash: str):
         pass
