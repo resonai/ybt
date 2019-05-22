@@ -103,3 +103,10 @@ class GlobalCache:
         """
         raise NotImplemented('Method upload_artifacts of class {} was not '
                              'implemented'.format(self.__class__.__name__))
+
+    def upload_test_cache(self, target_hash: str, src: str):
+        """
+        Upload the test data in `src` describing the successful test.
+        """
+        raise NotImplemented('Method upload_test_cache of class {} was not '
+                             'implemented'.format(self.__class__.__name__))

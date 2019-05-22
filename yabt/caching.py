@@ -379,6 +379,16 @@ def save_test_in_cache(target: Target, build_context) -> bool:
         logger.debug('Cannot cache test {} - build cache is missing',
                      target.name)
         return False
-    with open(join(cache_dir, 'tested.json'), 'w') as tested_file:
+    tested_path = join(cache_dir, 'tested.json')
+    with open(tested_path, 'w') as tested_file:
         tested_file.write(json.dumps(target.tested, indent=4, sort_keys=True))
+    target_hash = target.hash(build_context)
+    try:
+        build_context.global_cache.upload_test_cache(target_hash, tested_path)
+    except Exception as e:
+        logger.warning('an error occurred while trying to upload '
+                       'test of target {} to global cache'
+                       .format(target.name))
+        logger.warning(str(e))
+        build_context.global_cache_failures += 1
     return True

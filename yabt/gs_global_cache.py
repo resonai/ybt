@@ -96,14 +96,10 @@ class GSGlobalCache(GlobalCache):
         pass
 
     def upload_summary(self, target_hash: str, src: str):
-        self._create_client()
-        self.bucket.blob(join(self.targets_dir, target_hash, SUMMARY_FILE))\
-            .upload_from_filename(src)
+        self.upload_target_meta(target_hash, src, SUMMARY_FILE)
 
     def upload_artifacts_meta(self, target_hash: str, src: str):
-        self._create_client()
-        self.bucket.blob(join(self.targets_dir, target_hash, ARTIFACTS_FILE))\
-            .upload_from_filename(src)
+        self.upload_target_meta(target_hash, src, ARTIFACTS_FILE)
 
     def upload_artifacts(self, artifacts_hashes: List[str], src: str):
         self._create_client()
@@ -112,3 +108,11 @@ class GSGlobalCache(GlobalCache):
             for artifact_hash in artifacts_hashes:
                 self.bucket.blob(join(self.artifacts_dir, artifact_hash))\
                     .upload_from_filename(join(src, artifact_hash))
+
+    def upload_test_cache(self, target_hash: str, src: str):
+        self.upload_target_meta(target_hash, src, TESTS_FILE)
+
+    def upload_target_meta(self, target_hash, src, dst):
+        self._create_client()
+        self.bucket.blob(join(self.targets_dir, target_hash, dst))\
+            .upload_from_filename(src)
