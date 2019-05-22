@@ -23,6 +23,7 @@ A global cache implemented with google cloud storage
 
 from google.cloud import storage, exceptions
 from os.path import join
+import os
 from typing import List
 
 from .global_cache import GlobalCache
@@ -75,6 +76,10 @@ class GSGlobalCache(GlobalCache):
         try:
             src_blob.download_to_filename(dst)
         except exceptions.NotFound:
+            try:
+                os.remove(dst)
+            except FileNotFoundError:
+                pass
             return False
         return True
 
