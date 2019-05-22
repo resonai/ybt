@@ -21,7 +21,7 @@ A global cache implemented with google cloud storage
 :author: Dana Shamir
 """
 
-from google.cloud import storage
+from google.cloud import storage, exceptions
 from os.path import join
 from typing import List
 
@@ -59,15 +59,20 @@ class GSGlobalCache(GlobalCache):
         return self.bucket.blob(join(self.targets_dir, target_hash,
                                      SUMMARY_FILE)).exists()
 
-    def download_summary(self, target_hash: str, dst: str):
-        self._create_client()
-        self.bucket.blob(join(self.targets_dir, target_hash,
-                              SUMMARY_FILE)).download_to_filename(dst)
+    def download_summary(self, target_hash: str, dst: str) -> bool:
+        return self.download_meta_file(target_hash, SUMMARY_FILE, dst)
 
-    def download_artifacts_meta(self, target_hash: str, dst: str):
+    def download_artifacts_meta(self, target_hash: str, dst: str) -> bool:
+        return self.download_meta_file(target_hash, ARTIFACTS_FILE, dst)
+
+    def download_meta_file(self, target_hash: str, src: str, dst: str) -> bool:
         self._create_client()
-        self.bucket.blob(join(self.targets_dir, target_hash,
-                              ARTIFACTS_FILE)).download_to_filename(dst)
+        src_blob = self.bucket.blob(join(self.targets_dir, target_hash, src))
+        try:
+            src_blob.download_to_filename(dst)
+        except exceptions.NotFound:
+            return False
+        return True
 
     def download_artifacts(self, artifacts_hashes: List[str], dst: str):
         self._create_client()
@@ -75,8 +80,13 @@ class GSGlobalCache(GlobalCache):
             # TODO(Dana): make this work in batch.
             # see https://github.com/googleapis/google-cloud-python/issues/3139
             for artifact_hash in artifacts_hashes:
-                self.bucket.blob(join(self.artifacts_dir, artifact_hash))\
-                    .download_to_filename(join(dst, artifact_hash))
+                src_blob = self.bucket.blob(join(self.artifacts_dir,
+                                                 artifact_hash))
+                try:
+                    src_blob.download_to_filename(join(dst, artifact_hash))
+                except exceptions.NotFound:
+                    return False
+        return True
 
     def create_target_cache(self, target_hash: str):
         pass

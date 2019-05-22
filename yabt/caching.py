@@ -122,16 +122,19 @@ def load_target_from_global_cache(target: Target, build_context) -> bool:
         return False
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     makedirs(cache_dir, exist_ok=True)
-    build_context.global_cache.download_summary(
-        target_hash, join(cache_dir, 'summary.json'))
-    build_context.global_cache.download_artifacts_meta(
-        target_hash, join(cache_dir, 'artifacts.json'))
+    if not build_context.global_cache.download_summary(
+            target_hash, join(cache_dir, 'summary.json')):
+        return False
+    if not build_context.global_cache.download_artifacts_meta(
+            target_hash, join(cache_dir, 'artifacts.json')):
+        return False
     with open(join(cache_dir, 'artifacts.json'), 'r') as artifacts_meta_file:
         artifacts_desc = json.load(artifacts_meta_file)
     makedirs(build_context.conf.get_artifacts_cache_dir(), exist_ok=True)
-    build_context.global_cache.download_artifacts(
+    if not build_context.global_cache.download_artifacts(
         get_artifacts_hashes(artifacts_desc),
-        build_context.conf.get_artifacts_cache_dir())
+            build_context.conf.get_artifacts_cache_dir()):
+        return False
     return True
 
 
@@ -168,6 +171,10 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
                 logger.warning(str(e))
                 build_context.global_cache_failures += 1
         if not has_global_cache:
+            try:
+                shutil.rmtree(cache_dir)
+            except FileNotFoundError:
+                pass
             return False, False
     # read summary file and restore relevant fields into target
     with open(join(cache_dir, 'summary.json'), 'r') as summary_file:
