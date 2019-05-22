@@ -30,6 +30,7 @@ from .logging import make_logger
 
 SUMMARY_FILE = 'summary.json'
 ARTIFACTS_FILE = 'artifact.json'
+TESTS_FILE = 'tested.json'
 TARGETS_DIR = 'targets'
 ARTIFACTS_DIR = 'artifacts'
 
@@ -64,6 +65,9 @@ class GSGlobalCache(GlobalCache):
 
     def download_artifacts_meta(self, target_hash: str, dst: str) -> bool:
         return self.download_meta_file(target_hash, ARTIFACTS_FILE, dst)
+
+    def download_test_cache(self, target_hash: str, dst: str) -> bool:
+        return self.download_meta_file(target_hash, TESTS_FILE, dst)
 
     def download_meta_file(self, target_hash: str, src: str, dst: str) -> bool:
         self._create_client()

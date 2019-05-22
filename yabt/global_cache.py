@@ -55,6 +55,17 @@ class GlobalCache:
             'Method download_artifacts_meta of class {} was not '
             'implemented'.format(self.__class__.__name__))
 
+    def download_test_cache(self, target_hash: str, dst: str) -> bool:
+        """
+        Downloads the metadata about the tests cached for the target to
+        `dst`.
+
+        Returns True if download worked, False otherwise
+        """
+        raise NotImplemented(
+            'Method download_test_cache of class {} was not '
+            'implemented'.format(self.__class__.__name__))
+
     def download_artifacts(self, artifacts_hashes: List[str],
                            dst: str) -> bool:
         """
