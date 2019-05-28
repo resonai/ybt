@@ -298,11 +298,11 @@ def randomly_delete_artifacts_from_global_cache(project: ProjectContext):
     build_and_check_built(project, targets_to_build)
 
 
-def build_and_check_built(project, targets_to_build):
+def build_and_check_built(project, modified_targets):
     build_context = init_project(project)
     build_context.build_graph(run_tests=True)
-    targets_to_build = set(targets_to_build)
-    for target in targets_to_build:
+    targets_to_build = set(modified_targets)
+    for target in modified_targets:
         targets_to_build.update(nx.descendants(project.targets_graph, target))
     check_modified_targets(project, build_context, targets_to_build)
 
