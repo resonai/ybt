@@ -294,7 +294,7 @@ def randomly_delete_summary_from_global_cache(project: ProjectContext):
 
 
 def randomly_delete_artifacts_desc_from_global_cache(project: ProjectContext):
-    randomly_delete_global_cache(project, 'artifacts.json')
+    randomly_delete_global_cache(project, 'artifact.json')
 
 
 def randomly_delete_artifacts_from_global_cache(project: ProjectContext):
