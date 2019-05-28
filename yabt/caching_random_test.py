@@ -275,6 +275,8 @@ def randomly_delete_global_cache(project: ProjectContext, file_to_delete):
             os.remove(join(path, file_to_delete))
 
     build_and_check_built(project, targets_to_delete)
+    logger.info('deleted targets: {}, paths deleted: {}'.format(
+        targets_to_delete, paths_to_delete))
 
 
 def randomly_delete_summary_from_global_cache(project: ProjectContext):
