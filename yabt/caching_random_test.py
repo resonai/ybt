@@ -350,7 +350,7 @@ def get_random_artifacts_to_delete(project: ProjectContext):
             target = summary['name'].strip(':')
             for type_name, artifact_list in artifact_desc.items():
                 for artifact in artifact_list:
-                    if artifact in artifacts_to_delete:
+                    if artifact['hash'] in artifacts_to_delete:
                         if target not in project.targets:
                             artifacts_to_delete.remove(artifact)
                         elif summary['created'] == \
