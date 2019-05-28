@@ -269,7 +269,10 @@ def failing_test(project: ProjectContext):
 
 
 def randomly_delete_global_cache(project: ProjectContext, file_to_delete):
-    paths_to_delete, targets_to_delete = get_random_targets_to_delete(project)
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
+    paths_to_delete, targets_to_delete = get_random_targets_to_delete(
+        project, build_context)
     for path in paths_to_delete:
         if isfile(join(path, file_to_delete)):
             os.remove(join(path, file_to_delete))
@@ -304,7 +307,8 @@ def build_and_check_built(project, targets_to_build):
     check_modified_targets(project, build_context, targets_to_build)
 
 
-def get_random_targets_to_delete(project: ProjectContext):
+def get_random_targets_to_delete(project: ProjectContext,
+                                 build_context: BuildContext):
     targets_dir = join(GLOBAL_CACHE_DIR, 'targets')
     all_targets = os.listdir(targets_dir)
     paths_to_delete = [join(targets_dir, filename) for filename in
@@ -317,7 +321,8 @@ def get_random_targets_to_delete(project: ProjectContext):
             target = summary['name'].strip(':')
             if target not in project.targets:
                 paths_to_delete.remove(path)
-            elif summary['created'] == project.last_modified[target]:
+            elif build_context.targets[summary['name']].hash(build_context) \
+                    == os.path.split(path)[-1]:
                 targets_to_delete.append(target)
     return paths_to_delete, targets_to_delete
 
