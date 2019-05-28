@@ -341,9 +341,9 @@ def get_random_artifacts_to_delete(project: ProjectContext):
 
     targets_to_build = set()
     for path in [join(targets_dir, file) for file in os.listdir(targets_dir)]:
-        if isfile(join(path, 'artifacts.json')) \
+        if isfile(join(path, 'artifact.json')) \
                 and isfile(join(path, 'summary.json')):
-            with open(join(path, 'artifacts.json'), 'rb') as f:
+            with open(join(path, 'artifact.json'), 'rb') as f:
                 artifact_desc = json.loads(f.read().decode('utf-8'))
             with open(join(path, 'summary.json'), 'rb') as f:
                 summary = json.loads(f.read().decode('utf-8'))
