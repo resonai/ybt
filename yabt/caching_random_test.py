@@ -359,7 +359,7 @@ def get_random_artifacts_to_delete(project: ProjectContext,
                 for artifact in artifact_list:
                     if artifact['hash'] in artifacts_to_delete:
                         if target not in project.targets:
-                            artifacts_to_delete.remove(artifact)
+                            artifacts_to_delete.remove(artifact['hash'])
                         elif build_context.targets[summary['name']].hash(
                                 build_context) == os.path.split(path)[-1]:
                             targets_to_build.add(target)
