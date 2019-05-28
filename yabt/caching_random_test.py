@@ -296,8 +296,10 @@ def randomly_delete_artifacts_desc_from_global_cache(project: ProjectContext):
 
 
 def randomly_delete_artifacts_from_global_cache(project: ProjectContext):
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
     paths_to_delete, targets_to_build = get_random_artifacts_to_delete(
-        project)
+        project, build_context)
     map(os.remove, paths_to_delete)
 
     build_and_check_built(project, targets_to_build)
@@ -332,7 +334,8 @@ def get_random_targets_to_delete(project: ProjectContext,
     return paths_to_delete, targets_to_delete
 
 
-def get_random_artifacts_to_delete(project: ProjectContext):
+def get_random_artifacts_to_delete(project: ProjectContext,
+                                   build_context: BuildContext):
     targets_dir = join(GLOBAL_CACHE_DIR, 'targets')
     artifacts_dir = join(GLOBAL_CACHE_DIR, 'artifacts')
     all_artifacts = os.listdir(artifacts_dir)
@@ -353,8 +356,8 @@ def get_random_artifacts_to_delete(project: ProjectContext):
                     if artifact['hash'] in artifacts_to_delete:
                         if target not in project.targets:
                             artifacts_to_delete.remove(artifact)
-                        elif summary['created'] == \
-                                project.last_modified[target]:
+                        elif build_context.targets[summary['name']].hash(
+                                build_context) == os.path.split(path)[-1]:
                             targets_to_build.add(target)
 
     paths_to_delete = [join(artifacts_dir, filename) for filename in
