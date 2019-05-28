@@ -277,14 +277,16 @@ def randomly_delete_global_cache(project: ProjectContext, file_to_delete):
         if isfile(join(path, file_to_delete)):
             os.remove(join(path, file_to_delete))
 
-    # remove target from local cache
-    for target in targets_to_delete:
-        shutil.rmtree(project.conf.get_cache_dir(
-            build_context.targets[':' + target], build_context))
-
+    remove_targets_from_local_cache(build_context, project, targets_to_delete)
     build_and_check_built(project, targets_to_delete)
     logger.info('deleted targets: {}, paths deleted: {}'.format(
         targets_to_delete, paths_to_delete))
+
+
+def remove_targets_from_local_cache(build_context, project, targets_to_delete):
+    for target in targets_to_delete:
+        shutil.rmtree(project.conf.get_cache_dir(
+            build_context.targets[':' + target], build_context))
 
 
 def randomly_delete_summary_from_global_cache(project: ProjectContext):
@@ -300,7 +302,9 @@ def randomly_delete_artifacts_from_global_cache(project: ProjectContext):
     build_context.build_graph(run_tests=True)
     paths_to_delete, targets_to_build = get_random_artifacts_to_delete(
         project, build_context)
-    map(os.remove, paths_to_delete)
+    for path in paths_to_delete:
+        os.remove(path)
+    remove_targets_from_local_cache(build_context, project, targets_to_build)
 
     build_and_check_built(project, targets_to_build)
 
