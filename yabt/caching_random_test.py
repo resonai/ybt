@@ -277,6 +277,11 @@ def randomly_delete_global_cache(project: ProjectContext, file_to_delete):
         if isfile(join(path, file_to_delete)):
             os.remove(join(path, file_to_delete))
 
+    # remove target from local cache
+    for target in targets_to_delete:
+        shutil.rmtree(project.conf.get_cache_dir(
+            build_context.targets[':' + target], build_context))
+
     build_and_check_built(project, targets_to_delete)
     logger.info('deleted targets: {}, paths deleted: {}'.format(
         targets_to_delete, paths_to_delete))
