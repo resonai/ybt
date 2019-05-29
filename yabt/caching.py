@@ -138,10 +138,15 @@ def load_target_from_global_cache(target: Target, build_context) -> bool:
     return True
 
 
-def get_artifacts_hashes(artifacts_desc):
-    return [artifact['hash'] for artifact
-            in itertools.chain(*artifacts_desc.values())
-            if 'hash' in artifact and artifact['hash'] is not None]
+def get_artifacts_hashes(artifact_desc):
+    artifacts_hashes = []
+    for type_name, artifact_list in artifact_desc.items():
+        artifact_type = getattr(AT, type_name)
+        for artifact in artifact_list:
+            if artifact_type not in _NO_CACHE_TYPES and 'hash' in artifact \
+                    and artifact['hash'] is not None:
+                artifacts_hashes.append(artifact['hash'])
+    return artifacts_hashes
 
 
 def load_target_from_cache(target: Target, build_context) -> (bool, bool):
