@@ -269,12 +269,24 @@ def failing_test(project: ProjectContext):
 
 
 def randomly_delete_global_cache(project: ProjectContext, file_to_delete):
-    paths_to_delete, targets_to_delete = get_random_targets_to_delete(project)
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
+    paths_to_delete, targets_to_delete = get_random_targets_to_delete(
+        project, build_context)
     for path in paths_to_delete:
         if isfile(join(path, file_to_delete)):
             os.remove(join(path, file_to_delete))
 
+    remove_targets_from_local_cache(build_context, project, targets_to_delete)
     build_and_check_built(project, targets_to_delete)
+    logger.info('deleted targets: {}, paths deleted: {}'.format(
+        targets_to_delete, paths_to_delete))
+
+
+def remove_targets_from_local_cache(build_context, project, targets_to_delete):
+    for target in targets_to_delete:
+        shutil.rmtree(project.conf.get_cache_dir(
+            build_context.targets[':' + target], build_context))
 
 
 def randomly_delete_summary_from_global_cache(project: ProjectContext):
@@ -282,27 +294,32 @@ def randomly_delete_summary_from_global_cache(project: ProjectContext):
 
 
 def randomly_delete_artifacts_desc_from_global_cache(project: ProjectContext):
-    randomly_delete_global_cache(project, 'artifacts.json')
+    randomly_delete_global_cache(project, 'artifact.json')
 
 
 def randomly_delete_artifacts_from_global_cache(project: ProjectContext):
+    build_context = init_project(project)
+    build_context.build_graph(run_tests=True)
     paths_to_delete, targets_to_build = get_random_artifacts_to_delete(
-        project)
-    map(os.remove, paths_to_delete)
+        project, build_context)
+    for path in paths_to_delete:
+        os.remove(path)
+    remove_targets_from_local_cache(build_context, project, targets_to_build)
 
     build_and_check_built(project, targets_to_build)
 
 
-def build_and_check_built(project, targets_to_build):
+def build_and_check_built(project, modified_targets):
     build_context = init_project(project)
     build_context.build_graph(run_tests=True)
-    targets_to_build = set(targets_to_build)
-    for target in targets_to_build:
+    targets_to_build = set(modified_targets)
+    for target in modified_targets:
         targets_to_build.update(nx.descendants(project.targets_graph, target))
     check_modified_targets(project, build_context, targets_to_build)
 
 
-def get_random_targets_to_delete(project: ProjectContext):
+def get_random_targets_to_delete(project: ProjectContext,
+                                 build_context: BuildContext):
     targets_dir = join(GLOBAL_CACHE_DIR, 'targets')
     all_targets = os.listdir(targets_dir)
     paths_to_delete = [join(targets_dir, filename) for filename in
@@ -315,12 +332,14 @@ def get_random_targets_to_delete(project: ProjectContext):
             target = summary['name'].strip(':')
             if target not in project.targets:
                 paths_to_delete.remove(path)
-            elif summary['created'] == project.last_modified[target]:
+            elif build_context.targets[summary['name']].hash(build_context) \
+                    == os.path.split(path)[-1]:
                 targets_to_delete.append(target)
     return paths_to_delete, targets_to_delete
 
 
-def get_random_artifacts_to_delete(project: ProjectContext):
+def get_random_artifacts_to_delete(project: ProjectContext,
+                                   build_context: BuildContext):
     targets_dir = join(GLOBAL_CACHE_DIR, 'targets')
     artifacts_dir = join(GLOBAL_CACHE_DIR, 'artifacts')
     all_artifacts = os.listdir(artifacts_dir)
@@ -329,20 +348,20 @@ def get_random_artifacts_to_delete(project: ProjectContext):
 
     targets_to_build = set()
     for path in [join(targets_dir, file) for file in os.listdir(targets_dir)]:
-        if isfile(join(path, 'artifacts.json')) \
+        if isfile(join(path, 'artifact.json')) \
                 and isfile(join(path, 'summary.json')):
-            with open(join(path, 'artifacts.json'), 'rb') as f:
+            with open(join(path, 'artifact.json'), 'rb') as f:
                 artifact_desc = json.loads(f.read().decode('utf-8'))
             with open(join(path, 'summary.json'), 'rb') as f:
                 summary = json.loads(f.read().decode('utf-8'))
             target = summary['name'].strip(':')
             for type_name, artifact_list in artifact_desc.items():
                 for artifact in artifact_list:
-                    if artifact in artifacts_to_delete:
+                    if artifact['hash'] in artifacts_to_delete:
                         if target not in project.targets:
-                            artifacts_to_delete.remove(artifact)
-                        elif summary['created'] == \
-                                project.last_modified[target]:
+                            artifacts_to_delete.remove(artifact['hash'])
+                        elif build_context.targets[summary['name']].hash(
+                                build_context) == os.path.split(path)[-1]:
                             targets_to_build.add(target)
 
     paths_to_delete = [join(artifacts_dir, filename) for filename in
