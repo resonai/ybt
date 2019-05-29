@@ -26,14 +26,12 @@ from os.path import join
 import os
 from typing import List
 
-from .global_cache import GlobalCache
+from .global_cache import GlobalCache, SUMMARY_FILE, ARTIFACTS_FILE, \
+    ARTIFACTS_DIR, TARGETS_DIR
 from .logging import make_logger
 
-SUMMARY_FILE = 'summary.json'
-ARTIFACTS_FILE = 'artifact.json'
+
 TESTS_FILE = 'tested.json'
-TARGETS_DIR = 'targets'
-ARTIFACTS_DIR = 'artifacts'
 
 
 logger = make_logger(__name__)
