@@ -33,6 +33,8 @@ import string
 from conftest import reset_parser
 from . import config, cli, extend
 from .buildcontext import BuildContext
+from .global_cache import SUMMARY_FILE, ARTIFACTS_FILE, TARGETS_DIR, \
+    ARTIFACTS_DIR
 from .graph import populate_targets_graph
 from .logging import make_logger
 from .test_utils import generate_random_dag
@@ -237,7 +239,7 @@ def no_cache_at_all(project: ProjectContext):
     logger.info('removing local and global cache of target: {}'.format(
         target_name))
     shutil.rmtree(project.conf.get_cache_dir(target, build_context))
-    shutil.rmtree(join(GLOBAL_CACHE_DIR, 'targets',
+    shutil.rmtree(join(GLOBAL_CACHE_DIR, TARGETS_DIR,
                        target.hash(build_context)))
     build_context.build_graph(run_tests=True)
     targets_to_build = nx.descendants(project.targets_graph, target_name)
@@ -290,11 +292,11 @@ def remove_targets_from_local_cache(build_context, project, targets_to_delete):
 
 
 def randomly_delete_summary_from_global_cache(project: ProjectContext):
-    randomly_delete_global_cache(project, 'summary.json')
+    randomly_delete_global_cache(project, SUMMARY_FILE)
 
 
 def randomly_delete_artifacts_desc_from_global_cache(project: ProjectContext):
-    randomly_delete_global_cache(project, 'artifact.json')
+    randomly_delete_global_cache(project, ARTIFACTS_FILE)
 
 
 def randomly_delete_artifacts_from_global_cache(project: ProjectContext):
@@ -320,14 +322,14 @@ def build_and_check_built(project, modified_targets):
 
 def get_random_targets_to_delete(project: ProjectContext,
                                  build_context: BuildContext):
-    targets_dir = join(GLOBAL_CACHE_DIR, 'targets')
+    targets_dir = join(GLOBAL_CACHE_DIR, TARGETS_DIR)
     all_targets = os.listdir(targets_dir)
     paths_to_delete = [join(targets_dir, filename) for filename in
                        random.sample(all_targets, len(all_targets) // 10)]
     targets_to_delete = []
     for path in paths_to_delete:
-        if isfile(join(path, 'summary.json')):
-            with open(join(path, 'summary.json'), 'rb') as summary_file:
+        if isfile(join(path, SUMMARY_FILE)):
+            with open(join(path, SUMMARY_FILE), 'rb') as summary_file:
                 summary = json.loads(summary_file.read().decode('utf-8'))
             target = summary['name'].strip(':')
             if target not in project.targets:
@@ -340,19 +342,19 @@ def get_random_targets_to_delete(project: ProjectContext,
 
 def get_random_artifacts_to_delete(project: ProjectContext,
                                    build_context: BuildContext):
-    targets_dir = join(GLOBAL_CACHE_DIR, 'targets')
-    artifacts_dir = join(GLOBAL_CACHE_DIR, 'artifacts')
+    targets_dir = join(GLOBAL_CACHE_DIR, TARGETS_DIR)
+    artifacts_dir = join(GLOBAL_CACHE_DIR, ARTIFACTS_DIR)
     all_artifacts = os.listdir(artifacts_dir)
     artifacts_to_delete = set(random.sample(all_artifacts,
                                             len(all_artifacts) // 10))
 
     targets_to_build = set()
     for path in [join(targets_dir, file) for file in os.listdir(targets_dir)]:
-        if isfile(join(path, 'artifact.json')) \
-                and isfile(join(path, 'summary.json')):
-            with open(join(path, 'artifact.json'), 'rb') as f:
+        if isfile(join(path, ARTIFACTS_FILE)) \
+                and isfile(join(path, SUMMARY_FILE)):
+            with open(join(path, ARTIFACTS_FILE), 'rb') as f:
                 artifact_desc = json.loads(f.read().decode('utf-8'))
-            with open(join(path, 'summary.json'), 'rb') as f:
+            with open(join(path, SUMMARY_FILE), 'rb') as f:
                 summary = json.loads(f.read().decode('utf-8'))
             target = summary['name'].strip(':')
             for type_name, artifact_list in artifact_desc.items():

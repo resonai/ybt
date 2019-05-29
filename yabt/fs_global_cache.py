@@ -25,12 +25,8 @@ import shutil
 from os.path import join, isdir, isfile
 from typing import List
 
-from .global_cache import GlobalCache
-
-SUMMARY_FILE = 'summary.json'
-ARTIFACTS_FILE = 'artifact.json'
-TARGETS_DIR = 'targets'
-ARTIFACTS_DIR = 'artifacts'
+from .global_cache import GlobalCache, SUMMARY_FILE, ARTIFACTS_FILE, \
+    ARTIFACTS_DIR, TARGETS_DIR
 
 
 class FSGlobalCache(GlobalCache):
