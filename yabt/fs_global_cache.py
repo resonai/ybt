@@ -26,10 +26,7 @@ from os.path import join, isdir, isfile
 from typing import List
 
 from .global_cache import GlobalCache, SUMMARY_FILE, ARTIFACTS_FILE, \
-    ARTIFACTS_DIR, TARGETS_DIR
-
-
-TESTS_FILE = 'tested.json'
+    TESTS_FILE, ARTIFACTS_DIR, TARGETS_DIR
 
 
 class FSGlobalCache(GlobalCache):

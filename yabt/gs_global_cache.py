@@ -27,11 +27,8 @@ import os
 from typing import List
 
 from .global_cache import GlobalCache, SUMMARY_FILE, ARTIFACTS_FILE, \
-    ARTIFACTS_DIR, TARGETS_DIR
+    TESTS_FILE, ARTIFACTS_DIR, TARGETS_DIR
 from .logging import make_logger
-
-
-TESTS_FILE = 'tested.json'
 
 
 logger = make_logger(__name__)

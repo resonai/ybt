@@ -26,6 +26,7 @@ from typing import List
 
 SUMMARY_FILE = 'summary.json'
 ARTIFACTS_FILE = 'artifacts.json'
+TESTS_FILE = 'tested.json'
 TARGETS_DIR = 'targets'
 ARTIFACTS_DIR = 'artifacts'
 
