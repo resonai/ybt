@@ -24,6 +24,12 @@ interface for a global cache
 from typing import List
 
 
+SUMMARY_FILE = 'summary.json'
+ARTIFACTS_FILE = 'artifacts.json'
+TARGETS_DIR = 'targets'
+ARTIFACTS_DIR = 'artifacts'
+
+
 class GlobalCache:
     """
     An interface for a remote cache
