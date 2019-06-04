@@ -29,8 +29,11 @@ import pytest
 import random
 import shutil
 import string
+from unittest.mock import Mock
 
 from conftest import reset_parser
+from yabt.builders import cpp
+from yabt.extend import Plugin
 from . import config, cli, extend
 from .buildcontext import BuildContext
 from .global_cache import SUMMARY_FILE, ARTIFACTS_FILE, TARGETS_DIR, \
@@ -224,10 +227,22 @@ def download_from_global_cache(project: ProjectContext):
     logger.info('removing cache from: {} of target: {}'.format(cache_dir,
                                                                target))
     shutil.rmtree(cache_dir)
-    build_context.build_graph(run_tests=True)
 
-    # We don't support globally caching tests yet
+    cppgtest_mock = Mock()
+    old_cppgtest_builder = Plugin.builders['CppGTest']
+    old_cppgtest_hook = Plugin.hooks['manipulate_target']['CppGTest']
+    Plugin.remove_builder('CppGTest')
+    Plugin.builders['CppGTest'] = cppgtest_mock
+    cppgtest_mock.func.side_effect = cpp.cpp_gtest_builder
+    Plugin.hooks['manipulate_target']['CppGTest'] = old_cppgtest_hook
+
+    build_context.build_graph(run_tests=True)
+    cppgtest_mock.test_func.assert_not_called()
     check_modified_targets(project, build_context, [], [target])
+
+    Plugin.remove_builder('CppGTest')
+    Plugin.builders['CppGTest'] = old_cppgtest_builder
+    Plugin.hooks['manipulate_target']['CppGTest'] = old_cppgtest_hook
 
 
 def no_cache_at_all(project: ProjectContext):
