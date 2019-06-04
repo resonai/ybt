@@ -22,8 +22,9 @@ A global cache implemented with google cloud storage
 """
 
 from google.cloud import storage, exceptions
-from os.path import join
 import os
+from os.path import join
+import stat
 from typing import List
 
 from .global_cache import GlobalCache, SUMMARY_FILE, ARTIFACTS_FILE, \
@@ -87,7 +88,10 @@ class GSGlobalCache(GlobalCache):
                 src_blob = self.bucket.blob(join(self.artifacts_dir,
                                                  artifact_hash))
                 try:
-                    src_blob.download_to_filename(join(dst, artifact_hash))
+                    dst_path = join(dst, artifact_hash)
+                    src_blob.download_to_filename(dst_path)
+                    os.chmod(dst_path,
+                             os.stat(dst_path).st_mode | stat.S_IEXEC)
                 except exceptions.NotFound:
                     return False
         return True
