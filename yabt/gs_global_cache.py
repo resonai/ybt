@@ -22,8 +22,9 @@ A global cache implemented with google cloud storage
 """
 
 from google.cloud import storage, exceptions
+import os
 from os.path import join
-from typing import List
+from typing import Dict
 
 from .global_cache import GlobalCache, SUMMARY_FILE, ARTIFACTS_FILE, \
     ARTIFACTS_DIR, TARGETS_DIR
@@ -70,16 +71,20 @@ class GSGlobalCache(GlobalCache):
             return False
         return True
 
-    def download_artifacts(self, artifacts_hashes: List[str], dst: str):
+    def download_artifacts(self, artifacts_hashes: Dict[str, int], dst: str):
         self._create_client()
         if artifacts_hashes:
             # TODO(Dana): make this work in batch.
             # see https://github.com/googleapis/google-cloud-python/issues/3139
-            for artifact_hash in artifacts_hashes:
+            for artifact_hash, permissions in artifacts_hashes.items():
                 src_blob = self.bucket.blob(join(self.artifacts_dir,
                                                  artifact_hash))
                 try:
-                    src_blob.download_to_filename(join(dst, artifact_hash))
+                    dst_path = join(dst, artifact_hash)
+                    src_blob.download_to_filename(dst_path)
+                    # This is here because when downloading from gs we don't
+                    # get the files with the right permissions.
+                    os.chmod(dst_path, permissions)
                 except exceptions.NotFound:
                     return False
         return True
@@ -97,10 +102,9 @@ class GSGlobalCache(GlobalCache):
         self.bucket.blob(join(self.targets_dir, target_hash, ARTIFACTS_FILE))\
             .upload_from_filename(src)
 
-    def upload_artifacts(self, artifacts_hashes: List[str], src: str):
+    def upload_artifacts(self, artifacts_hashes: Dict[str, int], src: str):
         self._create_client()
-        if artifacts_hashes:
-            # TODO(Dana): make this work in batch
-            for artifact_hash in artifacts_hashes:
-                self.bucket.blob(join(self.artifacts_dir, artifact_hash))\
-                    .upload_from_filename(join(src, artifact_hash))
+        # TODO(Dana): make this work in batch
+        for artifact_hash in artifacts_hashes.keys():
+            self.bucket.blob(join(self.artifacts_dir, artifact_hash))\
+                .upload_from_filename(join(src, artifact_hash))
