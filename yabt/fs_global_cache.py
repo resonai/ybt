@@ -23,7 +23,7 @@ A global cache implemented in local dick
 import os
 import shutil
 from os.path import join, isdir, isfile
-from typing import List
+from typing import Dict
 
 from .global_cache import GlobalCache, SUMMARY_FILE, ARTIFACTS_FILE, \
     ARTIFACTS_DIR, TARGETS_DIR
@@ -52,8 +52,8 @@ class FSGlobalCache(GlobalCache):
         shutil.copyfile(src_path, dst)
         return True
 
-    def download_artifacts(self, artifacts_hashes: List[str], dst: str):
-        for artifact_hash in artifacts_hashes:
+    def download_artifacts(self, artifacts_hashes: Dict[str, int], dst: str):
+        for artifact_hash in artifacts_hashes.keys():
             file_path = join(self.artifacts_dir, artifact_hash)
             if not isfile(file_path):
                 return False
@@ -73,7 +73,7 @@ class FSGlobalCache(GlobalCache):
         shutil.copyfile(src,
                         join(self.targets_dir, target_hash, ARTIFACTS_FILE))
 
-    def upload_artifacts(self, artifacts_hashes: List[str], src: str):
-        for artifact_hash in artifacts_hashes:
+    def upload_artifacts(self, artifacts_hashes: Dict[str, int], src: str):
+        for artifact_hash in artifacts_hashes.keys():
             shutil.copyfile(join(src, artifact_hash),
                             join(self.artifacts_dir, artifact_hash))

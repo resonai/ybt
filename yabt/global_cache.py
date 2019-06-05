@@ -21,8 +21,7 @@ interface for a global cache
 :author: Dana Shamir
 """
 
-from typing import List
-
+from typing import Dict
 
 SUMMARY_FILE = 'summary.json'
 ARTIFACTS_FILE = 'artifacts.json'
@@ -61,13 +60,16 @@ class GlobalCache:
             'Method download_artifacts_meta of class {} was not '
             'implemented'.format(self.__class__.__name__))
 
-    def download_artifacts(self, artifacts_hashes: List[str],
+    def download_artifacts(self, artifacts_hashes: Dict[str, int],
                            dst: str) -> bool:
         """
         Downloads the artifacts to `dst`. In `dst` each artifact will be in a
-        file named with its hash.
+        file named with its hash, and the required permissions.
 
-        Returns True if download worked, False otherwise
+        :param artifacts_hashes: a dict with the artifacts hashes as keys and
+                                    the required permissions as values.
+        :param dst: the directory to download the artifacts to
+        :return: True if download worked, False otherwise
         """
         raise NotImplemented('Method download_artifacts of class {} was not '
                              'implemented'.format(self.__class__.__name__))
@@ -92,9 +94,13 @@ class GlobalCache:
             'Method upload_artifacts_meta of class {} was not '
             'implemented'.format(self.__class__.__name__))
 
-    def upload_artifacts(self, artifacts_hashes: List[str], src: str):
+    def upload_artifacts(self, artifacts_hashes: Dict[str, int], src: str):
         """
         Upload the artifacts with given hashes in directory `src`.
+
+        :param artifacts_hashes: a dict with the artifacts hashes as keys and
+                                    the required permissions as values.
+        :param src: the directory containing the artifacts.
         """
         raise NotImplemented('Method upload_artifacts of class {} was not '
                              'implemented'.format(self.__class__.__name__))
