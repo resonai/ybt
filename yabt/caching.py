@@ -26,6 +26,7 @@ to rerun "cached" tests on machines with different hardware (for example).
 """
 import itertools
 import json
+import os
 from os import makedirs
 from os.path import isdir, isfile, join, relpath, split, dirname
 import shutil
@@ -141,13 +142,17 @@ def load_target_from_global_cache(target: Target, build_context) -> bool:
 
 
 def get_artifacts_hashes(artifact_desc):
-    artifacts_hashes = []
+    """
+    Returns a dict containing all the artifacts hashes as keys and the
+    permissions required for the artifact.
+    """
+    artifacts_hashes = {}
     for type_name, artifact_list in artifact_desc.items():
         artifact_type = getattr(AT, type_name)
         for artifact in artifact_list:
             if artifact_type not in _NO_CACHE_TYPES and 'hash' in artifact \
                     and artifact['hash'] is not None:
-                artifacts_hashes.append(artifact['hash'])
+                artifacts_hashes[artifact['hash']] = artifact['permissions']
     return artifacts_hashes
 
 
@@ -342,7 +347,11 @@ def save_target_in_cache(target: Target, build_context):
     artifacts_desc = {
         artifact_type.name:
         [{'dst': dst_path, 'src': src_path,
-          'hash': artifact_hashes.get(dst_path)}
+          'hash': artifact_hashes.get(dst_path),
+          # We also save the permissions because there is a bug in gs that
+          # causes the files to not be copied with the right permissions.
+          'permissions': os.stat(src_path).st_mode
+            if artifact_type not in _NO_CACHE_TYPES else None}
          for dst_path, src_path in artifact_map.items()]
         for artifact_type, artifact_map in artifacts.items()
     }
