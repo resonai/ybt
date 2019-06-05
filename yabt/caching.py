@@ -348,8 +348,8 @@ def save_target_in_cache(target: Target, build_context):
         artifact_type.name:
         [{'dst': dst_path, 'src': src_path,
           'hash': artifact_hashes.get(dst_path),
-          # We also save the permissions because there is a bug in gs that
-          # causes the files to not be copied with the right permissions.
+          # We also save the permissions because when downloading from gs we
+          # don't get the files with the right permissions.
           'permissions': os.stat(src_path).st_mode
             if artifact_type not in _NO_CACHE_TYPES else None}
          for dst_path, src_path in artifact_map.items()]
