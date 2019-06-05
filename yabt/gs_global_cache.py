@@ -82,8 +82,8 @@ class GSGlobalCache(GlobalCache):
                 try:
                     dst_path = join(dst, artifact_hash)
                     src_blob.download_to_filename(dst_path)
-                    # This is here because there is a bug in gs that causes
-                    # the files to not be copied with the right permissions
+                    # This is here because when downloading from gs we don't
+                    # get the files with the right permissions.
                     os.chmod(dst_path, permissions)
                 except exceptions.NotFound:
                     return False
