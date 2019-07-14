@@ -408,13 +408,17 @@ def save_test_in_cache(target: Target, build_context) -> bool:
         tested_file.write(json.dumps(target.tested, indent=4, sort_keys=True))
     target_hash = target.hash(build_context)
     logger.info('trying to save test of {} to global cache'.format(target.name))
-    try:
-        build_context.global_cache.upload_test_cache(target_hash, tested_path)
-        logger.info('done saving test of {} to global cache'.format(target.name))
-    except Exception as e:
-        logger.warning('an error occurred while trying to upload '
-                       'test of target {} to global cache'
-                       .format(target.name))
-        logger.warning(str(e))
-        build_context.global_cache_failures += 1
+    if build_context.global_cache and \
+        build_context.conf.upload_to_global_cache and \
+            build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
+        try:
+            build_context.global_cache.upload_test_cache(target_hash,
+                                                         tested_path)
+            logger.info('done saving test of {} to global cache'.format(target.name))
+        except Exception as e:
+            logger.warning('an error occurred while trying to upload '
+                           'test of target {} to global cache'
+                           .format(target.name))
+            logger.warning(str(e))
+            build_context.global_cache_failures += 1
     return True
