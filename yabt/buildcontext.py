@@ -287,8 +287,11 @@ class BuildContext:
                 # "failed to run" errors.
                 # see: https://github.com/resonai/ybt/issues/124
                 if isinstance(ex, CalledProcessError):
-                    sys.stdout.write(ex.stdout.decode('utf-8'))
-                    sys.stderr.write(ex.stderr.decode('utf-8'))
+                    if hasattr(ex, 'stdout'):
+                        sys.stdout.write(ex.stdout.decode('utf-8'))
+                        sys.stderr.write(ex.stderr.decode('utf-8'))
+                    else:
+                        sys.stderr.write(str(ex))
                 if graph_copy.has_node(target.name):
                     self.failed_nodes[target.name] = ex
                     # removing all ancestors (nodes that depend on this one)
