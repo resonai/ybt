@@ -366,12 +366,15 @@ def save_target_in_cache(target: Target, build_context):
         summary['created'] = time()
     write_summary(summary, cache_dir)
 
+    logger.info('save target {} in global cache'.format(target.name))
     if build_context.global_cache and \
         build_context.conf.upload_to_global_cache and \
             build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
         try:
             save_target_in_global_cache(target, build_context, cache_dir,
                                         artifacts_desc)
+            logger.info('Done saving target {} in global cache'.format(
+                target.name))
         except Exception as e:
             logger.warning('an error occurred while trying to upload '
                            'target {} to global cache'
