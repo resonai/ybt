@@ -287,7 +287,7 @@ class BuildContext:
                 # "failed to run" errors.
                 # see: https://github.com/resonai/ybt/issues/124
                 if isinstance(ex, CalledProcessError):
-                    if hasattr(ex, 'stdout'):
+                    if ex.stdout:
                         sys.stdout.write(ex.stdout.decode('utf-8'))
                         sys.stderr.write(ex.stderr.decode('utf-8'))
                     else:
