@@ -286,12 +286,9 @@ class BuildContext:
                 # TODO(Dana) separate "failed to build target" errors from
                 # "failed to run" errors.
                 # see: https://github.com/resonai/ybt/issues/124
-                if isinstance(ex, CalledProcessError):
-                    if ex.stdout:
-                        sys.stdout.write(ex.stdout.decode('utf-8'))
-                        sys.stderr.write(ex.stderr.decode('utf-8'))
-                    else:
-                        sys.stderr.write(str(ex))
+                if isinstance(ex, CalledProcessError) and ex.stdout:
+                    sys.stdout.write(ex.stdout.decode('utf-8'))
+                    sys.stderr.write(ex.stderr.decode('utf-8'))
                 if graph_copy.has_node(target.name):
                     self.failed_nodes[target.name] = ex
                     # removing all ancestors (nodes that depend on this one)
