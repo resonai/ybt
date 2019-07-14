@@ -301,12 +301,16 @@ def restore_artifact(src_path: str, artifact_hash: str, conf: Config):
 
 def save_target_in_global_cache(target: Target, build_context, cache_dir,
                                 artifacts_desc):
+    logger.info('in save target in global cache. target: {}'.format(target.name))
     target_hash = target.hash(build_context)
+    logger.info('target: {} hash: {}'.format(target.name, str(target_hash)))
     build_context.global_cache.create_target_cache(target_hash)
     build_context.global_cache.upload_summary(target_hash,
                                               join(cache_dir, 'summary.json'))
+    logger.info('done uploading summary for target: {}'.format(target.name))
     build_context.global_cache.upload_artifacts_meta(
         target_hash, join(cache_dir, 'artifacts.json'))
+    logger.info('done uploading artifacts meta for target: {}'.format(target.name))
     build_context.global_cache.upload_artifacts(
         get_artifacts_hashes(artifacts_desc),
         build_context.conf.get_artifacts_cache_dir())
@@ -367,6 +371,9 @@ def save_target_in_cache(target: Target, build_context):
     write_summary(summary, cache_dir)
 
     logger.info('save target {} in global cache'.format(target.name))
+    logger.info('has global cache: {}'.format(str(build_context.global_cache)))
+    logger.info('upload to global cache: {}'.format(str(build_context.conf.upload_to_global_cache)))
+    logger.info('global cache failures: {} from: {}'.format(str(build_context.global_cache_failures), str(MAX_FAILS_FROM_GLOBAL)))
     if build_context.global_cache and \
         build_context.conf.upload_to_global_cache and \
             build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
@@ -400,8 +407,10 @@ def save_test_in_cache(target: Target, build_context) -> bool:
     with open(tested_path, 'w') as tested_file:
         tested_file.write(json.dumps(target.tested, indent=4, sort_keys=True))
     target_hash = target.hash(build_context)
+    logger.info('trying to save test of {} to global cache'.format(target.name))
     try:
         build_context.global_cache.upload_test_cache(target_hash, tested_path)
+        logger.info('done saving test of {} to global cache'.format(target.name))
     except Exception as e:
         logger.warning('an error occurred while trying to upload '
                        'test of target {} to global cache'
