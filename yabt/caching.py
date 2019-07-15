@@ -27,6 +27,7 @@ to rerun "cached" tests on machines with different hardware (for example).
 import itertools
 import json
 import os
+from functools import partial
 from os import makedirs
 from os.path import isdir, isfile, join, relpath, split, dirname
 import shutil
@@ -167,21 +168,11 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if not isdir(cache_dir):
         logger.debug('No cache dir found for target {}', target.name)
-        has_global_cache = False
-        if build_context.global_cache and \
-            build_context.conf.download_from_global_cache and \
-                build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
-            logger.info('trying to load target {} from global cache'
-                        .format(target.name))
-            try:
-                has_global_cache = load_target_from_global_cache(
-                    target, build_context)
-            except Exception as e:
-                logger.warning('an error occurred while trying to download '
-                               'target {} from global cache'
-                               .format(target.name))
-                logger.warning(str(e))
-                build_context.global_cache_failures += 1
+        has_global_cache = try_use_global_cache(
+            build_context, partial(load_target_from_global_cache, target,
+                                   build_context),
+            'an error occurred while trying to download target {} from global'
+            ' cache'.format(target.name))
         if not has_global_cache:
             try:
                 shutil.rmtree(cache_dir)
@@ -366,18 +357,11 @@ def save_target_in_cache(target: Target, build_context):
         summary['created'] = time()
     write_summary(summary, cache_dir)
 
-    if build_context.global_cache and \
-        build_context.conf.upload_to_global_cache and \
-            build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
-        try:
-            save_target_in_global_cache(target, build_context, cache_dir,
-                                        artifacts_desc)
-        except Exception as e:
-            logger.warning('an error occurred while trying to upload '
-                           'target {} to global cache'
-                           .format(target.name))
-            logger.warning(str(e))
-            build_context.global_cache_failures += 1
+    try_use_global_cache(build_context,
+                         partial(save_target_in_global_cache, target,
+                                 build_context, cache_dir, artifacts_desc),
+                         'an error occurred while trying to upload target {} '
+                         'to global cache'.format(target.name))
 
 
 def save_test_in_cache(target: Target, build_context) -> bool:
@@ -397,16 +381,31 @@ def save_test_in_cache(target: Target, build_context) -> bool:
     with open(tested_path, 'w') as tested_file:
         tested_file.write(json.dumps(target.tested, indent=4, sort_keys=True))
     target_hash = target.hash(build_context)
+    try_use_global_cache(build_context,
+                         partial(build_context.global_cache.upload_test_cache,
+                                 target_hash, tested_path),
+                         'an error occurred while trying to upload test of '
+                         'target {} to global cache'.format(target.name))
+    return True
+
+
+def try_use_global_cache(build_context, func, error_msg):
+    """
+    Checks if should use global cache (by flag & num of failures),
+    if there was a failure, increment number of global cache failures.
+
+    :param build_context: contains the global cache
+    :param func: the function that uses the global cache
+    :param error_msg: error msg to show for a failure.
+    :return: return value of func if it worked, False otherwise.
+    """
     if build_context.global_cache and \
         build_context.conf.upload_to_global_cache and \
             build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
         try:
-            build_context.global_cache.upload_test_cache(target_hash,
-                                                         tested_path)
+            return func()
         except Exception as e:
-            logger.warning('an error occurred while trying to upload '
-                           'test of target {} to global cache'
-                           .format(target.name))
+            logger.warning(error_msg)
             logger.warning(str(e))
             build_context.global_cache_failures += 1
-    return True
+            return False
