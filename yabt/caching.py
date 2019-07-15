@@ -381,11 +381,13 @@ def save_test_in_cache(target: Target, build_context) -> bool:
     with open(tested_path, 'w') as tested_file:
         tested_file.write(json.dumps(target.tested, indent=4, sort_keys=True))
     target_hash = target.hash(build_context)
-    try_use_global_cache(build_context,
-                         partial(build_context.global_cache.upload_test_cache,
-                                 target_hash, tested_path),
-                         'an error occurred while trying to upload test of '
-                         'target {} to global cache'.format(target.name))
+    if build_context.global_cache:
+        try_use_global_cache(
+            build_context,
+            partial(build_context.global_cache.upload_test_cache, target_hash,
+                    tested_path),
+            'an error occurred while trying to upload test of target {} to '
+            'global cache'.format(target.name))
     return True
 
 
