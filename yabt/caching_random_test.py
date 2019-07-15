@@ -72,9 +72,6 @@ TARGET_TYPES = {
 
 GLOBAL_CACHE_DIR = '.global_cache'
 
-slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
-                          reason='need --with-slow option to run')
-
 logger = make_logger(__name__)
 
 
@@ -425,7 +422,7 @@ def get_test_cache(basic_conf, target, build_context):
                                          build_context), 'tested.json')
 
 
-@slow
+@pytest.mark.slow
 def test_caching(tmp_dir):
     project = generate_random_project(NUM_TARGETS)
 

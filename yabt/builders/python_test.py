@@ -26,11 +26,7 @@ from ..buildcontext import BuildContext
 from ..graph import populate_targets_graph
 
 
-slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
-                          reason='need --with-slow option to run')
-
-
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_tests_project')
 def test_python_tester_success(basic_conf):
     build_context = BuildContext(basic_conf)
@@ -39,7 +35,7 @@ def test_python_tester_success(basic_conf):
     build_context.build_graph(run_tests=True)
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_tests_project')
 def test_python_tester_fail(basic_conf):
     build_context = BuildContext(basic_conf)
@@ -49,7 +45,7 @@ def test_python_tester_fail(basic_conf):
         build_context.build_graph(run_tests=True)
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_tests_project')
 def test_python_tester_fail_no_exit(basic_conf, capsys):
     basic_conf.continue_after_fail = True
@@ -67,7 +63,7 @@ following to skip: \n[]\x1b[0m\n"
     assert err == expected_error
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_tests_project')
 def test_python_tester_fail_with_retry(basic_conf):
     build_context = BuildContext(basic_conf)
@@ -81,7 +77,7 @@ def test_python_tester_fail_with_retry(basic_conf):
     assert target.info['fail_count'] == 5
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_tests_project')
 def test_python_tester_flaky(basic_conf):
     build_context = BuildContext(basic_conf)
@@ -94,7 +90,7 @@ def test_python_tester_flaky(basic_conf):
     assert target.info['fail_count'] == 1
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_tests_project')
 def test_python_tester_aba(basic_conf):
     build_context = BuildContext(basic_conf)

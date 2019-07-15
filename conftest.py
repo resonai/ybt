@@ -38,6 +38,19 @@ def pytest_addoption(parser):
     parser.addoption('--with-slow', action='store_true', help='run slow tests')
 
 
+def pytest_configure(config):
+    config.addinivalue_line("markers", "slow: mark test as slow to run")
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--with-slow"):
+        return
+    skip_slow = pytest.mark.skip(reason="need --with-slow option to run")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)
+
+
 def reset_parser():
     """Disgusting hack to work around configargparse singleton pattern that
        creates cross-test contamination.
