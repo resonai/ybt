@@ -137,8 +137,9 @@ def load_target_from_global_cache(target: Target, build_context) -> bool:
         get_artifacts_hashes(artifacts_desc),
             build_context.conf.get_artifacts_cache_dir()):
         return False
-    build_context.global_cache.download_test_cache(
-        target_hash, join(cache_dir, 'tested.json'))
+    if build_context.conf.download_tests_from_global_cache:
+        build_context.global_cache.download_test_cache(
+            target_hash, join(cache_dir, 'tested.json'))
     return True
 
 
@@ -385,7 +386,7 @@ def save_test_in_cache(target: Target, build_context) -> bool:
         tested_file.write(json.dumps(target.tested, indent=4, sort_keys=True))
     target_hash = target.hash(build_context)
     if build_context.global_cache \
-            and build_context.conf.upload_to_global_cache:
+            and build_context.conf.upload_tests_to_global_cache:
         try_use_global_cache(
             build_context,
             partial(build_context.global_cache.upload_test_cache, target_hash,
