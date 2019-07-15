@@ -71,6 +71,8 @@ class GSGlobalCache(GlobalCache):
         try:
             src_blob.download_to_filename(dst)
         except exceptions.NotFound:
+            # When there is a failure downloading the file from gs, sometimes
+            # the dst file is created empty
             try:
                 os.remove(dst)
             except FileNotFoundError:
