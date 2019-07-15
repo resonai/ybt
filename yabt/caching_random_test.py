@@ -147,7 +147,9 @@ def init_project(project):
     project.conf = cli.init_and_get_conf(['--non-interactive',
                                           '--continue-after-fail', 'build',
                                           '--upload-to-global-cache',
-                                          '--download-from-global-cache'])
+                                          '--download-from-global-cache',
+                                          '--download-tests-from-global-cache',
+                                          '--upload-tests-to-global-cache'])
     extend.Plugin.load_plugins(project.conf)
     project.conf.targets = [':' + target for target in project.targets.keys()]
     build_context = BuildContext(project.conf)
