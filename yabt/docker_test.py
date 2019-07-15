@@ -81,7 +81,7 @@ def test_package_managers_install_order(basic_conf):
         'cd /tmp/install1/node && cat install-nodejs.sh | tr -d \'\\r\' | bash'
         ' && cd / && rm -rf /tmp/install1\n',
         'RUN apt-get update -y && apt-get install --no-install-recommends -y '
-        'ruby2.3 ruby2.3-dev && rm -rf /var/lib/apt/lists/*\n',
+        'ruby ruby-dev && rm -rf /var/lib/apt/lists/*\n',
         'COPY requirements_pip_1.txt /usr/src/\n',
         'RUN pip install --no-cache-dir --upgrade pip && '
         'pip install --no-cache-dir -r /usr/src/requirements_pip_1.txt\n',
