@@ -164,15 +164,17 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     `build_cached` is True if target restored successfully.
     `test_cached` is True if build is cached and test_time metadata is valid.
     """
-    # TODO(Dana): support partially deleted cache
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if not isdir(cache_dir):
         logger.debug('No cache dir found for target {}', target.name)
-        has_global_cache = try_use_global_cache(
-            build_context, partial(load_target_from_global_cache, target,
-                                   build_context),
-            'an error occurred while trying to download target {} from global'
-            ' cache'.format(target.name))
+        has_global_cache = False
+        if build_context.global_cache and \
+                build_context.conf.download_from_global_cache:
+            has_global_cache = try_use_global_cache(
+                build_context, partial(load_target_from_global_cache, target,
+                                       build_context),
+                'an error occurred while trying to download target {} from '
+                'global cache'.format(target.name))
         if not has_global_cache:
             try:
                 shutil.rmtree(cache_dir)
@@ -357,11 +359,12 @@ def save_target_in_cache(target: Target, build_context):
         summary['created'] = time()
     write_summary(summary, cache_dir)
 
-    try_use_global_cache(build_context,
-                         partial(save_target_in_global_cache, target,
-                                 build_context, cache_dir, artifacts_desc),
-                         'an error occurred while trying to upload target {} '
-                         'to global cache'.format(target.name))
+    if build_context.global_cache \
+            and build_context.conf.upload_to_global_cache:
+        try_use_global_cache(build_context, partial(
+            save_target_in_global_cache, target, build_context, cache_dir,
+            artifacts_desc), 'an error occurred while trying to upload '
+                             'target {} to global cache'.format(target.name))
 
 
 def save_test_in_cache(target: Target, build_context) -> bool:
@@ -381,7 +384,8 @@ def save_test_in_cache(target: Target, build_context) -> bool:
     with open(tested_path, 'w') as tested_file:
         tested_file.write(json.dumps(target.tested, indent=4, sort_keys=True))
     target_hash = target.hash(build_context)
-    if build_context.global_cache:
+    if build_context.global_cache \
+            and build_context.conf.upload_to_global_cache:
         try_use_global_cache(
             build_context,
             partial(build_context.global_cache.upload_test_cache, target_hash,
@@ -393,7 +397,7 @@ def save_test_in_cache(target: Target, build_context) -> bool:
 
 def try_use_global_cache(build_context, func, error_msg):
     """
-    Checks if should use global cache (by flag & num of failures),
+    Checks if should use global cache (by num of failures),
     if there was a failure, increment number of global cache failures.
 
     :param build_context: contains the global cache
@@ -401,9 +405,7 @@ def try_use_global_cache(build_context, func, error_msg):
     :param error_msg: error msg to show for a failure.
     :return: return value of func if it worked, False otherwise.
     """
-    if build_context.global_cache and \
-        build_context.conf.upload_to_global_cache and \
-            build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
+    if build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
         try:
             return func()
         except Exception as e:
