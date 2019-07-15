@@ -31,11 +31,7 @@ from .graph import populate_targets_graph, topological_sort
 from .yabt import cmd_build
 
 
-slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
-                          reason='need --with-slow option to run')
-
-
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_simple_project')
 def test_run_in_buildenv(basic_conf):
     build_context = BuildContext(basic_conf)
@@ -58,7 +54,7 @@ def test_run_in_buildenv(basic_conf):
     assert 'com.ybt.foo:bar' in labels and 'com.ybt.here:there' in labels
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_simple_project')
 def test_ybt_bin_generation(basic_conf):
     basic_conf.targets = ['app:flask-app']
@@ -68,7 +64,7 @@ def test_ybt_bin_generation(basic_conf):
                 in app_ybt_bin.read())
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_pkgmgrs_project')
 def test_package_managers_install_order(basic_conf):
     basic_conf.targets = [':the-image']
@@ -102,7 +98,7 @@ def test_package_managers_install_order(basic_conf):
         assert exp_dockerfile == dockerfile.readlines()
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_pkgmgrs_project')
 def test_generate_needed_lists(basic_conf):
     build_context = BuildContext(basic_conf)

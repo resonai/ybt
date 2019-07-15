@@ -31,10 +31,6 @@ from yabt.dot import TARGETS_COLORS, write_dot, get_not_buildenv_targets
 from yabt.graph import populate_targets_graph
 
 
-slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
-                          reason='need --with-slow option to run')
-
-
 @pytest.mark.usefixtures('in_dag_project')
 def test_graph_dot_generation(basic_conf):
     build_context = BuildContext(basic_conf)
@@ -90,7 +86,7 @@ def test_no_buildenv_deps_in_dot(basic_conf):
         assert expected_targets.intersection(all_targets) == expected_targets
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_caching_project')
 def test_cached_targets_different_color(basic_conf):
     basic_conf.targets = [':builder']

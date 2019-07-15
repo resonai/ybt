@@ -35,10 +35,6 @@ from .buildcontext import BuildContext
 from .graph import (get_descendants, populate_targets_graph, topological_sort)
 
 
-slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
-                          reason='need --with-slow option to run')
-
-
 def make_random_dag_build_context(
         num_nodes, min_rank=0, max_rank=10, edge_prob=0.3):
     """Return a build context based on a random DAG with `num_nodes` nodes."""
@@ -77,7 +73,7 @@ def test_small_dag_scan():
     random_dag_scan(500)
 
 
-@slow
+@pytest.mark.slow
 def test_big_dag_scan():
     random_dag_scan(2000)
 
@@ -142,7 +138,7 @@ def test_small_multithreaded_dag_scan():
     multithreaded_dag_scanner(1000)
 
 
-@slow
+@pytest.mark.slow
 def test_big_multithreaded_dag_scan():
     multithreaded_dag_scanner(10000)
 
