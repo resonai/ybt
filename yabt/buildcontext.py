@@ -409,6 +409,7 @@ class BuildContext:
                 '-v', '/etc/group:/etc/group:ro',
                 '-v', '/etc/passwd:/etc/passwd:ro',
                 '-v', '/etc/sudoers:/etc/sudoers:ro',
+                '-v', '{0}:{0}'.format(os.environ['HOME']),
             ])
         docker_run.append(format_qualified_image_name(buildenv_target))
         docker_run.extend(cmd)
