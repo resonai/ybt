@@ -399,6 +399,7 @@ class BuildContext:
             for key, value in cmd_env.items():
                 # TODO(itamar): escaping
                 docker_run.extend(['-e', '{}={}'.format(key, value)])
+        docker_run.extend(['-e', 'HOME={}'.format(os.environ['HOME'])])
         if platform.system() == 'Linux' and auto_uid:
             # Fix permissions for bind-mounted project dir
             # The fix is not needed when using Docker For Mac / Windows,
@@ -409,8 +410,8 @@ class BuildContext:
                 '-v', '/etc/group:/etc/group:ro',
                 '-v', '/etc/passwd:/etc/passwd:ro',
                 '-v', '/etc/sudoers:/etc/sudoers:ro',
-                '-v', '{0}:{0}'.format(os.environ['HOME']),
             ])
+        docker_run.extend(['-v', '{0}:{0}'.format(os.environ['HOME'])])
         docker_run.append(format_qualified_image_name(buildenv_target))
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
