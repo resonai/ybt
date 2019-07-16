@@ -72,6 +72,8 @@ class Config:
         'show_buildenv_deps',
         'download_from_global_cache',
         'upload_to_global_cache',
+        'download_tests_from_global_cache',
+        'upload_tests_to_global_cache',
     ))
 
     def __init__(self, args, project_root_dir: str, work_dir: str,

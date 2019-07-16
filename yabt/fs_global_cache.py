@@ -26,7 +26,7 @@ from os.path import join, isdir, isfile
 from typing import Dict
 
 from .global_cache import GlobalCache, SUMMARY_FILE, ARTIFACTS_FILE, \
-    ARTIFACTS_DIR, TARGETS_DIR
+    TESTS_FILE, ARTIFACTS_DIR, TARGETS_DIR
 
 
 class FSGlobalCache(GlobalCache):
@@ -44,6 +44,9 @@ class FSGlobalCache(GlobalCache):
 
     def download_artifacts_meta(self, target_hash: str, dst: str) -> bool:
         return self.download_meta_file(target_hash, ARTIFACTS_FILE, dst)
+
+    def download_test_cache(self, target_hash: str, dst: str) -> bool:
+        return self.download_meta_file(target_hash, TESTS_FILE, dst)
 
     def download_meta_file(self, target_hash: str, src: str, dst: str) -> bool:
         src_path = join(self.targets_dir, target_hash, src)
@@ -77,3 +80,6 @@ class FSGlobalCache(GlobalCache):
         for artifact_hash in artifacts_hashes.keys():
             shutil.copyfile(join(src, artifact_hash),
                             join(self.artifacts_dir, artifact_hash))
+
+    def upload_test_cache(self, target_hash: str, src: str):
+        shutil.copyfile(src, join(self.targets_dir, target_hash, TESTS_FILE))

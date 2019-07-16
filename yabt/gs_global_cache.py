@@ -27,7 +27,7 @@ from os.path import join
 from typing import Dict
 
 from .global_cache import GlobalCache, SUMMARY_FILE, ARTIFACTS_FILE, \
-    ARTIFACTS_DIR, TARGETS_DIR
+    TESTS_FILE, ARTIFACTS_DIR, TARGETS_DIR
 from .logging import make_logger
 
 
@@ -62,12 +62,21 @@ class GSGlobalCache(GlobalCache):
     def download_artifacts_meta(self, target_hash: str, dst: str) -> bool:
         return self.download_meta_file(target_hash, ARTIFACTS_FILE, dst)
 
+    def download_test_cache(self, target_hash: str, dst: str) -> bool:
+        return self.download_meta_file(target_hash, TESTS_FILE, dst)
+
     def download_meta_file(self, target_hash: str, src: str, dst: str) -> bool:
         self._create_client()
         src_blob = self.bucket.blob(join(self.targets_dir, target_hash, src))
         try:
             src_blob.download_to_filename(dst)
         except exceptions.NotFound:
+            # When there is a failure downloading the file from gs, sometimes
+            # the dst file is created empty
+            try:
+                os.remove(dst)
+            except FileNotFoundError:
+                pass
             return False
         return True
 
@@ -93,14 +102,10 @@ class GSGlobalCache(GlobalCache):
         pass
 
     def upload_summary(self, target_hash: str, src: str):
-        self._create_client()
-        self.bucket.blob(join(self.targets_dir, target_hash, SUMMARY_FILE))\
-            .upload_from_filename(src)
+        self.upload_target_meta(target_hash, src, SUMMARY_FILE)
 
     def upload_artifacts_meta(self, target_hash: str, src: str):
-        self._create_client()
-        self.bucket.blob(join(self.targets_dir, target_hash, ARTIFACTS_FILE))\
-            .upload_from_filename(src)
+        self.upload_target_meta(target_hash, src, ARTIFACTS_FILE)
 
     def upload_artifacts(self, artifacts_hashes: Dict[str, int], src: str):
         self._create_client()
@@ -108,3 +113,11 @@ class GSGlobalCache(GlobalCache):
         for artifact_hash in artifacts_hashes.keys():
             self.bucket.blob(join(self.artifacts_dir, artifact_hash))\
                 .upload_from_filename(join(src, artifact_hash))
+
+    def upload_test_cache(self, target_hash: str, src: str):
+        self.upload_target_meta(target_hash, src, TESTS_FILE)
+
+    def upload_target_meta(self, target_hash, src, dst):
+        self._create_client()
+        self.bucket.blob(join(self.targets_dir, target_hash, dst))\
+            .upload_from_filename(src)

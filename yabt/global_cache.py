@@ -25,6 +25,7 @@ from typing import Dict
 
 SUMMARY_FILE = 'summary.json'
 ARTIFACTS_FILE = 'artifacts.json'
+TESTS_FILE = 'tested.json'
 TARGETS_DIR = 'targets'
 ARTIFACTS_DIR = 'artifacts'
 
@@ -58,6 +59,17 @@ class GlobalCache:
         """
         raise NotImplemented(
             'Method download_artifacts_meta of class {} was not '
+            'implemented'.format(self.__class__.__name__))
+
+    def download_test_cache(self, target_hash: str, dst: str) -> bool:
+        """
+        Downloads the metadata about the tests cached for the target to
+        `dst`.
+
+        Returns True if download worked, False otherwise
+        """
+        raise NotImplemented(
+            'Method download_test_cache of class {} was not '
             'implemented'.format(self.__class__.__name__))
 
     def download_artifacts(self, artifacts_hashes: Dict[str, int],
@@ -103,4 +115,11 @@ class GlobalCache:
         :param src: the directory containing the artifacts.
         """
         raise NotImplemented('Method upload_artifacts of class {} was not '
+                             'implemented'.format(self.__class__.__name__))
+
+    def upload_test_cache(self, target_hash: str, src: str):
+        """
+        Upload the test data in `src` describing the successful test.
+        """
+        raise NotImplemented('Method upload_test_cache of class {} was not '
                              'implemented'.format(self.__class__.__name__))
