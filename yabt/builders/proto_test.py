@@ -33,10 +33,6 @@ from ..graph import populate_targets_graph
 from ..utils import yprint
 
 
-slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
-                          reason='need --with-slow option to run')
-
-
 def clear_output():
     try:
         shutil.rmtree('build')
@@ -44,7 +40,7 @@ def clear_output():
         pass
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_proto_project')
 def test_proto_builder(basic_conf):
     clear_output()
@@ -67,7 +63,7 @@ def test_proto_builder(basic_conf):
     clear_output()
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_proto_project')
 def test_proto_cpp_prog(basic_conf):
     build_context = BuildContext(basic_conf)

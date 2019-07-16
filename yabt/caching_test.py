@@ -33,11 +33,7 @@ from .graph import populate_targets_graph
 from .utils import rmtree
 
 
-slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
-                          reason='need --with-slow option to run')
-
-
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_caching_project')
 def test_prebuilt_targets_case1(basic_conf):
     """Test pre-built case #1 - all base deps should be marked as pre-built.
@@ -54,7 +50,7 @@ def test_prebuilt_targets_case1(basic_conf):
             set(build_context.target_graph.nodes))
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_caching_project')
 def test_prebuilt_targets_case2(basic_conf):
     """Test pre-built case #2 - nothing should be marked pre-built.
@@ -70,7 +66,7 @@ def test_prebuilt_targets_case2(basic_conf):
             set(build_context.target_graph.nodes))
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_caching_project')
 def test_prebuilt_targets_case1(basic_conf):
     """Test pre-built case #3 - unzip & ubuntu should NOT mark as prebuilt.
@@ -87,7 +83,7 @@ def test_prebuilt_targets_case1(basic_conf):
             set(build_context.target_graph.nodes))
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_caching_project')
 def test_prebuilt_targets_build_base_image(basic_conf):
     """Test pre-built targets when building base images.
