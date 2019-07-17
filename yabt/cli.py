@@ -246,6 +246,8 @@ def init_and_get_conf(argv: list=None) -> Config:
         config.settings, 'get_common_config', config, args)
     config.flavor_conf = call_user_func(
         config.settings, 'get_flavored_config', config, args)
+    config.docker_parameters = call_user_func(
+        config.settings, 'get_docker_parameters', config, args)
     call_user_func(config.settings, 'extend_config', config, args)
     if not args.no_policies:
         config.policies = listify(call_user_func(
