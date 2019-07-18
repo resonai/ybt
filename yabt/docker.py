@@ -209,6 +209,8 @@ def format_docker_run_params(params: dict):
         param_strings.extend(['-w', params['work_dir']])
     for var, value in params['env'].items():
         param_strings.extend(['-e', '{}="{}"'.format(var, value)])
+    if params.get('network'):
+        param_strings.extend(['--net', params['network']])
     return param_strings
 
 
@@ -219,7 +221,7 @@ def extend_runtime_params(runtime_params, deps, extra_params=None,
     """
     KNOWN_RUNTIME_PARAMS = frozenset((
         'ports', 'volumes', 'container_name', 'daemonize', 'interactive',
-        'term', 'auto_it', 'rm', 'env', 'work_dir', 'impersonate'))
+        'term', 'auto_it', 'rm', 'env', 'work_dir', 'impersonate', 'network'))
 
     def replace_env_var(path):
         """
@@ -255,7 +257,7 @@ def extend_runtime_params(runtime_params, deps, extra_params=None,
                 new_rt_param.get('volumes')))
         runtime_params['env'].update(dict(runtime_params.get('env', {})))
         for param in ('container_name', 'daemonize', 'interactive', 'term',
-                      'auto_it', 'rm', 'work_dir', 'impersonate'):
+                      'auto_it', 'rm', 'work_dir', 'impersonate', 'network'):
             if param in new_rt_param:
                 # TODO(itamar): check conflicting overrides
                 runtime_params[param] = new_rt_param[param]
