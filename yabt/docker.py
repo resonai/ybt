@@ -181,6 +181,74 @@ def handle_build_cache(
     return None
 
 
+def format_docker_run_params(params: dict):
+    """
+    create a list of the cli arguments to pass to docker run
+    """
+    param_strings = []
+    if 'container_name' in params:
+        param_strings.extend(['--name', params['container_name']])
+    if params.get('interactive'):
+        param_strings.append('-i')
+    if params.get('term'):
+        param_strings.append('-t')
+    if params.get('rm'):
+        param_strings.append('--rm')
+    if params.get('daemonize'):
+        param_strings.append('-d')
+    if params.get('impersonate') and platform.system() == 'Linux':
+        param_strings.extend([
+            '-u', '$( id -u ):$( id -g )',
+            '-v', '/etc/passwd:/etc/passwd:ro',
+            '-v', '/etc/group:/etc/group:ro'])
+    for port in params['ports']:
+        param_strings.extend(['-p', port])
+    for volume in params['volumes']:
+        param_strings.extend(['-v', volume])
+    if params.get('work_dir'):
+        param_strings.extend(['-w', params['work_dir']])
+    for var, value in params['env'].items():
+        param_strings.extend(['-e', '{}="{}"'.format(var, value)])
+    return param_strings
+
+
+def extend_runtime_params(runtime_params, deps):
+    """
+    add all of the deps runtime params
+    """
+    KNOWN_RUNTIME_PARAMS = frozenset((
+        'ports', 'volumes', 'container_name', 'daemonize', 'interactive',
+        'term', 'auto_it', 'rm', 'env', 'work_dir', 'impersonate'))
+    if runtime_params is None:
+        runtime_params = {}
+    runtime_params['ports'] = listify(runtime_params.get('ports'))
+    runtime_params['volumes'] = listify(runtime_params.get('volumes'))
+    runtime_params['env'] = dict(runtime_params.get('env', {}))
+
+    def update_runtime_params(new_rt_param: dict, params_source: str):
+        invalid_keys = set(
+            new_rt_param.keys()).difference(KNOWN_RUNTIME_PARAMS)
+        if invalid_keys:
+            raise ValueError(
+                'Unknown keys in runtime params of {}: {}'.format(
+                    params_source, ', '.join(invalid_keys)))
+        # TODO(itamar): check for invalid values and inconsistencies
+        runtime_params['ports'].extend(listify(new_rt_param.get('ports')))
+        runtime_params['volumes'].extend(listify(new_rt_param.get('volumes')))
+        runtime_params['env'].update(dict(runtime_params.get('env', {})))
+        for param in ('container_name', 'daemonize', 'interactive', 'term',
+                      'auto_it', 'rm', 'work_dir', 'impersonate'):
+            if param in new_rt_param:
+                # TODO(itamar): check conflicting overrides
+                runtime_params[param] = new_rt_param[param]
+
+    for dep in deps:
+        if 'runtime_params' in dep.props:
+            update_runtime_params(dep.props.runtime_params,
+                                  'dependency {}'.format(dep.name))
+    return runtime_params
+
+
 def build_docker_image(
         build_context, name: str, tag: str, base_image, deps: list=None,
         env: dict=None, work_dir: str=None,
@@ -234,14 +302,6 @@ def build_docker_image(
     apt_repo_deps = []
     effective_env = {}
     effective_labels = {}
-    KNOWN_RUNTIME_PARAMS = frozenset((
-        'ports', 'volumes', 'container_name', 'daemonize', 'interactive',
-        'term', 'auto_it', 'rm', 'env', 'work_dir', 'impersonate'))
-    if runtime_params is None:
-        runtime_params = {}
-    runtime_params['ports'] = listify(runtime_params.get('ports'))
-    runtime_params['volumes'] = listify(runtime_params.get('volumes'))
-    runtime_params['env'] = dict(runtime_params.get('env', {}))
     env_manipulations = {}
     packaging_layers = []
 
@@ -301,23 +361,6 @@ def build_docker_image(
                 'during build of Docker image "{}": {}'.format(
                     labels_source, docker_image, ', '.join(overridden_labels)))
 
-    def update_runtime_params(new_rt_param: dict, params_source: str):
-        invalid_keys = set(
-            new_rt_param.keys()).difference(KNOWN_RUNTIME_PARAMS)
-        if invalid_keys:
-            raise ValueError(
-                'Unknown keys in runtime params of {}: {}'.format(
-                    params_source, ', '.join(invalid_keys)))
-        # TODO(itamar): check for invalid values and inconsistencies
-        runtime_params['ports'].extend(listify(new_rt_param.get('ports')))
-        runtime_params['volumes'].extend(listify(new_rt_param.get('volumes')))
-        runtime_params['env'].update(dict(runtime_params.get('env', {})))
-        for param in ('container_name', 'daemonize', 'interactive', 'term',
-                      'auto_it', 'rm', 'work_dir', 'impersonate'):
-            if param in new_rt_param:
-                # TODO(itamar): check conflicting overrides
-                runtime_params[param] = new_rt_param[param]
-
     if deps is None:
         deps = []
     # Get all base image deps, so when building this image we can skip adding
@@ -326,9 +369,6 @@ def build_docker_image(
     for dep in deps:
         if not distro and 'distro' in dep.props:
             distro = dep.props.distro
-        if 'runtime_params' in dep.props:
-            update_runtime_params(dep.props.runtime_params,
-                                  'dependency {}'.format(dep.name))
 
         if dep.name in base_image_deps:
             logger.debug('Skipping base image dep {}', dep.name)
@@ -571,38 +611,12 @@ def build_docker_image(
         assert (build_context.conf.get_bin_path() ==
                 commonpath([build_context.conf.get_bin_path(), ybt_bin_path]))
 
-        def format_docker_run_params(params: dict):
-            param_strings = []
-            if 'container_name' in params:
-                param_strings.extend(['--name', params['container_name']])
-            if params.get('interactive'):
-                param_strings.append('-i')
-            if params.get('term'):
-                param_strings.append('-t')
-            if params.get('rm'):
-                param_strings.append('--rm')
-            if params.get('daemonize'):
-                param_strings.append('-d')
-            if params.get('impersonate') and platform.system() == 'Linux':
-                param_strings.extend([
-                    '-u', '$( id -u ):$( id -g )',
-                    '-v', '/etc/passwd:/etc/passwd:ro',
-                    '-v', '/etc/group:/etc/group:ro'])
-            for port in params['ports']:
-                param_strings.extend(['-p', port])
-            for volume in params['volumes']:
-                param_strings.extend(['-v', volume])
-            if params.get('work_dir'):
-                param_strings.extend(['-w', params['work_dir']])
-            for var, value in params['env'].items():
-                param_strings.extend(['-e', '{}="{}"'.format(var, value)])
-            return ' '.join(param_strings)
-
+        runtime_params = extend_runtime_params(runtime_params, deps)
         with open(join(dirname(abspath(__file__)),
                   'ybtbin.sh.tmpl'), 'r') as tmpl_f:
             ybt_bin = tmpl_f.read().format(
                 image_name=docker_image, image_id=image_id,
-                docker_opts=format_docker_run_params(runtime_params),
+                docker_opts=' '.join(format_docker_run_params(runtime_params)),
                 default_opts='$IT' if runtime_params.get('auto_it') else '')
         with open(ybt_bin_path, 'w') as ybt_bin_f:
             ybt_bin_f.write(ybt_bin)
