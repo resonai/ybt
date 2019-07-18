@@ -53,6 +53,11 @@ from .utils import link_node, rmtree, yprint
 logger = make_logger(__name__)
 
 
+KNOWN_RUNTIME_PARAMS = frozenset((
+        'ports', 'volumes', 'container_name', 'daemonize', 'interactive',
+        'term', 'auto_it', 'rm', 'env', 'work_dir', 'impersonate', 'network'))
+
+
 def make_pip_requirements(pip_requirements: set, pip_req_file_path: str):
     if pip_requirements:
         try:
@@ -214,60 +219,61 @@ def format_docker_run_params(params: dict):
     return param_strings
 
 
+def _replace_env_var(path):
+    """
+    replace all $VAR with the environment variable value
+    """
+    return re.sub('\$[a-zA-Z_][a-zA-Z0-9_]*',
+                  lambda match: os.environ[match.group()[1:]], path)
+
+
+def update_runtime_params(runtime_params: dict, new_rt_param: dict,
+                          params_source: str, replace_env: bool):
+    invalid_keys = set(
+        new_rt_param.keys()).difference(KNOWN_RUNTIME_PARAMS)
+    if invalid_keys:
+        raise ValueError(
+            'Unknown keys in runtime params of {}: {}'.format(
+                params_source, ', '.join(invalid_keys)))
+    # TODO(itamar): check for invalid values and inconsistencies
+    runtime_params['ports'].extend(listify(new_rt_param.get('ports')))
+    if replace_env:
+        runtime_params['volumes'].extend(
+            map(_replace_env_var, listify(new_rt_param.get('volumes'))))
+    else:
+        runtime_params['volumes'].extend(listify(
+            new_rt_param.get('volumes')))
+    runtime_params['env'].update(dict(runtime_params.get('env', {})))
+    for param in ('container_name', 'daemonize', 'interactive', 'term',
+                  'auto_it', 'rm', 'work_dir', 'impersonate', 'network'):
+        if param in new_rt_param:
+            # TODO(itamar): check conflicting overrides
+            runtime_params[param] = new_rt_param[param]
+
+
 def extend_runtime_params(runtime_params, deps, extra_params=None,
                           replace_env=False):
     """
     add all of the deps runtime params, Then add extra_params.
     """
-    KNOWN_RUNTIME_PARAMS = frozenset((
-        'ports', 'volumes', 'container_name', 'daemonize', 'interactive',
-        'term', 'auto_it', 'rm', 'env', 'work_dir', 'impersonate', 'network'))
-
-    def replace_env_var(path):
-        """
-        replace all $VAR with the environment variable value
-        """
-        return re.sub('\$[a-zA-Z_][a-zA-Z0-9_]*',
-                      lambda match: os.environ[match.group()[1:]], path)
-
     if runtime_params is None:
         runtime_params = {}
     runtime_params['ports'] = listify(runtime_params.get('ports'))
     if replace_env:
         runtime_params['volumes'] = list(map(
-            replace_env_var, listify(runtime_params.get('volumes'))))
+            _replace_env_var, listify(runtime_params.get('volumes'))))
     else:
         runtime_params['volumes'] = listify(runtime_params.get('volumes'))
     runtime_params['env'] = dict(runtime_params.get('env', {}))
 
-    def update_runtime_params(new_rt_param: dict, params_source: str):
-        invalid_keys = set(
-            new_rt_param.keys()).difference(KNOWN_RUNTIME_PARAMS)
-        if invalid_keys:
-            raise ValueError(
-                'Unknown keys in runtime params of {}: {}'.format(
-                    params_source, ', '.join(invalid_keys)))
-        # TODO(itamar): check for invalid values and inconsistencies
-        runtime_params['ports'].extend(listify(new_rt_param.get('ports')))
-        if replace_env:
-            runtime_params['volumes'].extend(
-                map(replace_env_var, listify(new_rt_param.get('volumes'))))
-        else:
-            runtime_params['volumes'].extend(listify(
-                new_rt_param.get('volumes')))
-        runtime_params['env'].update(dict(runtime_params.get('env', {})))
-        for param in ('container_name', 'daemonize', 'interactive', 'term',
-                      'auto_it', 'rm', 'work_dir', 'impersonate', 'network'):
-            if param in new_rt_param:
-                # TODO(itamar): check conflicting overrides
-                runtime_params[param] = new_rt_param[param]
-
     for dep in deps:
         if 'runtime_params' in dep.props:
-            update_runtime_params(dep.props.runtime_params,
-                                  'dependency {}'.format(dep.name))
+            update_runtime_params(runtime_params, dep.props.runtime_params,
+                                  'dependency {}'.format(dep.name),
+                                  replace_env)
     if extra_params:
-        update_runtime_params(extra_params, 'extra params')
+        update_runtime_params(runtime_params, extra_params, 'extra params',
+                              replace_env)
     return runtime_params
 
 
