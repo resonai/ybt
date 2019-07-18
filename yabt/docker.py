@@ -227,8 +227,8 @@ def extend_runtime_params(runtime_params, deps, extra_params=None,
         """
         replace all $VAR with the environment variable value
         """
-        return re.sub('\$[A-Z]+', lambda match: os.environ[match.group()[1:]],
-                      path)
+        return re.sub('\$[a-zA-Z_][a-zA-Z0-9_]*',
+                      lambda match: os.environ[match.group()[1:]], path)
 
     if runtime_params is None:
         runtime_params = {}
