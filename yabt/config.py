@@ -52,6 +52,7 @@ class Config:
         'builders_workspace_dir',
         'cmd',
         'default_target_name',
+        'docker_params',
         'docker_volume',
         'flavor',
         'force_pull',

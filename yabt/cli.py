@@ -92,6 +92,8 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    help='Command to use for pulling images from registries')
         PARSER.add('--docker-push-cmd', default='docker push',
                    help='Command to use for pushing images to registries')
+        PARSER.add('--docker-params',
+                   help='Parameters to pass to the docker run command')
         PARSER.add('--docker-volume',
                    help='Use the specified docker volume as buildenv /project')
         PARSER.add('-f', '--flavor', help='Choose build flavor (AKA profile)')
@@ -246,8 +248,6 @@ def init_and_get_conf(argv: list=None) -> Config:
         config.settings, 'get_common_config', config, args)
     config.flavor_conf = call_user_func(
         config.settings, 'get_flavored_config', config, args)
-    config.docker_parameters = call_user_func(
-        config.settings, 'get_docker_parameters', config, args)
     call_user_func(config.settings, 'extend_config', config, args)
     if not args.no_policies:
         config.policies = listify(call_user_func(
