@@ -385,6 +385,7 @@ def build_docker_image(
 
     if deps is None:
         deps = []
+    deps = list(deps)
     # Get all base image deps, so when building this image we can skip adding
     # deps that already exist in the base image.
     base_image_deps = set(build_context.generate_dep_names(base_image))
