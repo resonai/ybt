@@ -25,7 +25,7 @@ NOT to be confused with the Docker builder...
 :author: Itamar Ostricher
 """
 
-
+import re
 from collections import defaultdict, deque
 import os
 from os.path import (
@@ -212,17 +212,30 @@ def format_docker_run_params(params: dict):
     return param_strings
 
 
-def extend_runtime_params(runtime_params, deps, extra_params=None):
+def extend_runtime_params(runtime_params, deps, extra_params=None,
+                          replace_env=False):
     """
     add all of the deps runtime params, Then add extra_params.
     """
     KNOWN_RUNTIME_PARAMS = frozenset((
         'ports', 'volumes', 'container_name', 'daemonize', 'interactive',
         'term', 'auto_it', 'rm', 'env', 'work_dir', 'impersonate'))
+
+    def replace_env_var(path):
+        """
+        replace all $VAR with the environment variable value
+        """
+        return re.sub('\$[A-Z]+', lambda match: os.environ[match.group()[1:]],
+                      path)
+
     if runtime_params is None:
         runtime_params = {}
     runtime_params['ports'] = listify(runtime_params.get('ports'))
-    runtime_params['volumes'] = listify(runtime_params.get('volumes'))
+    if replace_env:
+        runtime_params['volumes'] = list(map(
+            replace_env_var, listify(runtime_params.get('volumes'))))
+    else:
+        runtime_params['volumes'] = listify(runtime_params.get('volumes'))
     runtime_params['env'] = dict(runtime_params.get('env', {}))
 
     def update_runtime_params(new_rt_param: dict, params_source: str):
@@ -234,7 +247,12 @@ def extend_runtime_params(runtime_params, deps, extra_params=None):
                     params_source, ', '.join(invalid_keys)))
         # TODO(itamar): check for invalid values and inconsistencies
         runtime_params['ports'].extend(listify(new_rt_param.get('ports')))
-        runtime_params['volumes'].extend(listify(new_rt_param.get('volumes')))
+        if replace_env:
+            runtime_params['volumes'].extend(
+                map(replace_env_var, listify(new_rt_param.get('volumes'))))
+        else:
+            runtime_params['volumes'].extend(listify(
+                new_rt_param.get('volumes')))
         runtime_params['env'].update(dict(runtime_params.get('env', {})))
         for param in ('container_name', 'daemonize', 'interactive', 'term',
                       'auto_it', 'rm', 'work_dir', 'impersonate'):
