@@ -410,8 +410,6 @@ class BuildContext:
                 '-v', '/etc/passwd:/etc/passwd:ro',
                 '-v', '/etc/sudoers:/etc/sudoers:ro',
             ])
-        if self.conf.docker_params:
-            docker_run.extend(self.conf.docker_params.split(' '))
         docker_run.append(format_qualified_image_name(buildenv_target))
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',

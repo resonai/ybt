@@ -21,7 +21,7 @@ yabt cli module
 :author: Itamar Ostricher
 """
 
-
+import json
 from importlib.machinery import SourceFileLoader
 import os
 
@@ -92,8 +92,6 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    help='Command to use for pulling images from registries')
         PARSER.add('--docker-push-cmd', default='docker push',
                    help='Command to use for pushing images to registries')
-        PARSER.add('--docker-params',
-                   help='Parameters to pass to the docker run command')
         PARSER.add('--docker-volume',
                    help='Use the specified docker volume as buildenv /project')
         PARSER.add('-f', '--flavor', help='Choose build flavor (AKA profile)')
@@ -106,6 +104,8 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    help='Output file for dot graph (default: stdin)')
         # TODO(itamar): this flag should come from the builder, not from here
         PARSER.add('--push', action='store_true')
+        PARSER.add('--runtime-params', type=json.loads,
+                   help='Params to pass to the docker run command in json')
         PARSER.add('--scm-provider')
         PARSER.add('--no-build-cache', action='store_true',
                    help='Disable YBT build cache')

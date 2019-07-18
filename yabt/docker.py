@@ -212,9 +212,9 @@ def format_docker_run_params(params: dict):
     return param_strings
 
 
-def extend_runtime_params(runtime_params, deps):
+def extend_runtime_params(runtime_params, deps, extra_params=None):
     """
-    add all of the deps runtime params
+    add all of the deps runtime params, Then add extra_params.
     """
     KNOWN_RUNTIME_PARAMS = frozenset((
         'ports', 'volumes', 'container_name', 'daemonize', 'interactive',
@@ -246,6 +246,8 @@ def extend_runtime_params(runtime_params, deps):
         if 'runtime_params' in dep.props:
             update_runtime_params(dep.props.runtime_params,
                                   'dependency {}'.format(dep.name))
+    if extra_params:
+        update_runtime_params(extra_params, 'extra params')
     return runtime_params
 
 
@@ -611,7 +613,8 @@ def build_docker_image(
         assert (build_context.conf.get_bin_path() ==
                 commonpath([build_context.conf.get_bin_path(), ybt_bin_path]))
 
-        runtime_params = extend_runtime_params(runtime_params, deps)
+        runtime_params = extend_runtime_params(
+            runtime_params, deps, build_context.conf.runtime_params)
         with open(join(dirname(abspath(__file__)),
                   'ybtbin.sh.tmpl'), 'r') as tmpl_f:
             ybt_bin = tmpl_f.read().format(
