@@ -223,6 +223,13 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     if not isfile(join(cache_dir, 'tested.json')):
         logger.debug('No testing cache found for target {}', target.name)
         return True, False
+
+    # TODO(Dana) - make PythonTest run without mounting the project directory
+    # so that the dependencies will be hermetic, and so is the cache.
+    # Then we will be able to cache python tests.
+    if target.builder_name == 'PythonTest':
+        logger.debug('PythonTest target: {}. not using cache.', target.name)
+        return True, False
     # read the testing cache.
     with open(join(cache_dir, 'tested.json'), 'r') as tested_file:
         target.tested = json.loads(tested_file.read())
