@@ -63,6 +63,7 @@ class Config:
         'offline',
         'output_dot_file',
         'push',
+        'runtime_params',
         'targets',
         'test_attempts',
         'verbose',

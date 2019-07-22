@@ -28,6 +28,7 @@ from os.path import join, relpath
 
 from ostrich.utils.collections import listify
 
+from yabt.docker import extend_runtime_params, format_docker_run_params
 from ..artifact import ArtifactType as AT
 from .dockerapp import build_app_docker_and_bin, register_app_builder_sig
 from ..extend import (
@@ -140,8 +141,13 @@ def pythontest_tester(build_context, target):
     test_env['PYTHONPATH'] = ':'.join(pypath)
     test_env['BIN_DIR'] = build_context.conf.host_to_buildenv_path(
         join(workspace_dir, 'bin'))
+    run_params = extend_runtime_params(
+        target.props.runtime_params,
+        build_context.walk_target_deps_topological_order(target),
+        build_context.conf.runtime_params, True)
     build_context.run_in_buildenv(
-        target.props.in_testenv, target.props.test_cmd, test_env)
+        target.props.in_testenv, target.props.test_cmd, test_env,
+        run_params=format_docker_run_params(run_params))
 
 
 def prepare_test_cmd(build_context, target):

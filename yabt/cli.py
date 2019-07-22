@@ -21,7 +21,7 @@ yabt cli module
 :author: Itamar Ostricher
 """
 
-
+import json
 from importlib.machinery import SourceFileLoader
 import os
 
@@ -104,6 +104,8 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    help='Output file for dot graph (default: stdin)')
         # TODO(itamar): this flag should come from the builder, not from here
         PARSER.add('--push', action='store_true')
+        PARSER.add('--runtime-params', type=json.loads,
+                   help='Params to pass to the docker run command in json')
         PARSER.add('--scm-provider')
         PARSER.add('--no-build-cache', action='store_true',
                    help='Disable YBT build cache')
@@ -246,8 +248,6 @@ def init_and_get_conf(argv: list=None) -> Config:
         config.settings, 'get_common_config', config, args)
     config.flavor_conf = call_user_func(
         config.settings, 'get_flavored_config', config, args)
-    config.docker_parameters = call_user_func(
-        config.settings, 'get_docker_parameters', config, args)
     call_user_func(config.settings, 'extend_config', config, args)
     if not args.no_policies:
         config.policies = listify(call_user_func(

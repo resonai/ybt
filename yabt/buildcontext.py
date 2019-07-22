@@ -353,7 +353,7 @@ class BuildContext:
     def run_in_buildenv(
             self, buildenv_target_name: str, cmd: list, cmd_env: dict=None,
             work_dir: str=None, auto_uid: bool=True, runtime: str=None,
-            **kwargs):
+            run_params: list=None, **kwargs):
         """Run a command in a named BuildEnv Docker image.
 
         :param buildenv_target_name: A named Docker image target in which the
@@ -363,6 +363,7 @@ class BuildContext:
         :param work_dir: A different work dir to run in.
                          Either absolute path, or relative to project root.
         :param auto_uid: Whether to run as the active uid:gid, or as root.
+        :param run_params: Params to pass to the docker run command.
         :param kwargs: Extra keyword arguments that are passed to the
                         subprocess.run() call that runs the BuildEnv container
                         (for, e.g. timeout arg, stdout/err redirection, etc.)
@@ -410,8 +411,8 @@ class BuildContext:
                 '-v', '/etc/passwd:/etc/passwd:ro',
                 '-v', '/etc/sudoers:/etc/sudoers:ro',
             ])
-        if self.conf.docker_parameters:
-            docker_run.extend(self.conf.docker_parameters)
+        if run_params:
+            docker_run.extend(run_params)
         docker_run.append(format_qualified_image_name(buildenv_target))
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
