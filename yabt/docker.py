@@ -525,7 +525,7 @@ def build_docker_image(
             dockerfile.extend([
                 'COPY {} {}\n'.format(packages_dir, tmp_install),
                 'RUN {} && cd / && rm -rf {}\n'.format(
-                    '&& df / && '.join(run_installers), tmp_install),
+                    '&& df -h --output=used / && '.join(run_installers), tmp_install),
             ])
 
         elif pkg_type.startswith('pip'):
