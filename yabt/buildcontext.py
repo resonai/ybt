@@ -352,8 +352,8 @@ class BuildContext:
 
     def run_in_buildenv(
             self, buildenv_target_name: str, cmd: list, cmd_env: dict=None,
-            work_dir: str=None, auto_uid: bool=True, runtime: str=None,
-            run_params: list=None, **kwargs):
+            work_dir: str=None, auto_uid: bool=True, run_params: list=None,
+            **kwargs):
         """Run a command in a named BuildEnv Docker image.
 
         :param buildenv_target_name: A named Docker image target in which the
@@ -385,10 +385,6 @@ class BuildContext:
         container_work_dir = PurePath('/project')
         if work_dir:
             container_work_dir /= work_dir
-        if runtime:
-            docker_run.extend([
-                '--runtime', runtime,
-            ])
 
         docker_run.extend([
             '--rm',
