@@ -55,7 +55,8 @@ logger = make_logger(__name__)
 
 KNOWN_RUNTIME_PARAMS = frozenset((
         'ports', 'volumes', 'container_name', 'daemonize', 'interactive',
-        'term', 'auto_it', 'rm', 'env', 'work_dir', 'impersonate', 'network'))
+        'term', 'auto_it', 'rm', 'env', 'work_dir', 'impersonate', 'network',
+        'runtime'))
 
 
 def make_pip_requirements(pip_requirements: set, pip_req_file_path: str):
@@ -216,6 +217,9 @@ def format_docker_run_params(params: dict):
         param_strings.extend(['-e', '{}="{}"'.format(var, value)])
     if params.get('network'):
         param_strings.extend(['--net', params['network']])
+    if params.get('runtime'):
+        param_strings.extend(['--runtime', params['runtime']])
+
     return param_strings
 
 
