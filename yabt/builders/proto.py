@@ -115,6 +115,7 @@ def proto_builder(build_context, target):
     # Add generated files to artifacts / generated list
     for src in target.props.sources:
         src_base = join(proto_dir, splitext(src)[0])
+        process_generated(src_base + '.proto', AT.proto)
         if target.props.gen_python:
             process_generated(src_base + '_pb2.py', AT.gen_py)
         if target.props.gen_cpp:
