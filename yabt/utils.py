@@ -152,6 +152,7 @@ def link_files(files: set, workspace_src_dir: str,
         abs_src = join(conf.project_root, src)
         abs_dest = join(conf.project_root, workspace_src_dir,
                         relpath(src, base_dir))
+        logger.info('linking: {} to: {}'.format(abs_src, abs_dest))
         link_node(abs_src, abs_dest, conf.builders_workspace_dir in src)
         num_linked += 1
     return num_linked
