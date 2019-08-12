@@ -79,7 +79,7 @@ def rmtree(path: str):
         pass
 
 
-def link_func(src: str, dst: str, force: bool=False):
+def link_func(src: str, dst: str, force: bool=True):
     if force:
         try:
             os.remove(dst)
@@ -91,7 +91,7 @@ def link_func(src: str, dst: str, force: bool=False):
         pass
 
 
-def link_node(abs_src: str, abs_dest: str, force: bool=False):
+def link_node(abs_src: str, abs_dest: str, force: bool=True):
     """Sync source node (file / dir) to destination path using hard links."""
     dest_parent_dir = split(abs_dest)[0]
     if not isdir(dest_parent_dir):
