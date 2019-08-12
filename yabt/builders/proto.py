@@ -72,7 +72,7 @@ def proto_builder(build_context, target):
         if 'sources' in dep.props:
             protos.extend(source for source in dep.props.sources
                           if source.endswith('.proto'))
-        logger.info('protos: {}'.format(protos))
+    logger.info('protos: {}'.format(protos))
     link_files(protos, proto_dir, None, build_context.conf)
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)

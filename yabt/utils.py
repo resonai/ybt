@@ -81,14 +81,18 @@ def rmtree(path: str):
 
 def link_func(src: str, dst: str, force: bool=False):
     if force:
+        logger.info('force is True')
         try:
             os.remove(dst)
         except FileNotFoundError:
             pass
     try:
+        logger.info('trying to ling')
         os.link(src, dst)
     except FileExistsError:
+        logger.info('got exception in linking')
         pass
+    logger.info('done linking: {}'.format(os.path.isfile(dst)))
 
 
 def link_node(abs_src: str, abs_dest: str, force: bool=False):
@@ -97,9 +101,11 @@ def link_node(abs_src: str, abs_dest: str, force: bool=False):
     if not isdir(dest_parent_dir):
         # exist_ok=True in case of concurrent creation of the same
         # parent dir
+        logger.info('creating dir: {}'.format(dest_parent_dir))
         os.makedirs(dest_parent_dir, exist_ok=True)
     if isfile(abs_src):
         # sync file by linking it to dest
+        logger.info('calling link_func with {} and {}'.format(abs_src, abs_dest))
         link_func(abs_src, abs_dest, force)
     elif isdir(abs_src):
         # sync dir by recursively linking files under it to dest
