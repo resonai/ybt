@@ -183,6 +183,13 @@ def proto_manipulate_target(build_context, target):
 
 @register_build_func('ProtoCollector')
 def proto_collector_builder(build_context, target):
+    """
+    Collect all the .proto files that this target depend on to a directory
+    under yabtwork/*/ProtoCollector.
+    If this target depends on a proto target, then all the .proto files needed
+    for building this proto will get to this directory.
+    TODO(Dana): Support not building the proto (we only need the .proto files)
+    """
     workspace_dir = build_context.get_workspace('ProtoCollector', target.name)
     for dep in build_context.generate_all_deps(target):
         artifact_map = dep.artifacts.get(AT.proto)
