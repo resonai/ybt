@@ -34,8 +34,7 @@ from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
 from ..logging import make_logger
-from ..utils import link_files, rmtree, yprint
-
+from ..utils import link_files, rmtree, yprint, link_node
 
 logger = make_logger(__name__)
 
@@ -56,6 +55,8 @@ register_builder_sig(
      ('copy_generated_to', PT.File, None),
      ('cmd_env', None),
      ])
+
+register_builder_sig('ProtoCollector')
 
 
 @register_build_func('Proto')
@@ -178,3 +179,19 @@ def proto_manipulate_target(build_context, target):
     # 2. it is used by docker builder further down the graph, so it should be
     #    populated if the target is cached (and build func is never called)
     add_gen_python_path(target)
+
+
+@register_build_func('ProtoCollector')
+def proto_collector_builder(build_context, target):
+    workspace_dir = build_context.get_workspace('ProtoCollector', target.name)
+    for dep in build_context.generate_all_deps(target):
+        artifact_map = dep.artifacts.get(AT.proto)
+        if not artifact_map:
+            continue
+        for dst, src in artifact_map.items():
+            target_file = join(workspace_dir, dst)
+            link_node(join(build_context.conf.project_root, src), target_file)
+            target.artifacts.add(
+                AT.proto,
+                relpath(target_file, build_context.conf.project_root),
+                relpath(target_file, workspace_dir))
