@@ -51,6 +51,7 @@ register_builder_sig(
      ('gen_cpp_rpcz', PT.bool, False),
      ('gen_python_grpc', PT.bool, False),
      ('gen_cpp_grpc', PT.bool, False),
+     ('gen_descriptor', PT.bool, False),
      ('grpc_plugin_path', PT.str, '/usr/local/bin/grpc_cpp_plugin'),
      ('copy_generated_to', PT.File, None),
      ('cmd_env', None),
@@ -91,6 +92,9 @@ def proto_builder(build_context, target):
         protoc_cmd.extend(('--cpp_rpcz_out', buildenv_workspace))
     if target.props.gen_python_rpcz:
         protoc_cmd.extend(('--python_rpcz_out', buildenv_workspace))
+    if target.props.gen_descriptor:
+        protoc_cmd.extend(('--descriptor_set_out', join(buildenv_workspace,
+                                                        'descriptor.pb')))
     protoc_cmd.extend((PurePath(buildenv_workspace) / 'proto' / src).as_posix()
                       for src in target.props.sources)
     build_context.run_in_buildenv(
@@ -131,6 +135,9 @@ def proto_builder(build_context, target):
         if target.props.gen_cpp_grpc:
             process_generated(src_base + '.grpc.pb.cc', AT.gen_cc)
             process_generated(src_base + '.grpc.pb.h', AT.gen_h)
+    if target.props.gen_descriptor:
+        process_generated(join(workspace_dir, 'descriptor.pb'),
+                          AT.proto_descriptor)
 
     # Create __init__.py files in all generated directories with Python files
     if target.props.gen_python or target.props.gen_python_rpcz:

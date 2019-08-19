@@ -37,6 +37,7 @@ ArtifactType = Enum('ArtifactType', """app
                                        gen_cc
                                        gen_h
                                        proto
+                                       proto_descriptor
                                        custom_installer
                                        docker_image
                                        """)
