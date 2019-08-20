@@ -40,3 +40,24 @@ PythonTest(
     deps=':hello-py',
     in_testenv='//:proto-python'
 )
+
+Proto(
+    'hello2-proto',
+    in_buildenv='//:proto-builder',
+    sources='hello2/hello2.proto',
+    build_params={
+        'extra_link_flags': '-lprotobuf',
+    }
+)
+
+Proto(
+    'hello1-proto',
+    in_buildenv='//:proto-builder',
+    sources='hello1/hello1.proto',
+    build_params={
+        'extra_link_flags': '-lprotobuf',
+    },
+    deps=':hello2-proto'
+)
+
+ProtoCollector('hello1-collector', deps=':hello1-proto')
