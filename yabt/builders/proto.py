@@ -79,8 +79,8 @@ def proto_builder(build_context, target):
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     protoc_cmd = target.props.proto_cmd + ['--proto_path', buildenv_workspace]
-    descriptor_path = join('proto', get_safe_path(target.name.lstrip(':'))
-                           + '_descriptor.pb')
+    descriptor_path = join('proto', get_safe_path(target.name.lstrip(':')) +
+                           '_descriptor.pb')
     if target.props.gen_cpp:
         protoc_cmd.extend(('--cpp_out', buildenv_workspace))
     if target.props.gen_python:
