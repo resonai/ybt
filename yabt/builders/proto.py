@@ -27,6 +27,7 @@ from os.path import dirname, isfile, join, relpath, splitext
 from pathlib import Path, PurePath
 
 from ostrich.utils.path import commonpath
+from ostrich.utils.text import get_safe_path
 
 from ..artifact import ArtifactType as AT
 from ..compat import walk
@@ -78,6 +79,8 @@ def proto_builder(build_context, target):
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     protoc_cmd = target.props.proto_cmd + ['--proto_path', buildenv_workspace]
+    descriptor_path = join('proto', get_safe_path(target.name.lstrip(':'))
+                           + '_descriptor.pb')
     if target.props.gen_cpp:
         protoc_cmd.extend(('--cpp_out', buildenv_workspace))
     if target.props.gen_python:
@@ -95,7 +98,7 @@ def proto_builder(build_context, target):
         protoc_cmd.extend(('--python_rpcz_out', buildenv_workspace))
     if target.props.gen_descriptor:
         protoc_cmd.extend(('--include_imports', '--descriptor_set_out',
-                           join(buildenv_workspace, 'descriptor.pb')))
+                           join(buildenv_workspace, descriptor_path)))
     protoc_cmd.extend((PurePath(buildenv_workspace) / 'proto' / src).as_posix()
                       for src in target.props.sources)
     build_context.run_in_buildenv(
@@ -137,7 +140,7 @@ def proto_builder(build_context, target):
             process_generated(src_base + '.grpc.pb.cc', AT.gen_cc)
             process_generated(src_base + '.grpc.pb.h', AT.gen_h)
     if target.props.gen_descriptor:
-        process_generated(join(workspace_dir, 'descriptor.pb'),
+        process_generated(join(workspace_dir, descriptor_path),
                           AT.proto_descriptor)
 
     # Create __init__.py files in all generated directories with Python files
