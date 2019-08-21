@@ -286,27 +286,29 @@ class BuildContext:
                 # TODO(Dana) separate "failed to build target" errors from
                 # "failed to run" errors.
                 # see: https://github.com/resonai/ybt/issues/124
-                if isinstance(ex, CalledProcessError) and ex.stdout:
-                    sys.stdout.write(ex.stdout.decode('utf-8'))
-                    sys.stderr.write(ex.stderr.decode('utf-8'))
-                if graph_copy.has_node(target.name):
-                    self.failed_nodes[target.name] = ex
-                    # removing all ancestors (nodes that depend on this one)
-                    affected_nodes = get_ancestors(graph_copy, target.name)
-                    graph_copy.remove_node(target.name)
-                    for affected_node in affected_nodes:
-                        if affected_node in self.skipped_nodes:
-                            continue
-                        if graph_copy.has_node(affected_node):
-                            self.skipped_nodes.append(affected_node)
-                            graph_copy.remove_node(affected_node)
-                    if self.conf.continue_after_fail:
-                        logger.info('Failed target: {} due to error: {}',
-                                    target.name, ex)
-                        produced_event.set()
-                    else:
-                        failed_event.set()
-                        fatal('`{}\': {}', target.name, ex)
+                try:
+                    if isinstance(ex, CalledProcessError) and ex.stdout:
+                        sys.stdout.write(ex.stdout.decode('utf-8'))
+                        sys.stderr.write(ex.stderr.decode('utf-8'))
+                finally:
+                    if graph_copy.has_node(target.name):
+                        self.failed_nodes[target.name] = ex
+                        # removing all ancestors (nodes that depend on this one)
+                        affected_nodes = get_ancestors(graph_copy, target.name)
+                        graph_copy.remove_node(target.name)
+                        for affected_node in affected_nodes:
+                            if affected_node in self.skipped_nodes:
+                                continue
+                            if graph_copy.has_node(affected_node):
+                                self.skipped_nodes.append(affected_node)
+                                graph_copy.remove_node(affected_node)
+                        if self.conf.continue_after_fail:
+                            logger.info('Failed target: {} due to error: {}',
+                                        target.name, ex)
+                            produced_event.set()
+                        else:
+                            failed_event.set()
+                            fatal('`{}\': {}', target.name, ex)
 
             return fail_notifier
 
