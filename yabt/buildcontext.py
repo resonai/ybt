@@ -291,7 +291,7 @@ class BuildContext:
                         # TODO(Dana) When ex.stdout has non ascii chars the
                         # call to sys.stdout.write crashes in the inner
                         # function, when colorama/ansitowin32.py assumes that
-                        # the text is ascii encoded
+                        # the text is ascii encoded.
                         sys.stdout.write(ex.stdout.decode('utf-8'))
                         sys.stderr.write(ex.stderr.decode('utf-8'))
                 finally:
