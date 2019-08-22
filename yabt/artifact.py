@@ -83,6 +83,7 @@ class ArtifactStore:
         ArtifactType.gen_py: 'gen',
         ArtifactType.gen_cc: '',
         ArtifactType.gen_h: '',
+        ArtifactType.proto_descriptor: 'gen'
     }
 
     def __init__(self):
