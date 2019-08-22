@@ -288,12 +288,16 @@ class BuildContext:
                 # see: https://github.com/resonai/ybt/issues/124
                 try:
                     if isinstance(ex, CalledProcessError) and ex.stdout:
+                        # TODO(Dana) When ex.stdout has non ascii chars the
+                        # call to sys.stdout.write crashes in the inner
+                        # function, when colorama/ansitowin32.py assumes that
+                        # the text is ascii encoded
                         sys.stdout.write(ex.stdout.decode('utf-8'))
                         sys.stderr.write(ex.stderr.decode('utf-8'))
                 finally:
                     if graph_copy.has_node(target.name):
                         self.failed_nodes[target.name] = ex
-                        # removing all ancestors (nodes that depend on this one)
+                        # remove all ancestors (nodes that depend on this one)
                         affected_nodes = get_ancestors(graph_copy, target.name)
                         graph_copy.remove_node(target.name)
                         for affected_node in affected_nodes:
