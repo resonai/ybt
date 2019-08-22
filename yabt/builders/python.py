@@ -132,7 +132,8 @@ def pythontest_tester(build_context, target):
     rmtree(gen_dir)
     for dep in build_context.generate_all_deps(target):
         dep.artifacts.link_types(
-            workspace_dir, [AT.gen_py, AT.binary], build_context.conf)
+            workspace_dir, [AT.gen_py, AT.binary, AT.proto_descriptor],
+            build_context.conf)
 
     # Run the test module
     test_env = target.props.test_env or {}
