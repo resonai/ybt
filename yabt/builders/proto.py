@@ -97,8 +97,9 @@ def proto_builder(build_context, target):
     if target.props.gen_python_rpcz:
         protoc_cmd.extend(('--python_rpcz_out', buildenv_workspace))
     if target.props.gen_descriptor:
-        protoc_cmd.extend(('--include_imports', '--descriptor_set_out',
-                           join(buildenv_workspace, descriptor_path)))
+        protoc_cmd.extend(
+            ('--include_imports', '--descriptor_set_out',
+             (PurePath(buildenv_workspace) / descriptor_path).as_posix()))
     protoc_cmd.extend((PurePath(buildenv_workspace) / 'proto' / src).as_posix()
                       for src in target.props.sources)
     build_context.run_in_buildenv(
