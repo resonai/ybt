@@ -497,9 +497,15 @@ class BuildContext:
             return False
         # if any dependency of the target is dirty, then the target is dirty
         if any(self.targets[dep].is_dirty for dep in target.deps):
+            logger.info('Cannot use cache of target: {} because it has dirty '
+                        'dependencies: {}', target.name,
+                        [dep for dep in target.deps
+                         if self.targets[dep].is_dirty])
             return False
         # if the target has a dirty buildenv then it's also dirty
         if target.buildenv and self.targets[target.buildenv].is_dirty:
+            logger.info('Cannot use cache of target: {} because its buildenv '
+                        'is dirty: {}', target.name, target.buildenv)
             return False
         return True
 
