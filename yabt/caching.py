@@ -171,6 +171,8 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
         has_global_cache = False
         if build_context.global_cache and \
                 build_context.conf.download_from_global_cache:
+            logger.info('Trying to load target {} from global cache',
+                        target.name)
             has_global_cache = try_use_global_cache(
                 build_context, partial(load_target_from_global_cache, target,
                                        build_context),
