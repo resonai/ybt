@@ -23,7 +23,9 @@ yabt External command builder
 :author: Itamar Ostricher
 """
 
+from os.path import dirname, isfile, join, relpath, splitext
 
+from ..artifact import ArtifactType as AT
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
@@ -41,6 +43,7 @@ register_builder_sig(
      ('cmd_env', None),
      ('work_dir', PT.str, None),
      ('auto_uid', PT.bool, True),
+     ('outs', PT.list, None),
      ],
     # not cachable by default, since in general this builder doesn't know how
     # to keep track of its artifacts
@@ -55,6 +58,31 @@ def ext_command_builder(build_context, target):
         target.props.work_dir, target.props.auto_uid)
     # TODO(itamar): way to describe the artifacts of the external command,
     # so it can be used by dependent targets, and cached in some smart way
+
+    workspace_dir = build_context.get_workspace('ExtCommand', target.name)
+    def find_artifact_type(gen_file):
+      ext = splitext(gen_file)[1]
+      if ext in ['.hpp', '.h']:
+        return AT.gen_h
+      elif ext in ['.cpp', '.cc']:
+        return AT.gen_cc
+      elif ext in ['.py']:
+        return AT.gen_py
+      else:
+        raise RuntimeError(
+          'unsupported artifact for ExtCommand: {}'.format(gen_file))
+
+    if target.props.outs:
+      for gen_file in target.props.outs:
+        if target.props.work_dir:
+          gen_file = join(target.props.work_dir, gen_file)
+        if not isfile(gen_file):
+          raise RuntimeError(
+            'Missing expected generated file: {}'.format(gen_file))
+        target.artifacts.add(
+          find_artifact_type(gen_file),
+          relpath(gen_file, build_context.conf.project_root),
+          relpath(gen_file, workspace_dir))
 
 
 @register_manipulate_target_hook('ExtCommand')
