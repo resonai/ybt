@@ -434,18 +434,20 @@ class BuildContext:
             except UnicodeEncodeError as e:
                 sys.stderr.write('tried writing the stdout of {},\n but it '
                                  'has a problematic character:\n {}\n'
-                                 'hex dump of stdout:\n{}\n'
-                                 .format(docker_run, str(e), codecs.encode(
-                                    result.stdout, 'hex').decode('utf8')))
+                                 'partial hex dump of stdout:\n{}\n'
+                                 .format(docker_run, str(e),
+                                         codecs.encode(result.stdout, 'hex')
+                                         .decode('utf8')[:1000]))
         if kwargs['stderr'] is PIPE:
             try:
                 sys.stderr.write(result.stderr.decode('utf-8'))
             except UnicodeEncodeError as e:
                 sys.stderr.write('tried writing the stderr of {},\n but it '
                                  'has a problematic character:\n {}\n'
-                                 'hex dump of stderr:\n{}\n'
-                                 .format(docker_run, str(e), codecs.encode(
-                                    result.stderr, 'hex').decode('utf8')))
+                                 'partial hex dump of stderr:\n{}\n'
+                                 .format(docker_run, str(e),
+                                         codecs.encode(result.stderr, 'hex')
+                                         .decode('utf8')[:1000]))
         return result
 
     def build_target(self, target: Target):

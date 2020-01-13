@@ -12,7 +12,7 @@ google-cloud-storage
 scandir>=1.2
 
 # For testing
-pytest>=2.9
-pytest-cov>=2.2,<=2.6.0
+pytest>=3.6
+pytest-cov>=2.6.1
 pytest-pep8>=1.0
 tox>=2.3
