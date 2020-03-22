@@ -15,7 +15,7 @@ help:
 	@echo '                                                                   '
 
 test:
-	py.test --pep8 --cov=yabt --with-slow
+	py.test --pep8 --cov=yabt --with-slow --log-cli-level info --full-trace
 
 quicktest:
 	py.test --pep8 --cov=yabt
