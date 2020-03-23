@@ -301,10 +301,9 @@ class BuildContext:
                         affected_nodes = get_ancestors(graph_copy, target.name)
                         graph_copy.remove_node(target.name)
                         for affected_node in affected_nodes:
-                            if affected_node in self.skipped_nodes:
-                                continue
                             if graph_copy.has_node(affected_node):
-                                self.skipped_nodes.append(affected_node)
+                                if affected_node not in self.skipped_nodes:
+                                    self.skipped_nodes.append(affected_node)
                                 graph_copy.remove_node(affected_node)
                         if self.conf.continue_after_fail:
                             logger.info('Failed target: {} due to error: {}',
