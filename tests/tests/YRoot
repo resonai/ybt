@@ -4,7 +4,7 @@ ExtDockerImage('python', image='python', tag='3.7')
 
 AptPackage('gnupg', package='gnupg')
 
-AptPackage('ca-dertificate', package='ca-certificates')
+AptPackage('ca-certificates', package='ca-certificates')
 
 DockerImage('ubuntu-gpg', base_image=':ubuntu', deps=':gnupg')
 
@@ -20,7 +20,7 @@ AptGroup(
         'llvm-8-dev',
         'llvm-8-runtime',
     ],
-    deps=[':ca-dertificate'],
+    deps=[':ca-certificates'],
     repository='deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main',
     repo_key='15CF4D18AF4F7421'
 )
