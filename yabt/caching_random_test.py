@@ -123,6 +123,7 @@ def generate_yroot(project: ProjectContext):
     shutil.copyfile(join(TMPL_DIR, INSTALL_LLVM_REPO_KEY_SCRIPT),
                     INSTALL_LLVM_REPO_KEY_SCRIPT)
 
+
 def get_dependencies(target, target_graph):
     return [':' + dep for dep, other_target in target_graph.edges
             if other_target == target]
