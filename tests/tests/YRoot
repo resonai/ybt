@@ -6,9 +6,12 @@ AptPackage('gnupg', package='gnupg')
 
 AptPackage('curl', package='curl')
 
+AptPackage('ca-certificates', package='ca-certificates')
+
 CustomInstaller(
     'llvm-repo-key',
-    deps=[':curl'],
+    uri='',
+    deps=[':curl', ':ca-certificates',],
     script='install-llvm-repo-key.sh',
 )
 
