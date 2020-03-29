@@ -283,8 +283,7 @@ def test_dep_name_typo(basic_conf):
     with pytest.raises(ValueError) as excinfo:
         populate_targets_graph(build_context, basic_conf)
     ex_msg = str(excinfo.value)
-    print(ex_msg)
-    assert 'Could not resolve 5 targets' in ex_msg
+    assert 'Could not resolve 6 targets' in ex_msg
     assert (':builderz (possible misspelling of [\':builder\']) - buildenv of' +
             ' typo:foo') in ex_msg
     assert ('typo:bar (possible misspelling of [\'typo:base\', \'typo:yapi\',' +
@@ -295,7 +294,9 @@ def test_dep_name_typo(basic_conf):
     assert ('typo:loggin (possible misspelling of [\'typo:logging\',' +
             ' \'typo:foo\', \'typo:yapi\']) - ' +
             'dependency of typo:base') in ex_msg
+    assert ('typo:xyzxyzxyz (possible misspelling of []) - dependency of ' +
+            'typo:unsimilar') in ex_msg
     assert ('typo:zapi (possible misspelling of [\'typo:yapi\', \'typo:base\'' +
             ', \'typo:flask\']) - dependency of typo:foo') in ex_msg
-    # # expecting 5 unresolved targets (so error message will have 6 lines)
-    assert 6 == len(ex_msg.split('\n'))
+    # # expecting 6 unresolved targets (so error message will have 7 lines)
+    assert 7 == len(ex_msg.split('\n'))
