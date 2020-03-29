@@ -24,6 +24,7 @@ yabt target graph
 from collections import defaultdict
 from os.path import relpath
 
+import difflib
 import networkx
 from networkx.algorithms import dag
 
@@ -197,7 +198,9 @@ def raise_unresolved_targets(build_context, conf, unknown_seeds, seed_refs):
                 ', '.join(format_target(target_name)
                           for target_name in sorted(seed_ref.buildenv_of)))
 
-        return '{} - {}'.format(seed, ', '.join(reasons))
+        return '{} (possible misspelling of {}) - {}'.format(
+            seed, difflib.get_close_matches(
+                seed, build_context.targets.keys()), ', '.join(reasons))
 
     unresolved_str = '\n'.join(format_unresolved(target_name)
                                for target_name in sorted(unknown_seeds))

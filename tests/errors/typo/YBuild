@@ -17,3 +17,5 @@ DepTester(
     deps=[':zapi', ':base'],  # <-- typo - wrong dep name
     buildenv='//:builderz'  # <-- typo - wrong buildenv name
 )
+
+DepTester('unsimilar', deps=':xyzxyzxyz')  # <-- typo - wrong dep name
