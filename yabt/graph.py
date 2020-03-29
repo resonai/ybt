@@ -199,8 +199,8 @@ def raise_unresolved_targets(build_context, conf, unknown_seeds, seed_refs):
                           for target_name in sorted(seed_ref.buildenv_of)))
 
         return '{} (possible misspelling of {}) - {}'.format(
-            seed, difflib.get_close_matches(seed, build_context.targets.keys()),
-            ', '.join(reasons))
+            seed, difflib.get_close_matches(
+                seed, build_context.targets.keys()), ', '.join(reasons))
 
     unresolved_str = '\n'.join(format_unresolved(target_name)
                                for target_name in sorted(unknown_seeds))

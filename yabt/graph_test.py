@@ -284,10 +284,10 @@ def test_dep_name_typo(basic_conf):
         populate_targets_graph(build_context, basic_conf)
     ex_msg = str(excinfo.value)
     assert 'Could not resolve 6 targets' in ex_msg
-    assert (':builderz (possible misspelling of [\':builder\']) - buildenv of' +
-            ' typo:foo') in ex_msg
-    assert ('typo:bar (possible misspelling of [\'typo:base\', \'typo:yapi\',' +
-            ' \'typo:flask\']) - seen on command line') in ex_msg
+    assert (':builderz (possible misspelling of [\':builder\']) - ' +
+            'buildenv of typo:foo') in ex_msg
+    assert ('typo:bar (possible misspelling of [\'typo:base\', \'typo:yapi\'' +
+            ', \'typo:flask\']) - seen on command line') in ex_msg
     assert ('typo:blask (possible misspelling of [\'typo:flask\',' +
             ' \'typo:base\', \'typo:yapi\']) - ' +
             'dependency of typo:yapi') in ex_msg
@@ -296,7 +296,8 @@ def test_dep_name_typo(basic_conf):
             'dependency of typo:base') in ex_msg
     assert ('typo:xyzxyzxyz (possible misspelling of []) - dependency of ' +
             'typo:unsimilar') in ex_msg
-    assert ('typo:zapi (possible misspelling of [\'typo:yapi\', \'typo:base\'' +
+    assert ('typo:zapi (possible misspelling of [\'typo:yapi\', ' +
+            '\'typo:base\'' +
             ', \'typo:flask\']) - dependency of typo:foo') in ex_msg
     # # expecting 6 unresolved targets (so error message will have 7 lines)
     assert 7 == len(ex_msg.split('\n'))
