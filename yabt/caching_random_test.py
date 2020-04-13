@@ -63,6 +63,7 @@ CPP_TEST_TARGET = """CppGTest(
 )"""
 YROOT_TMPL = 'YRoot.tmpl'
 INSTALL_GTEST_SCRIPT = 'install-gtest.sh'
+INSTALL_LLVM_REPO_KEY_SCRIPT = 'install-llvm-repo-key.sh'
 YSETTINGS = 'YSettings'
 
 TARGET_TYPES = {
@@ -119,6 +120,8 @@ def generate_yroot(project: ProjectContext):
     with open(config.BUILD_PROJ_FILE, 'w') as yroot_file:
         yroot_file.write(yroot_data + '\n\n'.join(yroot))
     shutil.copyfile(join(TMPL_DIR, INSTALL_GTEST_SCRIPT), INSTALL_GTEST_SCRIPT)
+    shutil.copyfile(join(TMPL_DIR, INSTALL_LLVM_REPO_KEY_SCRIPT),
+                    INSTALL_LLVM_REPO_KEY_SCRIPT)
 
 
 def get_dependencies(target, target_graph):

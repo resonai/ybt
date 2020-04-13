@@ -42,20 +42,20 @@ def clear_bin():
 @pytest.mark.parametrize(
     'test_case',
     (
-        ('compiler_config:defaults', 'clang++-5.0',
+        ('compiler_config:defaults', 'clang++-8',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics', '-O2', '-DDEBUG'], []),
         ('compiler_config:override-compiler', 'foobar',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics', '-O2', '-DDEBUG'], []),
-        ('compiler_config:override-flags', 'clang++-5.0', ['-foo', 'bar'], []),
+        ('compiler_config:override-flags', 'clang++-8', ['-foo', 'bar'], []),
         # TODO: known failure - make it work...
-        # ('compiler_config:override-flags-empty', 'clang++-5.0', [], []),
-        ('compiler_config:post-extend-flags', 'clang++-5.0',
+        # ('compiler_config:override-flags-empty', 'clang++-8', [], []),
+        ('compiler_config:post-extend-flags', 'clang++-8',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics',
           '-O2', '-DDEBUG', '-foo', 'bar'], []),
-        ('compiler_config:pre-extend-flags', 'clang++-5.0',
+        ('compiler_config:pre-extend-flags', 'clang++-8',
          ['-foo', 'bar', '-std=c++14', '-Wall', '-fcolor-diagnostics',
           '-O2', '-DDEBUG'], []),
-        ('compiler_config:dep-extend-flags', 'clang++-5.0',
+        ('compiler_config:dep-extend-flags', 'clang++-8',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics',
           '-O2', '-DDEBUG', '-DFOO=BAR'], ['-lfoo']),
     ))
@@ -79,17 +79,17 @@ def test_compiler_config(basic_conf, test_case):
 @pytest.mark.parametrize(
     'test_case',
     (
-        ('compiler_config:defaults', 'clang++-5.0',
+        ('compiler_config:defaults', 'clang++-8',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics', '-g', '-DDEBUG']),
         ('compiler_config:override-compiler', 'foobar',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics', '-g', '-DDEBUG']),
-        ('compiler_config:override-flags', 'clang++-5.0', ['-foo', 'bar']),
+        ('compiler_config:override-flags', 'clang++-8', ['-foo', 'bar']),
         # TODO: known failure - make it work...
-        # ('compiler_config:override-flags-empty', 'clang++-5.0', []),
-        ('compiler_config:post-extend-flags', 'clang++-5.0',
+        # ('compiler_config:override-flags-empty', 'clang++-8', []),
+        ('compiler_config:post-extend-flags', 'clang++-8',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics',
           '-g', '-DDEBUG', '-foo', 'bar']),
-        ('compiler_config:pre-extend-flags', 'clang++-5.0',
+        ('compiler_config:pre-extend-flags', 'clang++-8',
          ['-foo', 'bar', '-std=c++14', '-Wall', '-fcolor-diagnostics',
           '-g', '-DDEBUG']),
     ))

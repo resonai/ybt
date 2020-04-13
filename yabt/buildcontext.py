@@ -301,10 +301,9 @@ class BuildContext:
                         affected_nodes = get_ancestors(graph_copy, target.name)
                         graph_copy.remove_node(target.name)
                         for affected_node in affected_nodes:
-                            if affected_node in self.skipped_nodes:
-                                continue
                             if graph_copy.has_node(affected_node):
-                                self.skipped_nodes.append(affected_node)
+                                if affected_node not in self.skipped_nodes:
+                                    self.skipped_nodes.append(affected_node)
                                 graph_copy.remove_node(affected_node)
                         if self.conf.continue_after_fail:
                             logger.info('Failed target: {} due to error: {}',
@@ -631,20 +630,24 @@ class BuildContext:
                   '\n=============================' +
                   Style.RESET_ALL)
             for target_name, ex in self.failed_nodes.items():
-                print('\n\nTarget', target_name,
-                      'failed executing command:\n\n')
-                print(' '.join(ex.cmd[0]))
-                print('\n')
-                if ex.stdout:
-                    print('\n=============================',
-                          '\nstdout output for the target:',
-                          '\n=============================\n')
-                    print(ex.stdout.decode('utf-8'))
-                if ex.stderr:
-                    print('\n=============================',
-                          '\nstderr output for the target:',
-                          '\n=============================')
-                    print(ex.stderr.decode('utf-8'))
+                if isinstance(ex, CalledProcessError) and ex.stdout:
+                    print('\n\nTarget', target_name,
+                          'failed executing command:\n\n')
+                    print(' '.join(ex.cmd[0]))
+                    print('\n')
+                    if ex.stdout:
+                        print('\n=============================',
+                              '\nstdout output for the target:',
+                              '\n=============================\n')
+                        print(ex.stdout.decode('utf-8'))
+                    if ex.stderr:
+                        print('\n=============================',
+                              '\nstderr output for the target:',
+                              '\n=============================')
+                        print(ex.stderr.decode('utf-8'))
+                else:
+                    print('\n\nTarget', target_name, 'failed with error:',
+                          str(ex))
             fatal_noexc('Finished building target graph with fails: \n{}\n'
                         'which caused the following to skip: \n{}',
                         list(self.failed_nodes), self.skipped_nodes)
