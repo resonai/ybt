@@ -297,7 +297,7 @@ class BuildContext:
                 finally:
                     if graph_copy.has_node(target.name):
                         self.failed_nodes[target.name] = ex
-                        # remove all ancestors (nodes that depend on this one) 
+                        # remove all ancestors (nodes that depend on this one)
                         affected_nodes = get_ancestors(graph_copy, target.name)
                         graph_copy.remove_node(target.name)
                         for affected_node in affected_nodes:
