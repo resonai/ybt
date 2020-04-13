@@ -31,7 +31,7 @@ import networkx
 import pytest
 
 from . import test_utils as tu
-from .test_utils import generate_random_dag
+from .test_utils import (generate_random_dag,  write_test_dot)
 from .buildcontext import BuildContext
 from .graph import (
         get_descendants, populate_targets_graph,
@@ -235,7 +235,7 @@ def test_stable_topological_sort2():
          Using generate_random_dag
          to create a random graph
     """
-    graph = tu.generate_random_dag(list(str(range(10))))
+    graph = tu.generate_random_dag(list(map(lambda x: str(x), range(10))))
     top_sort_l = list(topological_sort(graph))
     hash_res0 = dict()
     for root in get_graph_roots(graph):
@@ -244,7 +244,7 @@ def test_stable_topological_sort2():
         cur_g = cut_from_graph(graph, root)
         top_sort_l = list(topological_sort(cur_g))
         hash = tu.calc_node_hash(cur_g, top_sort_l, root)
-        assert hash_res0[root] == hash
+        assert hash_res0[root] == hash,  write_test_dot(graph)
 
 
 def test_stable_topological_sort3():

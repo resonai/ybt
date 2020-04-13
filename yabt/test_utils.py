@@ -25,6 +25,7 @@ import string
 import hashlib
 import networkx as nx
 from networkx.algorithms import dag
+from datetime import datetime
 
 
 def generate_random_dag(nodes, min_rank=0, max_rank=10, edge_prob=0.3):
@@ -197,20 +198,28 @@ def calc_node_hash(graph, sort_g_list, node):
     return md5.hexdigest()
 
 
-def write_test_dot(nx_g, out_fname):
+def write_test_dot(nx_g, out_fname=''):
     """Write build graph in dot format to `out_f` file-like object."""
     if not out_fname:
-        return
+        now = datetime.now()
+        out_fname = now.strftime('ybt_%2d_%2m_%Y_%2H_%2M_%2S_%f.dot')
     fout = open(out_fname, 'w')
     fout.write('strict digraph    {\n')
-    l_d = nx.get_node_attributes(nx_g, 'trg')
-    for key in l_d:
-        node = l_d[key]
-        fout.write(
-            '    {} ;\n'.format(key)
-        )
+    clrs = nx.get_node_attributes(nx_g, 'color')
+    stls = nx.get_node_attributes(nx_g, 'style')
+    fclrs = nx.get_node_attributes(nx_g, 'fillcolor')
+    for node in nx_g.nodes():
+        s = '['
+        if node in clrs:
+            s = s + 'color=' + str(clrs[node]) + ','
+        if node in stls:
+            s = s + 'color=' + str(stls[node]) + ','
+        if node in fclrs:
+            s = s + 'color=' + str(fclrs[node]) + ','
+        fout.write('  {} {}];\n'.format(node, s))
     fout.writelines('    {} -> {};\n'.format(u, v)
                     for u, v in nx_g.edges())
     fout.write('}\n\n')
     fout.close()
     print('Output file is "{}"'.format(out_fname))
+    return out_fname
