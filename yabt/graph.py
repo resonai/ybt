@@ -34,7 +34,7 @@ from .config import Config
 from .logging import make_logger
 from .target_utils import (
     norm_name, parse_target_selectors, split, split_build_module)
-from .utils import yprint
+#  from .utils import yprint
 
 
 logger = make_logger(__name__)
@@ -326,8 +326,131 @@ def populate_targets_graph(build_context, conf: Config):
                 build_context.target_graph.size())
 
 
+def mod_kahn_top_sort(graph):
+    """ This is a modified topological sorting of Kahn.
+    The result does not depend on the permutation of nodes.
+            Kahn's algorithm:
+    L <- Empty list that will contain the sorted elements
+    S <- Set of all nodes with no incoming edge
+
+    while S is non-empty do
+    remove a node n from S
+    add n to tail of L
+    for each node m with an edge e from n to m do
+        remove edge e from the graph
+        if m has no other incoming edges then
+        insert m into S
+
+    if graph has edges then
+    return error     (graph has at least one cycle)
+    else
+    return L     (a topologically sorted order)
+    """
+    graph = graph.copy()
+    visited = dict.fromkeys(graph.nodes(), False)
+    while True:
+        set_s = []
+        for node in graph.nodes():
+            if not visited[node]:
+                if graph.in_degree(node) == 0:
+                    visited[node] = True
+                    set_s.append(node)
+        set_s.sort()
+        if not set_s:
+            break
+        for node in set_s:
+            yield node
+            graph.remove_node(node)
+    if graph:
+        raise networkx.NetworkXUnfeasible('Graph contains a cycle.')
+
+
+def top_sort_subgraph_stable(graph):
+    """
+    This is a  topological sorting algorithm stable for all subgraphs
+    L <- Empty stack that will contain the sorted elements
+    S <- Set of all nodes with no outcoming edges
+
+    while S is non-empty do
+    remove a node n from S
+    add n to tail of L
+    for each node m with an edge e from n to m do
+        remove edge e from the graph
+        if m has no other outcoming edges then
+        insert m into S
+
+    if graph has edges then
+    return error     (graph has at least one cycle)
+    else
+    return L     (a topologically sorted order)
+    """
+    if not graph.is_directed():
+        raise networkx.NetworkXError(
+            'Topological sort not defined on undirected graphs.')
+    graph = graph.copy()
+    ret = list()
+    visited = dict.fromkeys(graph.nodes(), False)
+    while True:
+        set_s = []
+        for node in graph.nodes():
+            if not visited[node]:
+                if graph.out_degree(node) == 0:
+                    visited[node] = True
+                    set_s.append(node)
+        set_s.sort()
+        if not set_s:
+            break
+        for node in set_s:
+            ret.insert(0, node)
+            graph.remove_node(node)
+    if graph:
+        raise networkx.NetworkXUnfeasible('Graph contains a cycle.')
+    return ret
+
+
+def top_rev_sort_subgraph_stable(graph):
+    """
+    This is a  topological sorting algorithm stable for all subgraphs
+    L <- Empty queue that will contain the sorted elements
+    S <- Set of all nodes with no outcoming edges
+
+    while S is non-empty do
+    remove a node n from S
+    add n to tail of L
+    for each node m with an edge e from n to m do
+        remove edge e from the graph
+        if m has no other outcoming edges then
+        insert m into S
+
+    if graph has edges then
+    return error     (graph has at least one cycle)
+    else
+    return L     (a topologically sorted order)
+    """
+    if not graph.is_directed():
+        raise networkx.NetworkXError(
+            'Topological sort not defined on undirected graphs.')
+    graph = graph.copy()
+    visited = dict.fromkeys(graph.nodes(), False)
+    while True:
+        set_s = []
+        for node in graph.nodes():
+            if not visited[node]:
+                if graph.out_degree(node) == 0:
+                    visited[node] = True
+                    set_s.append(node)
+        #  set_s.sort()
+        if not set_s:
+            break
+        for node in set_s:
+            yield node
+            graph.remove_node(node)
+    if graph:
+        raise networkx.NetworkXUnfeasible('Graph contains a cycle.')
+
+
 def topological_sort(graph: networkx.DiGraph):
-    yield from stable_reverse_topological_sort(graph)
+    yield from top_rev_sort_subgraph_stable(graph)
 
 
 def get_descendants(graph: networkx.DiGraph, source):
@@ -338,3 +461,20 @@ def get_descendants(graph: networkx.DiGraph, source):
 def get_ancestors(graph: networkx.DiGraph, child):
     """Return all nodes that have 'child' as a descendant in 'graph'"""
     return dag.ancestors(graph, child)
+
+
+def get_graph_roots(graph):
+    for id_deg in graph.in_degree():
+        if id_deg[1] == 0:
+            yield id_deg[0]
+
+
+def cut_from_graph(graph, name):
+    graph = graph.copy()
+    cut_s = {name}
+    cut_s.update(dag.descendants(graph, name))
+    nodes = list(graph.nodes())
+    for node in nodes:
+        if node not in cut_s:
+            graph.remove_node(node)
+    return graph

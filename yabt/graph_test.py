@@ -30,9 +30,13 @@ from unittest.mock import Mock
 import networkx
 import pytest
 
+from . import test_utils as tu
 from .test_utils import generate_random_dag
 from .buildcontext import BuildContext
-from .graph import (get_descendants, populate_targets_graph, topological_sort)
+from .graph import (
+        get_descendants, populate_targets_graph,
+        topological_sort, get_graph_roots, cut_from_graph
+    )
 
 
 def make_random_dag_build_context(
@@ -160,10 +164,11 @@ def test_target_graph(basic_conf):
              ('yapi/server:yapi-gunicorn', ':gunicorn'),
              ('common:base', 'common:logging'))) ==
         set(build_context.target_graph.edges))
-    assert ([':flask', ':gunicorn', 'common:logging', 'common:base',
-             'yapi/server:users', 'fe:fe', 'yapi/server:yapi',
-             'yapi/server:yapi-gunicorn'] ==
-            list(topological_sort(build_context.target_graph)))
+    assert (
+        [':flask', ':gunicorn', 'yapi/server:users', 'common:logging',
+            'common:base', 'yapi/server:yapi', 'fe:fe',
+            'yapi/server:yapi-gunicorn']
+        == list(topological_sort(build_context.target_graph)))
 
 
 @pytest.mark.usefixtures('in_yapi_dir')
@@ -207,23 +212,58 @@ def test_target_graph_intenral_dir(basic_conf):
         set(build_context.target_graph.edges))
 
 
-def test_stable_topological_sort():
-    """Test that my modified topological sort is stable.
-
-    Note - not doing many cycles because I saw that even with the non-stable
-    implementation, it is stable in the context of the same process...
-    (only reruns showed the unstable behavior)
+def test_stable_topological_sort1():
+    """Test that sort is stable for subgraph
+         Using CBuildTrgtTest.create_rand_graph
+         to create a random graph
     """
-    expected_order = ['world', 'bar', 'baz', 'hello', 'foo']
+    bldt = tu.CBuildTrgtTest()
+    graph = bldt.create_rand_graph()
+    top_sort_l = list(topological_sort(graph))
+    hash_res0 = dict()
+    for root in get_graph_roots(graph):
+        hash_res0[root] = tu.calc_node_hash(graph, top_sort_l, root)
+    for root in get_graph_roots(graph):
+        cur_g = cut_from_graph(graph, root)
+        top_sort_l = list(topological_sort(cur_g))
+        hash = tu.calc_node_hash(cur_g, top_sort_l, root)
+        assert hash_res0[root] == hash
 
+
+def test_stable_topological_sort2():
+    """Test that sort is stable for subgraph
+         Using generate_random_dag
+         to create a random graph
+    """
+    graph = tu.generate_random_dag(list(str(range(10))))
+    top_sort_l = list(topological_sort(graph))
+    hash_res0 = dict()
+    for root in get_graph_roots(graph):
+        hash_res0[root] = tu.calc_node_hash(graph, top_sort_l, root)
+    for root in get_graph_roots(graph):
+        cur_g = cut_from_graph(graph, root)
+        top_sort_l = list(topological_sort(cur_g))
+        hash = tu.calc_node_hash(cur_g, top_sort_l, root)
+        assert hash_res0[root] == hash
+
+
+def test_stable_topological_sort3():
+    """Test that sort is stable for subgraph
+         Using create_dag_eges
+         to create a random graph
+    """
     graph = networkx.DiGraph()
-    graph.add_edges_from([('foo', 'bar'), ('foo', 'baz'),
-                          ('bar', 'world'), ('foo', 'hello')])
-    assert list(topological_sort(graph)) == expected_order
-
-    same_graph = networkx.DiGraph({'foo': ['baz', 'hello', 'bar']})
-    same_graph.add_edge('bar', 'world')
-    assert list(topological_sort(same_graph)) == expected_order
+    for edge in tu.create_dag_eges(40, 0.4):
+        graph.add_edge(str(edge[0]), str(edge[1]))
+    top_sort_l = list(topological_sort(graph))
+    hash_res0 = dict()
+    for root in get_graph_roots(graph):
+        hash_res0[root] = tu.calc_node_hash(graph, top_sort_l, root)
+    for root in get_graph_roots(graph):
+        cur_g = cut_from_graph(graph, root)
+        top_sort_l = list(topological_sort(cur_g))
+        hash = tu.calc_node_hash(cur_g, top_sort_l, root)
+        assert hash_res0[root] == hash
 
 
 def test_topological_sort1():
@@ -248,10 +288,10 @@ def test_topological_sort2():
         list(topological_sort(graph))
 
     graph.remove_edge(1, 2)
-    assert list(topological_sort(graph)) == [1, 5, 4, 3, 2, 15, 14, 13, 12, 11]
+    assert list(topological_sort(graph)) == [1, 15, 5, 14, 4, 13, 3, 12, 2, 11]
 
 
-def test_topological_sort4():
+def test_topological_sort3():
     graph = networkx.Graph()
     graph.add_edge(1, 2)
     with pytest.raises(networkx.NetworkXError):

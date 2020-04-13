@@ -21,9 +21,10 @@ Creates the dot graph
 :author: Dana Shamir
 """
 
-
+import re
 from .caching import get_prebuilt_targets
 from .config import Config
+import networkx
 
 
 TARGETS_COLORS = {'AptPackage': 'brown4',
@@ -57,6 +58,35 @@ def get_not_buildenv_targets(build_context):
                 visited.add(successor)
                 to_do.append(successor)
     return visited
+
+
+def dot_file_line_proc(nx_g, line):
+    """ Parsing dot file line """
+    l_s = re.split(r'\s*->\s*', line)
+    if len(l_s) == 2:
+        name = re.sub(r'\s+|;', '', l_s[0]).strip('\"')
+        child_name = re.sub(r'\s+|;', '', l_s[1]).strip('\"')
+        nx_g.add_edge(name, child_name)
+    else:
+        l_s = re.split(r'\s+', line, 2)
+        if (not l_s[0]) & bool(l_s[1]):
+            name = l_s[1].strip('\"')
+            d_l = dict()
+            for a_l in re.split(r'\[|,|\]|;|\n', l_s[2]):
+                l_s = re.split('=', a_l)
+                if len(l_s) == 2:
+                    d_l.update({l_s[0].strip('\"'): l_s[1].strip('\"')})
+            nx_g.add_node(name, **d_l)
+
+
+def load_dot(in_fname):
+    """ Read graph from dot format """
+    in_f = open(in_fname, 'r')
+    nx_g = networkx.DiGraph()
+    for line in in_f:
+        dot_file_line_proc(nx_g, line)
+    in_f.close()
+    return nx_g
 
 
 def write_dot(build_context, conf: Config, out_f):
