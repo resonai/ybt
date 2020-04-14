@@ -439,7 +439,7 @@ def top_rev_sort_subgraph_stable(graph):
                 if graph.out_degree(node) == 0:
                     visited[node] = True
                     set_s.append(node)
-        #  set_s.sort()
+        set_s.sort()
         if not set_s:
             break
         for node in set_s:

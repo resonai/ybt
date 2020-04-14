@@ -165,9 +165,9 @@ def test_target_graph(basic_conf):
              ('common:base', 'common:logging'))) ==
         set(build_context.target_graph.edges))
     assert (
-        [':flask', ':gunicorn', 'yapi/server:users', 'common:logging',
-            'common:base', 'yapi/server:yapi', 'fe:fe',
-            'yapi/server:yapi-gunicorn']
+        [':flask', ':gunicorn', 'common:logging',
+            'yapi/server:users', 'common:base',
+            'fe:fe', 'yapi/server:yapi', 'yapi/server:yapi-gunicorn']
         == list(topological_sort(build_context.target_graph)))
 
 
