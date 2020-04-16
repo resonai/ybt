@@ -81,11 +81,10 @@ def dot_file_line_proc(nx_g, line):
 
 def load_dot(in_fname):
     """ Read graph from dot format """
-    in_f = open(in_fname, 'r')
-    nx_g = networkx.DiGraph()
-    for line in in_f:
-        dot_file_line_proc(nx_g, line)
-    in_f.close()
+    with open(in_fname, 'r') as in_f:
+        nx_g = networkx.DiGraph()
+        for line in in_f:
+            dot_file_line_proc(nx_g, line)
     return nx_g
 
 
