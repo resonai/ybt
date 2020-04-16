@@ -21,13 +21,15 @@ yabt buildfile parser tests
 :author: Itamar Ostricher
 """
 
-import platform
 from os.path import join
+import re
 
 import pytest
 
 from .buildcontext import BuildContext
 from .graph import populate_targets_graph
+from .logging import make_logger
+logger = make_logger(__name__)
 
 
 @pytest.mark.usefixtures('in_error_project')
@@ -38,10 +40,8 @@ def test_parser_error(basic_conf, capsys):
         populate_targets_graph(build_context, basic_conf)
     _, err = capsys.readouterr()
     ybuild_path = join('tests', 'errors', 'parser-error', 'YBuild')
-    if platform.python_version() >= '3.8':
-        assert '{}", line 4'.format(ybuild_path) in err
-    else:
-        assert '{}", line 6'.format(ybuild_path) in err
+    logger.debug('test_parser_error: {}', err)
+    assert re.search('{}", line [4-8]'.format(ybuild_path), err)
     assert (
         "Fatal: Must provide fully-qualified target name (with `:') to "
         "avoid possible ambiguity - `users' not valid\n" in err)
