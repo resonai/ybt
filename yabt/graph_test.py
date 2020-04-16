@@ -166,9 +166,9 @@ def test_target_graph(basic_conf):
         set(build_context.target_graph.edges))
     assert (
         [':flask', ':gunicorn', 'common:logging',
-            'yapi/server:users', 'common:base',
-            'fe:fe', 'yapi/server:yapi', 'yapi/server:yapi-gunicorn']
-        == list(topological_sort(build_context.target_graph)))
+         'yapi/server:users', 'common:base',
+         'fe:fe', 'yapi/server:yapi', 'yapi/server:yapi-gunicorn'
+         ] == list(topological_sort(build_context.target_graph)))
 
 
 @pytest.mark.usefixtures('in_yapi_dir')
