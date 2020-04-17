@@ -227,7 +227,7 @@ def test_stable_topological_sort1():
         cur_g = cut_from_graph(graph, root)
         top_sort_l = list(topological_sort(cur_g))
         hash = tu.calc_node_hash(cur_g, top_sort_l, root)
-        assert hash_res0[root] == hash
+        assert hash_res0[root] == hash, write_test_dot(graph)
 
 
 def test_stable_topological_sort2():
@@ -244,7 +244,7 @@ def test_stable_topological_sort2():
         cur_g = cut_from_graph(graph, root)
         top_sort_l = list(topological_sort(cur_g))
         hash = tu.calc_node_hash(cur_g, top_sort_l, root)
-        assert hash_res0[root] == hash,  write_test_dot(graph)
+        assert hash_res0[root] == hash, write_test_dot(graph)
 
 
 def test_stable_topological_sort3():
@@ -252,6 +252,16 @@ def test_stable_topological_sort3():
          Using create_dag_eges
          to create a random graph
     """
+    def shuffle_graph(graph):
+        l_g = list(graph.nodes())
+        random.shuffle(l_g)
+        nx_g = networkx.DiGraph()
+        for name in l_g:
+            nx_g.add_node(name)
+        l_e = list(graph.edges())
+        for e_d in l_e:
+            nx_g.add_edge(e_d[0], e_d[1])
+        return nx_g
     graph = networkx.DiGraph()
     for edge in tu.create_dag_eges(40, 0.4):
         graph.add_edge(str(edge[0]), str(edge[1]))
@@ -259,11 +269,17 @@ def test_stable_topological_sort3():
     hash_res0 = dict()
     for root in get_graph_roots(graph):
         hash_res0[root] = tu.calc_node_hash(graph, top_sort_l, root)
+    for i in range(5):
+        cur_g = shuffle_graph(graph)
+        top_sort_l = list(topological_sort(cur_g))
+        for root in get_graph_roots(graph):
+            hash = tu.calc_node_hash(cur_g, top_sort_l, root)
+            assert hash_res0[root] == hash, write_test_dot(graph)
     for root in get_graph_roots(graph):
         cur_g = cut_from_graph(graph, root)
         top_sort_l = list(topological_sort(cur_g))
         hash = tu.calc_node_hash(cur_g, top_sort_l, root)
-        assert hash_res0[root] == hash
+        assert hash_res0[root] == hash, write_test_dot(graph)
 
 
 def test_topological_sort1():
