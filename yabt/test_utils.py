@@ -69,59 +69,85 @@ def create_dag_eges(num, p):
     return edges
 
 
-sort_test_cfg = [
-    {
-        "BuildTargets": [
-            {
-                "Name": "AptPackage", "Childs": ["AptPackage"], "MinChilds": 0
-            },
-            {
-                "Name": "CppGTest", "Childs": ["CppLib", "CppProg"],
-                "MinChilds": 1
-            },
-            {
-                "Name": "CppLib", "Childs": ["Proto", "AptPackage"],
-                "MinChilds": 1
-            },
-            {
-                "Name": "CppProg", "Childs": ["CppLib", "Proto", "AptPackage"],
-                "MinChilds": 1
-            },
-            {
-                "Name": "CustomInstaller", "Childs":
-                [
-                    "CppLib", "Proto", "CppProg", "CppGTest",
-                    "Python", "PythonPackage", "PythonTest"
-                ], "MinChilds": 3
-            },
-            {
-                "Name": "Proto", "Childs": ["Proto"], "MinChilds": 0
-            },
-            {
-                "Name": "Python", "Childs": ["Python", "PythonPackage"],
-                "MinChilds": 0
-            },
-            {
-                "Name": "PythonPackage", "Childs": ["PythonPackage"],
-                "MinChilds": 0
-            },
-            {
-                "Name": "PythonTest", "Childs": ["PythonPackage", "Python"],
-                "MinChilds": 2
-            }
-        ]
-    },
-    {
-        "Config": {
-            "MinNameLen": 2, "MaxNameLen": 5, "Steps": 100, "MaxStepNodes": 8
-        }
-    }
-]
-
-
 class CBuildTrgtTest:
     """Class for creating a random package
-        with projects and their dependencies"""
+        with projects and their dependencies.
+
+        The package contains several projects. All projects consist of files.
+        Single-file projects are also allowed. Some projects may be
+        independent of others, some should depend on others, such as
+        an installation script. Not all dependencies are valid, for example,
+        the library cannot depend on the executable file. All applicable rules
+        and dependencies were originally read from a json file. Then I
+        hard-coded the contents of the most successful file into sort_test_cfg.
+            The CBuildTrgtType class contains the name and properties of the
+        project type. In the constructor of the CBuildTrgtTest class, all
+        project types are written to the trgs variable and configuration data
+        to the min_name_len, max_name_len, steps, max_step_nodes
+        variables. File names will be randomly generated from
+        min_name_len to max_name_len in length.
+            A random package is created in the create_rand_graph function.
+        In the loop, we call the __add_nodes function steps times.
+        The __add_nodes function adds a maximum of MaxStepNodes
+        files. Each file is added along with its random dependencies in
+        accordance with the rules from the trgs table. Since files without
+        parents are added at each step, the cycle cannot be formed
+        on a common graph. Thus, the create_rand_graph function
+        always returns a Directed Acyclic Graph (DAG)
+    """
+    sort_test_cfg = [
+        {
+            "BuildTargets": [
+                {
+                    "Name": "AptPackage", "Childs": ["AptPackage"],
+                    "MinChilds": 0
+                },
+                {
+                    "Name": "CppGTest", "Childs": ["CppLib", "CppProg"],
+                    "MinChilds": 1
+                },
+                {
+                    "Name": "CppLib", "Childs": ["Proto", "AptPackage"],
+                    "MinChilds": 1
+                },
+                {
+                    "Name": "CppProg",
+                    "Childs": ["CppLib", "Proto", "AptPackage"],
+                    "MinChilds": 1
+                },
+                {
+                    "Name": "CustomInstaller", "Childs":
+                    [
+                        "CppLib", "Proto", "CppProg", "CppGTest",
+                        "Python", "PythonPackage", "PythonTest"
+                    ], "MinChilds": 3
+                },
+                {
+                    "Name": "Proto", "Childs": ["Proto"], "MinChilds": 0
+                },
+                {
+                    "Name": "Python", "Childs": ["Python", "PythonPackage"],
+                    "MinChilds": 0
+                },
+                {
+                    "Name": "PythonPackage", "Childs": ["PythonPackage"],
+                    "MinChilds": 0
+                },
+                {
+                    "Name": "PythonTest",
+                    "Childs": ["PythonPackage", "Python"],
+                    "MinChilds": 2
+                }
+            ]
+        },
+        {
+            "Config": {
+                "MinNameLen": 2, "MaxNameLen": 5,
+                "Steps": 100, "MaxStepNodes": 8
+            }
+        }
+    ]
+
     class CBuildTrgtType:
         """ Type of project"""
         def __init__(self, trg):
@@ -133,11 +159,11 @@ class CBuildTrgtTest:
             return trg.name in self.childs
 
     def __init__(self):
-        bd_trgs = sort_test_cfg[0]['BuildTargets']
+        bd_trgs = CBuildTrgtTest.sort_test_cfg[0]['BuildTargets']
         self.trgs = list()
         for trg in bd_trgs:
             self.trgs.append(CBuildTrgtTest.CBuildTrgtType(trg))
-        cfg = sort_test_cfg[1]['Config']
+        cfg = CBuildTrgtTest.sort_test_cfg[1]['Config']
         self.min_name_len = cfg['MinNameLen']
         self.max_name_len = cfg['MaxNameLen']
         self.steps = cfg['Steps']
@@ -150,13 +176,6 @@ class CBuildTrgtTest:
         name = ''.join(random.choice(self.letters) for i in range(str_len))
         i = random.randint(0, len(self.trgs) - 1)
         return [name, self.trgs[i]]
-
-    def __add_node(self, nx_g, name, b_type_name):
-        """ Added node with its type"""
-        for trg in self.trgs:
-            if trg.name == b_type_name:
-                nx_g.add_node(name, trg=trg)
-                return
 
     def __add_nodes(self, nx_g):
         """ Added random nodes with its random dependencies"""
