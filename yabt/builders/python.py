@@ -51,7 +51,7 @@ register_builder_sig(
     'PythonPackage',
     [('package', PT.str),
      ('version', PT.str, None),
-     ('pip', PT.str, 'pip2'),
+     ('pip', PT.str, 'pip'),
      ])
 
 
