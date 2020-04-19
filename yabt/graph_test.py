@@ -24,35 +24,15 @@ yabt target graph tests
 
 from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
-import io
 import random
+from unittest.mock import Mock
 
 import networkx
 import pytest
 
+from .test_utils import generate_random_dag
 from .buildcontext import BuildContext
-from .graph import (
-    get_descendants, populate_targets_graph, topological_sort, write_dot)
-from .extend import Plugin
-
-
-slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
-                          reason='need --with-slow option to run')
-
-
-def generate_random_dag(num_nodes, min_rank=0, max_rank=10, edge_prob=0.3):
-    """Return a random DAG with `num_nodes` nodes.
-
-    Nodes values will be (0..num_nodes-1),
-    and edges can only go from i -> j if i < j (guaranteeing DAGness).
-    """
-    g = networkx.DiGraph()
-    g.add_nodes_from(range(num_nodes))
-    for j in range(1, num_nodes):
-        rank = random.randint(min_rank, min(j, max_rank))
-        g.add_edges_from((i, j) for i in random.sample(range(j), k=rank)
-                         if random.random() > edge_prob)
-    return g
+from .graph import (get_descendants, populate_targets_graph, topological_sort)
 
 
 def make_random_dag_build_context(
@@ -65,8 +45,9 @@ def make_random_dag_build_context(
             self.value = n
 
     # Use random DAG to create a build context with dummy targets
-    g = generate_random_dag(num_nodes, min_rank, max_rank, edge_prob)
-    build_context = BuildContext(None)
+    g = generate_random_dag(list(range(num_nodes)),
+                            min_rank, max_rank, edge_prob)
+    build_context = BuildContext(Mock())
     build_context.target_graph = g
     for n in g.nodes():
         build_context.targets[n] = DummyTarget(n)
@@ -92,7 +73,7 @@ def test_small_dag_scan():
     random_dag_scan(500)
 
 
-@slow
+@pytest.mark.slow
 def test_big_dag_scan():
     random_dag_scan(2000)
 
@@ -157,7 +138,7 @@ def test_small_multithreaded_dag_scan():
     multithreaded_dag_scanner(1000)
 
 
-@slow
+@pytest.mark.slow
 def test_big_multithreaded_dag_scan():
     multithreaded_dag_scanner(10000)
 
@@ -302,36 +283,21 @@ def test_dep_name_typo(basic_conf):
     with pytest.raises(ValueError) as excinfo:
         populate_targets_graph(build_context, basic_conf)
     ex_msg = str(excinfo.value)
-    assert 'Could not resolve 5 targets' in ex_msg
-    assert ':builderz - buildenv of typo:foo' in ex_msg
-    assert 'typo:bar - seen on command line' in ex_msg
-    assert 'typo:blask - dependency of typo:yapi' in ex_msg
-    assert 'typo:loggin - dependency of typo:base' in ex_msg
-    assert 'typo:zapi - dependency of typo:foo' in ex_msg
-    # # expecting 5 unresolved targets (so error message will have 6 lines)
-    assert 6 == len(ex_msg.split('\n'))
-
-
-@pytest.mark.usefixtures('in_dag_project')
-def test_graph_dot_generation(basic_conf):
-    build_context = BuildContext(basic_conf)
-    populate_targets_graph(build_context, basic_conf)
-    expected_dot_nodes = set([
-        '  ":flask";', '  ":gunicorn";', '  "common:logging";',
-        '  "common:base";', '  "fe:fe";', '  "yapi/server:users";',
-        '  "yapi/server:yapi";', '  "yapi/server:yapi-gunicorn";'])
-    expected_dot_edges = set([
-        '  "common:base" -> "common:logging";',
-        '  "fe:fe" -> "yapi/server:users";', '  "fe:fe" -> "common:base";',
-        '  "fe:fe" -> ":flask";', '  "yapi/server:yapi" -> "common:base";',
-        '  "yapi/server:yapi" -> ":flask";',
-        '  "yapi/server:yapi-gunicorn" -> "yapi/server:yapi";',
-        '  "yapi/server:yapi-gunicorn" -> "common:base";',
-        '  "yapi/server:yapi-gunicorn" -> ":gunicorn";'])
-    with io.StringIO() as dot_io:
-        write_dot(build_context, basic_conf, dot_io)
-        dot_lines = dot_io.getvalue().strip('\n').split('\n')
-        assert 'strict digraph  {' == dot_lines[0]
-        assert '}' == dot_lines[-1]
-        assert expected_dot_nodes == set(dot_lines[1:9])
-        assert expected_dot_edges == set(dot_lines[9:18])
+    assert 'Could not resolve 6 targets' in ex_msg
+    assert (':builderz (possible misspelling of [\':builder\']) - ' +
+            'buildenv of typo:foo') in ex_msg
+    assert ('typo:bar (possible misspelling of [\'typo:base\', \'typo:yapi\'' +
+            ', \'typo:flask\']) - seen on command line') in ex_msg
+    assert ('typo:blask (possible misspelling of [\'typo:flask\',' +
+            ' \'typo:base\', \'typo:yapi\']) - ' +
+            'dependency of typo:yapi') in ex_msg
+    assert ('typo:loggin (possible misspelling of [\'typo:logging\',' +
+            ' \'typo:foo\', \'typo:yapi\']) - ' +
+            'dependency of typo:base') in ex_msg
+    assert ('typo:xyzxyzxyz (possible misspelling of []) - dependency of ' +
+            'typo:unsimilar') in ex_msg
+    assert ('typo:zapi (possible misspelling of [\'typo:yapi\', ' +
+            '\'typo:base\'' +
+            ', \'typo:flask\']) - dependency of typo:foo') in ex_msg
+    # # expecting 6 unresolved targets (so error message will have 7 lines)
+    assert 7 == len(ex_msg.split('\n'))

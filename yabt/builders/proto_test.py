@@ -27,14 +27,12 @@ from subprocess import PIPE
 
 import pytest
 
+from conftest import reset_parser
+from .. import cli, extend
 from . import proto
 from ..buildcontext import BuildContext
 from ..graph import populate_targets_graph
 from ..utils import yprint
-
-
-slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
-                          reason='need --with-slow option to run')
 
 
 def clear_output():
@@ -44,7 +42,7 @@ def clear_output():
         pass
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_proto_project')
 def test_proto_builder(basic_conf):
     clear_output()
@@ -67,7 +65,7 @@ def test_proto_builder(basic_conf):
     clear_output()
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_proto_project')
 def test_proto_cpp_prog(basic_conf):
     build_context = BuildContext(basic_conf)
@@ -81,3 +79,55 @@ def test_proto_cpp_prog(basic_conf):
         stdout=PIPE, stderr=PIPE)
     assert 0 == result.returncode
     assert b'Hello, World!' == result.stdout
+
+
+@pytest.mark.slow
+@pytest.mark.usefixtures('in_proto_project')
+def test_proto_collector(basic_conf):
+    build_context = BuildContext(basic_conf)
+    basic_conf.targets = ['app:hello1-collector']
+    populate_targets_graph(build_context, basic_conf)
+    build_context.build_graph()
+    assert_all_proto_files_exist()
+
+
+@pytest.mark.slow
+@pytest.mark.usefixtures('in_proto_project')
+def test_proto_collector_build_from_cache():
+    # Create cache
+    reset_parser()
+    conf = cli.init_and_get_conf(['--non-interactive', 'build'])
+    extend.Plugin.load_plugins(conf)
+    build_context = BuildContext(conf)
+    conf.targets = ['app:hello1-collector']
+    populate_targets_graph(build_context, conf)
+    build_context.build_graph()
+
+    # Build from cache
+    shutil.rmtree(join('yabtwork', 'flavor__all__'))
+    build_context2 = BuildContext(conf)
+    populate_targets_graph(build_context2, conf)
+    build_context2.build_graph()
+    assert_all_proto_files_exist()
+
+
+def assert_all_proto_files_exist():
+    assert isdir('yabtwork')
+    assert isdir(join('yabtwork', 'flavor__all__'))
+    assert isdir(join('yabtwork', 'flavor__all__', 'ProtoCollector'))
+    assert isdir(join('yabtwork', 'flavor__all__', 'ProtoCollector',
+                      'app_hello1-collector'))
+    assert isdir(join('yabtwork', 'flavor__all__', 'ProtoCollector',
+                      'app_hello1-collector', 'proto'))
+    assert isdir(join('yabtwork', 'flavor__all__', 'ProtoCollector',
+                      'app_hello1-collector', 'proto', 'app'))
+    assert isdir(join('yabtwork', 'flavor__all__', 'ProtoCollector',
+                      'app_hello1-collector', 'proto', 'app', 'hello1'))
+    assert isfile(join('yabtwork', 'flavor__all__', 'ProtoCollector',
+                       'app_hello1-collector', 'proto', 'app', 'hello1',
+                       'hello1.proto'))
+    assert isdir(join('yabtwork', 'flavor__all__', 'ProtoCollector',
+                      'app_hello1-collector', 'proto', 'app', 'hello2'))
+    assert isfile(join('yabtwork', 'flavor__all__', 'ProtoCollector',
+                       'app_hello1-collector', 'proto', 'app', 'hello2',
+                       'hello2.proto'))

@@ -22,6 +22,7 @@ yabt utils
 """
 
 
+import functools
 import hashlib
 import os
 from os.path import isdir, isfile, join, normpath, relpath, split
@@ -78,7 +79,7 @@ def rmtree(path: str):
         pass
 
 
-def link_func(src: str, dst: str, force: bool=False):
+def link_func(src: str, dst: str, force: bool=True):
     if force:
         try:
             os.remove(dst)
@@ -90,7 +91,7 @@ def link_func(src: str, dst: str, force: bool=False):
         pass
 
 
-def link_node(abs_src: str, abs_dest: str, force: bool=False):
+def link_node(abs_src: str, abs_dest: str, force: bool=True):
     """Sync source node (file / dir) to destination path using hard links."""
     dest_parent_dir = split(abs_dest)[0]
     if not isdir(dest_parent_dir):
@@ -103,7 +104,8 @@ def link_node(abs_src: str, abs_dest: str, force: bool=False):
     elif isdir(abs_src):
         # sync dir by recursively linking files under it to dest
         shutil.copytree(abs_src, abs_dest,
-                        copy_function=link_func,
+                        copy_function=functools.partial(link_func,
+                                                        force=force),
                         ignore=shutil.ignore_patterns('.git'))
     else:
         raise FileNotFoundError(abs_src)
@@ -150,7 +152,7 @@ def link_files(files: set, workspace_src_dir: str,
         abs_src = join(conf.project_root, src)
         abs_dest = join(conf.project_root, workspace_src_dir,
                         relpath(src, base_dir))
-        link_node(abs_src, abs_dest, True)
+        link_node(abs_src, abs_dest)
         num_linked += 1
     return num_linked
 

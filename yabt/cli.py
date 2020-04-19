@@ -21,7 +21,7 @@ yabt cli module
 :author: Itamar Ostricher
 """
 
-
+import json
 from importlib.machinery import SourceFileLoader
 import os
 
@@ -104,6 +104,8 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    help='Output file for dot graph (default: stdin)')
         # TODO(itamar): this flag should come from the builder, not from here
         PARSER.add('--push', action='store_true')
+        PARSER.add('--runtime-params', type=json.loads,
+                   help='Params to pass to the docker run command in json')
         PARSER.add('--scm-provider')
         PARSER.add('--no-build-cache', action='store_true',
                    help='Disable YBT build cache')
@@ -123,6 +125,23 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    help='Whether to log to STDOUT')
         PARSER.add('--loglevel', default='INFO', choices=LOG_LEVELS_CHOICES,
                    help='Log level threshold')
+        PARSER.add('--show-buildenv-deps', type=bool, default=False,
+                   help='When running dot, if set to True then the buildenv '
+                        'targets are printed to the graph too')
+        PARSER.add('--download-from-global-cache', default=False,
+                   action='store_true',
+                   help='download from global cache targets that are not '
+                        'cached locally')
+        PARSER.add('--upload-to-global-cache', default=False,
+                   action='store_true',
+                   help='upload to global cache targets that were built')
+        PARSER.add('--download-tests-from-global-cache', default=False,
+                   action='store_true',
+                   help='download from global cache tests that are not '
+                        'cached locally')
+        PARSER.add('--upload-tests-to-global-cache', default=False,
+                   action='store_true',
+                   help='upload to global cache tests that were run')
         PARSER.add('cmd', choices=['build', 'dot', 'test', 'tree', 'version'])
         PARSER.add('targets', nargs='*')
     return PARSER

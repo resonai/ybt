@@ -36,6 +36,8 @@ ArtifactType = Enum('ArtifactType', """app
                                        gen_py
                                        gen_cc
                                        gen_h
+                                       proto
+                                       proto_descriptor
                                        custom_installer
                                        docker_image
                                        """)
@@ -81,6 +83,7 @@ class ArtifactStore:
         ArtifactType.gen_py: 'gen',
         ArtifactType.gen_cc: '',
         ArtifactType.gen_h: '',
+        ArtifactType.proto_descriptor: 'gen'
     }
 
     def __init__(self):

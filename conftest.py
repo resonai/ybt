@@ -23,6 +23,8 @@ yabt py.test conftest
 
 
 import os
+import shutil
+import tempfile
 
 import configargparse
 import pytest
@@ -34,6 +36,19 @@ from yabt import cli
 
 def pytest_addoption(parser):
     parser.addoption('--with-slow', action='store_true', help='run slow tests')
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "slow: mark test as slow to run")
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--with-slow"):
+        return
+    skip_slow = pytest.mark.skip(reason="need --with-slow option to run")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)
 
 
 def reset_parser():
@@ -57,6 +72,9 @@ def yabt_project_fixture(project):
 def in_simple_project():
     yield from yabt_project_fixture('simple')
 
+@yield_fixture
+def in_simpleflat_project():
+    yield from yabt_project_fixture('simpleflat')
 
 @yield_fixture
 def in_dag_project():
@@ -96,6 +114,16 @@ def in_cpp_project():
 @yield_fixture
 def in_tests_project():
     yield from yabt_project_fixture('tests')
+
+
+@yield_fixture
+def tmp_dir():
+    orig_dir = os.getcwd()
+    _tmp_dir = tempfile.mkdtemp()
+    os.chdir(_tmp_dir)
+    yield _tmp_dir
+    os.chdir(orig_dir)
+    shutil.rmtree(_tmp_dir)
 
 
 @yield_fixture

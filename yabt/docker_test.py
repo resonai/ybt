@@ -31,11 +31,7 @@ from .graph import populate_targets_graph, topological_sort
 from .yabt import cmd_build
 
 
-slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
-                          reason='need --with-slow option to run')
-
-
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_simple_project')
 def test_run_in_buildenv(basic_conf):
     build_context = BuildContext(basic_conf)
@@ -58,7 +54,7 @@ def test_run_in_buildenv(basic_conf):
     assert 'com.ybt.foo:bar' in labels and 'com.ybt.here:there' in labels
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_simple_project')
 def test_ybt_bin_generation(basic_conf):
     basic_conf.targets = ['app:flask-app']
@@ -68,7 +64,7 @@ def test_ybt_bin_generation(basic_conf):
                 in app_ybt_bin.read())
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_pkgmgrs_project')
 def test_package_managers_install_order(basic_conf):
     basic_conf.targets = [':the-image']
@@ -85,7 +81,7 @@ def test_package_managers_install_order(basic_conf):
         'cd /tmp/install1/node && cat install-nodejs.sh | tr -d \'\\r\' | bash'
         ' && cd / && rm -rf /tmp/install1\n',
         'RUN apt-get update -y && apt-get install --no-install-recommends -y '
-        'ruby2.3 ruby2.3-dev && rm -rf /var/lib/apt/lists/*\n',
+        'ruby ruby-dev && rm -rf /var/lib/apt/lists/*\n',
         'COPY requirements_pip_1.txt /usr/src/\n',
         'RUN pip install --no-cache-dir --upgrade pip && '
         'pip install --no-cache-dir -r /usr/src/requirements_pip_1.txt\n',
@@ -102,7 +98,7 @@ def test_package_managers_install_order(basic_conf):
         assert exp_dockerfile == dockerfile.readlines()
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_pkgmgrs_project')
 def test_generate_needed_lists(basic_conf):
     build_context = BuildContext(basic_conf)

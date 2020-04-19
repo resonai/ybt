@@ -2,22 +2,34 @@ ExtDockerImage('ubuntu', image='ubuntu', tag='18.04')
 
 AptPackage('gnupg', package='gnupg')
 
+AptPackage('curl', package='curl')
+
+AptPackage('ca-certificates', package='ca-certificates')
+
+CustomInstaller(
+    'llvm-repo-key',
+    uri='',
+    deps=[':curl', ':ca-certificates',],
+    script='install-llvm-repo-key.sh',
+)
+
 DockerImage('ubuntu-gpg', base_image=':ubuntu', deps=':gnupg')
 
 AptGroup(
     'clang',
     packages=[
-        'clang-5.0',
-        'libclang-common-5.0-dev',
-        'libclang-5.0-dev',
-        'libllvm5.0',
-        'lldb-5.0',
-        'llvm-5.0',
-        'llvm-5.0-dev',
-        'llvm-5.0-runtime',
+        'clang-8',
+        'libclang-common-8-dev',
+        'libclang-8-dev',
+        'libllvm8',
+        'lldb-8',
+        'llvm-8',
+        'llvm-8-dev',
+        'llvm-8-runtime',
     ],
-    repository='deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-5.0 main',
-    repo_key='15CF4D18AF4F7421'
+    deps=[':llvm-repo-key'],
+#    repository='deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main',
+#    repo_key='15CF4D18AF4F7421'
 )
 
 DockerImage('builder', base_image=':ubuntu-gpg', deps=':clang')

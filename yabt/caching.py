@@ -24,10 +24,12 @@ TODO: implement also distributed caching
 will require keeping track of which machine produced what, so it is possible
 to rerun "cached" tests on machines with different hardware (for example).
 """
-
+import itertools
 import json
+import os
+from functools import partial
 from os import makedirs
-from os.path import isdir, isfile, join, relpath, split
+from os.path import isdir, isfile, join, relpath, split, dirname
 import shutil
 from time import time
 
@@ -45,6 +47,7 @@ from .utils import hash_tree, rmnode, rmtree
 logger = make_logger(__name__)
 
 _NO_CACHE_TYPES = frozenset((AT.app, AT.docker_image))
+MAX_FAILS_FROM_GLOBAL = 5
 
 
 class CachedDescendants(dict):
@@ -115,6 +118,46 @@ def write_summary(summary: dict, cache_dir: str):
         summary_file.write(json.dumps(summary, indent=4, sort_keys=True))
 
 
+def load_target_from_global_cache(target: Target, build_context) -> bool:
+    target_hash = target.hash(build_context)
+    if not build_context.global_cache.has_cache(target_hash):
+        return False
+    cache_dir = build_context.conf.get_cache_dir(target, build_context)
+    makedirs(cache_dir, exist_ok=True)
+    if not build_context.global_cache.download_summary(
+            target_hash, join(cache_dir, 'summary.json')):
+        return False
+    if not build_context.global_cache.download_artifacts_meta(
+            target_hash, join(cache_dir, 'artifacts.json')):
+        return False
+    with open(join(cache_dir, 'artifacts.json'), 'r') as artifacts_meta_file:
+        artifacts_desc = json.load(artifacts_meta_file)
+    makedirs(build_context.conf.get_artifacts_cache_dir(), exist_ok=True)
+    if not build_context.global_cache.download_artifacts(
+        get_artifacts_hashes(artifacts_desc),
+            build_context.conf.get_artifacts_cache_dir()):
+        return False
+    if build_context.conf.download_tests_from_global_cache:
+        build_context.global_cache.download_test_cache(
+            target_hash, join(cache_dir, 'tested.json'))
+    return True
+
+
+def get_artifacts_hashes(artifact_desc):
+    """
+    Returns a dict containing all the artifacts hashes as keys and the
+    permissions required for the artifact.
+    """
+    artifacts_hashes = {}
+    for type_name, artifact_list in artifact_desc.items():
+        artifact_type = getattr(AT, type_name)
+        for artifact in artifact_list:
+            if artifact_type not in _NO_CACHE_TYPES and 'hash' in artifact \
+                    and artifact['hash'] is not None:
+                artifacts_hashes[artifact['hash']] = artifact['permissions']
+    return artifacts_hashes
+
+
 def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     """Load `target` from build cache, restoring cached artifacts & summary.
        Return (build_cached, test_cached) tuple.
@@ -125,7 +168,22 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if not isdir(cache_dir):
         logger.debug('No cache dir found for target {}', target.name)
-        return False, False
+        has_global_cache = False
+        if build_context.global_cache and \
+                build_context.conf.download_from_global_cache:
+            logger.info('Trying to load target {} from global cache',
+                        target.name)
+            has_global_cache = try_use_global_cache(
+                build_context, partial(load_target_from_global_cache, target,
+                                       build_context),
+                'an error occurred while trying to download target {} from '
+                'global cache'.format(target.name))
+        if not has_global_cache:
+            try:
+                shutil.rmtree(cache_dir)
+            except FileNotFoundError:
+                pass
+            return False, False
     # read summary file and restore relevant fields into target
     with open(join(cache_dir, 'summary.json'), 'r') as summary_file:
         summary = json.loads(summary_file.read())
@@ -166,6 +224,13 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     # check that the testing cache exists.
     if not isfile(join(cache_dir, 'tested.json')):
         logger.debug('No testing cache found for target {}', target.name)
+        return True, False
+
+    # TODO(Dana) - make PythonTest run without mounting the project directory
+    # so that the dependencies will be hermetic, and so is the cache.
+    # Then we will be able to cache python tests.
+    if target.builder_name == 'PythonTest':
+        logger.debug('PythonTest target: {}. not using cache.', target.name)
         return True, False
     # read the testing cache.
     with open(join(cache_dir, 'tested.json'), 'r') as tested_file:
@@ -229,11 +294,25 @@ def restore_artifact(src_path: str, artifact_hash: str, conf: Config):
             rmnode(abs_src_path)
         logger.debug('Restoring cached artifact {} to {}',
                      artifact_hash, src_path)
+        makedirs(dirname(abs_src_path), exist_ok=True)
         shutil.copy(cached_artifact_path, abs_src_path)
         return True
     logger.debug('No cached artifact for {} with hash {}',
                  src_path, artifact_hash)
     return False
+
+
+def save_target_in_global_cache(target: Target, build_context, cache_dir,
+                                artifacts_desc):
+    target_hash = target.hash(build_context)
+    build_context.global_cache.create_target_cache(target_hash)
+    build_context.global_cache.upload_summary(target_hash,
+                                              join(cache_dir, 'summary.json'))
+    build_context.global_cache.upload_artifacts_meta(
+        target_hash, join(cache_dir, 'artifacts.json'))
+    build_context.global_cache.upload_artifacts(
+        get_artifacts_hashes(artifacts_desc),
+        build_context.conf.get_artifacts_cache_dir())
 
 
 def save_target_in_cache(target: Target, build_context):
@@ -271,7 +350,11 @@ def save_target_in_cache(target: Target, build_context):
     artifacts_desc = {
         artifact_type.name:
         [{'dst': dst_path, 'src': src_path,
-          'hash': artifact_hashes.get(dst_path)}
+          'hash': artifact_hashes.get(dst_path),
+          # We also save the permissions because when downloading from gs we
+          # don't get the files with the right permissions.
+          'permissions': os.stat(src_path).st_mode
+            if artifact_type not in _NO_CACHE_TYPES else None}
          for dst_path, src_path in artifact_map.items()]
         for artifact_type, artifact_map in artifacts.items()
     }
@@ -285,6 +368,13 @@ def save_target_in_cache(target: Target, build_context):
     if summary.get('created') is None:
         summary['created'] = time()
     write_summary(summary, cache_dir)
+
+    if build_context.global_cache \
+            and build_context.conf.upload_to_global_cache:
+        try_use_global_cache(build_context, partial(
+            save_target_in_global_cache, target, build_context, cache_dir,
+            artifacts_desc), 'an error occurred while trying to upload '
+                             'target {} to global cache'.format(target.name))
 
 
 def save_test_in_cache(target: Target, build_context) -> bool:
@@ -300,6 +390,36 @@ def save_test_in_cache(target: Target, build_context) -> bool:
         logger.debug('Cannot cache test {} - build cache is missing',
                      target.name)
         return False
-    with open(join(cache_dir, 'tested.json'), 'w') as tested_file:
+    tested_path = join(cache_dir, 'tested.json')
+    with open(tested_path, 'w') as tested_file:
         tested_file.write(json.dumps(target.tested, indent=4, sort_keys=True))
+    target_hash = target.hash(build_context)
+    if build_context.global_cache \
+            and build_context.conf.upload_tests_to_global_cache:
+        try_use_global_cache(
+            build_context,
+            partial(build_context.global_cache.upload_test_cache, target_hash,
+                    tested_path),
+            'an error occurred while trying to upload test of target {} to '
+            'global cache'.format(target.name))
     return True
+
+
+def try_use_global_cache(build_context, func, error_msg):
+    """
+    Checks if should use global cache (by num of failures),
+    if there was a failure, increment number of global cache failures.
+
+    :param build_context: contains the global cache
+    :param func: the function that uses the global cache
+    :param error_msg: error msg to show for a failure.
+    :return: return value of func if it worked, False otherwise.
+    """
+    if build_context.global_cache_failures < MAX_FAILS_FROM_GLOBAL:
+        try:
+            return func()
+        except Exception as e:
+            logger.warning(error_msg)
+            logger.warning(str(e))
+            build_context.global_cache_failures += 1
+            return False

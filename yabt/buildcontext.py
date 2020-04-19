@@ -22,6 +22,7 @@ yabt Build context module
 """
 
 
+import codecs
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
@@ -36,9 +37,10 @@ from time import sleep, time
 
 import networkx as nx
 from colorama import Fore, Style
-from ostrich.utils.proc import run
+from ostrich.utils.proc import run, CalledProcessError
 from ostrich.utils.text import get_safe_path
 
+from yabt.cli import call_user_func
 from .caching import (get_prebuilt_targets, load_target_from_cache,
                       save_target_in_cache, save_test_in_cache)
 from .config import Config
@@ -96,6 +98,8 @@ class BuildContext:
         # A dictionary for collecting metadata on build artifacts
         self.artifacts_metadata = {}
         self.context_lock = threading.Lock()
+        self.global_cache = call_user_func(conf.settings, 'get_global_cache')
+        self.global_cache_failures = 0
 
     def get_workspace(self, *parts) -> str:
         """Return a path to a private workspace dir.
@@ -279,26 +283,35 @@ class BuildContext:
             def fail_notifier(ex):
                 """Mark target as failed, taking it and ancestors
                    out of the queue"""
-                sys.stdout.write(ex.stdout.decode('utf-8'))
-                sys.stderr.write(ex.stderr.decode('utf-8'))
-                if graph_copy.has_node(target.name):
-                    self.failed_nodes[target.name] = ex
-                    # removing all ancestors (nodes that depend on this one)
-                    affected_nodes = get_ancestors(graph_copy, target.name)
-                    graph_copy.remove_node(target.name)
-                    for affected_node in affected_nodes:
-                        if affected_node in self.skipped_nodes:
-                            continue
-                        if graph_copy.has_node(affected_node):
-                            self.skipped_nodes.append(affected_node)
-                            graph_copy.remove_node(affected_node)
-                    if self.conf.continue_after_fail:
-                        logger.info('Failed target: {} due to error: {}',
-                                    target.name, ex)
-                        produced_event.set()
-                    else:
-                        failed_event.set()
-                        fatal('`{}\': {}', target.name, ex)
+                # TODO(Dana) separate "failed to build target" errors from
+                # "failed to run" errors.
+                # see: https://github.com/resonai/ybt/issues/124
+                try:
+                    if isinstance(ex, CalledProcessError) and ex.stdout:
+                        # TODO(Dana) When ex.stdout has non ascii chars the
+                        # call to sys.stdout.write crashes in the inner
+                        # function, when colorama/ansitowin32.py assumes that
+                        # the text is ascii encoded.
+                        sys.stdout.write(ex.stdout.decode('utf-8'))
+                        sys.stderr.write(ex.stderr.decode('utf-8'))
+                finally:
+                    if graph_copy.has_node(target.name):
+                        self.failed_nodes[target.name] = ex
+                        # remove all ancestors (nodes that depend on this one)
+                        affected_nodes = get_ancestors(graph_copy, target.name)
+                        graph_copy.remove_node(target.name)
+                        for affected_node in affected_nodes:
+                            if graph_copy.has_node(affected_node):
+                                if affected_node not in self.skipped_nodes:
+                                    self.skipped_nodes.append(affected_node)
+                                graph_copy.remove_node(affected_node)
+                        if self.conf.continue_after_fail:
+                            logger.info('Failed target: {} due to error: {}',
+                                        target.name, ex)
+                            produced_event.set()
+                        else:
+                            failed_event.set()
+                            fatal('`{}\': {}', target.name, ex)
 
             return fail_notifier
 
@@ -344,7 +357,8 @@ class BuildContext:
 
     def run_in_buildenv(
             self, buildenv_target_name: str, cmd: list, cmd_env: dict=None,
-            work_dir: str=None, auto_uid: bool=True, **kwargs):
+            work_dir: str=None, auto_uid: bool=True, run_params: list=None,
+            **kwargs):
         """Run a command in a named BuildEnv Docker image.
 
         :param buildenv_target_name: A named Docker image target in which the
@@ -354,6 +368,7 @@ class BuildContext:
         :param work_dir: A different work dir to run in.
                          Either absolute path, or relative to project root.
         :param auto_uid: Whether to run as the active uid:gid, or as root.
+        :param run_params: Params to pass to the docker run command.
         :param kwargs: Extra keyword arguments that are passed to the
                         subprocess.run() call that runs the BuildEnv container
                         (for, e.g. timeout arg, stdout/err redirection, etc.)
@@ -375,6 +390,7 @@ class BuildContext:
         container_work_dir = PurePath('/project')
         if work_dir:
             container_work_dir /= work_dir
+
         docker_run.extend([
             '--rm',
             '-v', project_vol + ':/project',
@@ -396,6 +412,8 @@ class BuildContext:
                 '-v', '/etc/passwd:/etc/passwd:ro',
                 '-v', '/etc/sudoers:/etc/sudoers:ro',
             ])
+        if run_params:
+            docker_run.extend(run_params)
         docker_run.append(format_qualified_image_name(buildenv_target))
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
@@ -406,10 +424,29 @@ class BuildContext:
         if 'stdout' not in kwargs:
             kwargs['stdout'] = PIPE
         result = run(docker_run, check=True, **kwargs)
+
+        # TODO(Dana): Understand what is the right enconding and remove the
+        # try except
         if kwargs['stdout'] is PIPE:
-            sys.stdout.write(result.stdout)
+            try:
+                sys.stdout.write(result.stdout.decode('utf-8'))
+            except UnicodeEncodeError as e:
+                sys.stderr.write('tried writing the stdout of {},\n but it '
+                                 'has a problematic character:\n {}\n'
+                                 'partial hex dump of stdout:\n{}\n'
+                                 .format(docker_run, str(e),
+                                         codecs.encode(result.stdout, 'hex')
+                                         .decode('utf8')[:1000]))
         if kwargs['stderr'] is PIPE:
-            sys.stderr.write(result.stderr)
+            try:
+                sys.stderr.write(result.stderr.decode('utf-8'))
+            except UnicodeEncodeError as e:
+                sys.stderr.write('tried writing the stderr of {},\n but it '
+                                 'has a problematic character:\n {}\n'
+                                 'partial hex dump of stderr:\n{}\n'
+                                 .format(docker_run, str(e),
+                                         codecs.encode(result.stderr, 'hex')
+                                         .decode('utf8')[:1000]))
         return result
 
     def build_target(self, target: Target):
@@ -461,9 +498,15 @@ class BuildContext:
             return False
         # if any dependency of the target is dirty, then the target is dirty
         if any(self.targets[dep].is_dirty for dep in target.deps):
+            logger.info('Cannot use cache of target: {} because it has dirty '
+                        'dependencies: {}', target.name,
+                        [dep for dep in target.deps
+                         if self.targets[dep].is_dirty])
             return False
         # if the target has a dirty buildenv then it's also dirty
         if target.buildenv and self.targets[target.buildenv].is_dirty:
+            logger.info('Cannot use cache of target: {} because its buildenv '
+                        'is dirty: {}', target.name, target.buildenv)
             return False
         return True
 
@@ -587,20 +630,24 @@ class BuildContext:
                   '\n=============================' +
                   Style.RESET_ALL)
             for target_name, ex in self.failed_nodes.items():
-                print('\n\nTarget', target_name,
-                      'failed executing command:\n\n')
-                print(' '.join(ex.cmd[0]))
-                print('\n')
-                if ex.stdout:
-                    print('\n=============================',
-                          '\nstdout output for the target:',
-                          '\n=============================\n')
-                    print(ex.stdout.decode('utf-8'))
-                if ex.stderr:
-                    print('\n=============================',
-                          '\nstderr output for the target:',
-                          '\n=============================')
-                    print(ex.stderr.decode('utf-8'))
+                if isinstance(ex, CalledProcessError) and ex.stdout:
+                    print('\n\nTarget', target_name,
+                          'failed executing command:\n\n')
+                    print(' '.join(ex.cmd[0]))
+                    print('\n')
+                    if ex.stdout:
+                        print('\n=============================',
+                              '\nstdout output for the target:',
+                              '\n=============================\n')
+                        print(ex.stdout.decode('utf-8'))
+                    if ex.stderr:
+                        print('\n=============================',
+                              '\nstderr output for the target:',
+                              '\n=============================')
+                        print(ex.stderr.decode('utf-8'))
+                else:
+                    print('\n\nTarget', target_name, 'failed with error:',
+                          str(ex))
             fatal_noexc('Finished building target graph with fails: \n{}\n'
                         'which caused the following to skip: \n{}',
                         list(self.failed_nodes), self.skipped_nodes)

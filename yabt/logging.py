@@ -38,7 +38,12 @@ class Message:  # pylint: disable=too-few-public-methods
         self.args = args
 
     def __str__(self):
-        return self.fmt.format(*self.args)
+        try:
+            return self.fmt.format(*self.args)
+        except:
+            # Sometimes we just want to log something with {}, with no
+            # formatting. json for example.
+            return self.fmt
 
 
 class StyleAdapter(logging.LoggerAdapter):

@@ -6,12 +6,13 @@ munch>=2.1
 networkx>=2.0
 ostrichlib>=0.1
 requests>=2.18.0
+google-cloud-storage
 
 # For pre-Python-3.5 compatability
 scandir>=1.2
 
 # For testing
-pytest>=2.9
+pytest>=3.6
 pytest-cov>=2.6.1
 pytest-pep8>=1.0
 tox>=2.3

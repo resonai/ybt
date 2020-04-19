@@ -29,10 +29,6 @@ from ..pkgmgmt import parse_apt_repository
 from ..target_utils import Target
 
 
-slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
-                          reason='need --with-slow option to run')
-
-
 DISTRO = {
     'id': 'Ubuntu',
     'release': '14.04',
@@ -53,7 +49,7 @@ def test_apt_repository_simple_line():
     assert apt_key_cmd is None
 
 
-@slow
+@pytest.mark.slow
 def test_apt_repository_ppa_with_key():
     target = Target('AptRepository')
     target.props.source = 'ppa:brightbox/ruby-ng'

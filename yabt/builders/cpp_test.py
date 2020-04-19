@@ -31,10 +31,6 @@ from ..buildcontext import BuildContext
 from ..graph import populate_targets_graph
 
 
-slow = pytest.mark.skipif(not pytest.config.getoption('--with-slow'),
-                          reason='need --with-slow option to run')
-
-
 def clear_bin():
     try:
         shutil.rmtree('ybt_bin')
@@ -46,20 +42,20 @@ def clear_bin():
 @pytest.mark.parametrize(
     'test_case',
     (
-        ('compiler_config:defaults', 'clang++-5.0',
+        ('compiler_config:defaults', 'clang++-8',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics', '-O2', '-DDEBUG'], []),
         ('compiler_config:override-compiler', 'foobar',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics', '-O2', '-DDEBUG'], []),
-        ('compiler_config:override-flags', 'clang++-5.0', ['-foo', 'bar'], []),
+        ('compiler_config:override-flags', 'clang++-8', ['-foo', 'bar'], []),
         # TODO: known failure - make it work...
-        # ('compiler_config:override-flags-empty', 'clang++-5.0', [], []),
-        ('compiler_config:post-extend-flags', 'clang++-5.0',
+        # ('compiler_config:override-flags-empty', 'clang++-8', [], []),
+        ('compiler_config:post-extend-flags', 'clang++-8',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics',
           '-O2', '-DDEBUG', '-foo', 'bar'], []),
-        ('compiler_config:pre-extend-flags', 'clang++-5.0',
+        ('compiler_config:pre-extend-flags', 'clang++-8',
          ['-foo', 'bar', '-std=c++14', '-Wall', '-fcolor-diagnostics',
           '-O2', '-DDEBUG'], []),
-        ('compiler_config:dep-extend-flags', 'clang++-5.0',
+        ('compiler_config:dep-extend-flags', 'clang++-8',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics',
           '-O2', '-DDEBUG', '-DFOO=BAR'], ['-lfoo']),
     ))
@@ -83,17 +79,17 @@ def test_compiler_config(basic_conf, test_case):
 @pytest.mark.parametrize(
     'test_case',
     (
-        ('compiler_config:defaults', 'clang++-5.0',
+        ('compiler_config:defaults', 'clang++-8',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics', '-g', '-DDEBUG']),
         ('compiler_config:override-compiler', 'foobar',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics', '-g', '-DDEBUG']),
-        ('compiler_config:override-flags', 'clang++-5.0', ['-foo', 'bar']),
+        ('compiler_config:override-flags', 'clang++-8', ['-foo', 'bar']),
         # TODO: known failure - make it work...
-        # ('compiler_config:override-flags-empty', 'clang++-5.0', []),
-        ('compiler_config:post-extend-flags', 'clang++-5.0',
+        # ('compiler_config:override-flags-empty', 'clang++-8', []),
+        ('compiler_config:post-extend-flags', 'clang++-8',
          ['-std=c++14', '-Wall', '-fcolor-diagnostics',
           '-g', '-DDEBUG', '-foo', 'bar']),
-        ('compiler_config:pre-extend-flags', 'clang++-5.0',
+        ('compiler_config:pre-extend-flags', 'clang++-8',
          ['-foo', 'bar', '-std=c++14', '-Wall', '-fcolor-diagnostics',
           '-g', '-DDEBUG']),
     ))
@@ -112,7 +108,7 @@ def test_compiler_config_debug(debug_conf, test_case):
                  'yabtwork', 'debug_flavor', 'foo', 'bar_baz'))
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.parametrize(
     'target_name',
     ('hello:hello-app', 'hello_lib:hello-app', 'hello_mod/main:hello-app'))
@@ -129,7 +125,7 @@ def test_cpp_builder(basic_conf, target_name):
     clear_bin()
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_tests_project')
 def test_cpp_tester_success(basic_conf):
     build_context = BuildContext(basic_conf)
@@ -138,7 +134,7 @@ def test_cpp_tester_success(basic_conf):
     build_context.build_graph(run_tests=True)
 
 
-@slow
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_tests_project')
 def test_cpp_tester_fail(basic_conf):
     build_context = BuildContext(basic_conf)

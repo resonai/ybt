@@ -24,6 +24,7 @@ yabt target graph
 from collections import defaultdict
 from os.path import relpath
 
+import difflib
 import networkx
 from networkx.algorithms import dag
 
@@ -197,7 +198,9 @@ def raise_unresolved_targets(build_context, conf, unknown_seeds, seed_refs):
                 ', '.join(format_target(target_name)
                           for target_name in sorted(seed_ref.buildenv_of)))
 
-        return '{} - {}'.format(seed, ', '.join(reasons))
+        return '{} (possible misspelling of {}) - {}'.format(
+            seed, difflib.get_close_matches(
+                seed, build_context.targets.keys()), ', '.join(reasons))
 
     unresolved_str = '\n'.join(format_unresolved(target_name)
                                for target_name in sorted(unknown_seeds))
@@ -321,16 +324,6 @@ def populate_targets_graph(build_context, conf: Config):
     logger.info('Finished parsing build graph with {} nodes and {} edges',
                 build_context.target_graph.order(),
                 build_context.target_graph.size())
-
-
-def write_dot(build_context, conf: Config, out_f):
-    """Write build graph in dot format to `out_f` file-like object."""
-    out_f.write('strict digraph  {\n')
-    out_f.writelines('  "{}";\n'.format(node)
-                     for node in build_context.target_graph.nodes)
-    out_f.writelines('  "{}" -> "{}";\n'.format(u, v)
-                     for u, v in build_context.target_graph.edges)
-    out_f.write('}\n\n')
 
 
 def topological_sort(graph: networkx.DiGraph):

@@ -31,6 +31,7 @@ from os.path import basename, dirname, join, relpath, splitext
 
 from ostrich.utils.collections import listify
 
+from yabt.docker import extend_runtime_params, format_docker_run_params
 from ..artifact import ArtifactType as AT
 from .dockerapp import build_app_docker_and_bin, register_app_builder_sig
 from ..extend import (
@@ -366,10 +367,14 @@ def cpp_gtest_tester(build_context, target):
     test_cmd = [join(buildenv_workspace, *split(target.name))]
     # take gtest exec flags from the target & from project config
     test_cmd.extend(target.props.test_flags)
+    run_params = extend_runtime_params(
+                target.props.runtime_params,
+                build_context.walk_target_deps_topological_order(target),
+                build_context.conf.runtime_params, True)
     build_context.run_in_buildenv(
         # TODO: target.props.in_testenv,
-        target.props.in_buildenv, test_cmd, target.props.test_env)
-
+        target.props.in_buildenv, test_cmd, target.props.test_env,
+        run_params=format_docker_run_params(run_params))
 
 register_builder_sig('CppLib', CPP_SIG)
 

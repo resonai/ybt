@@ -27,6 +27,7 @@ from os.path import dirname, isfile, join, relpath, splitext
 from pathlib import Path, PurePath
 
 from ostrich.utils.path import commonpath
+from ostrich.utils.text import get_safe_path
 
 from ..artifact import ArtifactType as AT
 from ..compat import walk
@@ -34,8 +35,7 @@ from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
 from ..logging import make_logger
-from ..utils import link_files, rmtree, yprint
-
+from ..utils import link_files, rmtree, yprint, link_node
 
 logger = make_logger(__name__)
 
@@ -51,10 +51,13 @@ register_builder_sig(
      ('gen_cpp_rpcz', PT.bool, False),
      ('gen_python_grpc', PT.bool, False),
      ('gen_cpp_grpc', PT.bool, False),
+     ('gen_descriptor', PT.bool, False),
      ('grpc_plugin_path', PT.str, '/usr/local/bin/grpc_cpp_plugin'),
      ('copy_generated_to', PT.File, None),
      ('cmd_env', None),
      ])
+
+register_builder_sig('ProtoCollector')
 
 
 @register_build_func('Proto')
@@ -76,6 +79,8 @@ def proto_builder(build_context, target):
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     protoc_cmd = target.props.proto_cmd + ['--proto_path', buildenv_workspace]
+    descriptor_path = join('proto', get_safe_path(target.name.lstrip(':')) +
+                           '_descriptor.pb')
     if target.props.gen_cpp:
         protoc_cmd.extend(('--cpp_out', buildenv_workspace))
     if target.props.gen_python:
@@ -91,6 +96,10 @@ def proto_builder(build_context, target):
         protoc_cmd.extend(('--cpp_rpcz_out', buildenv_workspace))
     if target.props.gen_python_rpcz:
         protoc_cmd.extend(('--python_rpcz_out', buildenv_workspace))
+    if target.props.gen_descriptor:
+        protoc_cmd.extend(
+            ('--include_imports', '--descriptor_set_out',
+             (PurePath(buildenv_workspace) / descriptor_path).as_posix()))
     protoc_cmd.extend((PurePath(buildenv_workspace) / 'proto' / src).as_posix()
                       for src in target.props.sources)
     build_context.run_in_buildenv(
@@ -115,6 +124,7 @@ def proto_builder(build_context, target):
     # Add generated files to artifacts / generated list
     for src in target.props.sources:
         src_base = join(proto_dir, splitext(src)[0])
+        process_generated(src_base + '.proto', AT.proto)
         if target.props.gen_python:
             process_generated(src_base + '_pb2.py', AT.gen_py)
         if target.props.gen_cpp:
@@ -130,6 +140,9 @@ def proto_builder(build_context, target):
         if target.props.gen_cpp_grpc:
             process_generated(src_base + '.grpc.pb.cc', AT.gen_cc)
             process_generated(src_base + '.grpc.pb.h', AT.gen_h)
+    if target.props.gen_descriptor:
+        process_generated(join(workspace_dir, descriptor_path),
+                          AT.proto_descriptor)
 
     # Create __init__.py files in all generated directories with Python files
     if target.props.gen_python or target.props.gen_python_rpcz:
@@ -170,3 +183,26 @@ def proto_manipulate_target(build_context, target):
     # 2. it is used by docker builder further down the graph, so it should be
     #    populated if the target is cached (and build func is never called)
     add_gen_python_path(target)
+
+
+@register_build_func('ProtoCollector')
+def proto_collector_builder(build_context, target):
+    """
+    Collect all the .proto files that this target depend on to a directory
+    under yabtwork/*/ProtoCollector.
+    If this target depends on a proto target, then all the .proto files needed
+    for building this proto will get to this directory.
+    TODO(Dana): Support not building the proto (we only need the .proto files)
+    """
+    workspace_dir = build_context.get_workspace('ProtoCollector', target.name)
+    for dep in build_context.generate_all_deps(target):
+        artifact_map = dep.artifacts.get(AT.proto)
+        if not artifact_map:
+            continue
+        for dst, src in artifact_map.items():
+            target_file = join(workspace_dir, dst)
+            link_node(join(build_context.conf.project_root, src), target_file)
+            target.artifacts.add(
+                AT.proto,
+                relpath(target_file, build_context.conf.project_root),
+                relpath(target_file, workspace_dir))
