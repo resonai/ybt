@@ -20,6 +20,7 @@ utilities for tests
 
 :author: Dana Shamir
 """
+import re
 import random
 import string
 import hashlib
@@ -119,12 +120,14 @@ sort_test_cfg = [
 
 
 class CBuildTrgtTest:
-    """ Class for create  string random DAG"""
-    class CBuildTrgtTypes:
+    """Class for creating a random package
+        with projects and their dependencies"""
+    class CBuildTrgtType:
+        """ Type of project"""
         def __init__(self, trg):
             self.name = trg['Name']
-            self.childs = trg['Childs']
-            self.min_childs = trg['MinChilds']
+            self.childs = trg['Childs']  # Types of available dependencies
+            self.min_childs = trg['MinChilds']  # Minimum of dependencies
 
         def is_child(self, trg):
             return trg.name in self.childs
@@ -133,7 +136,7 @@ class CBuildTrgtTest:
         bd_trgs = sort_test_cfg[0]['BuildTargets']
         self.trgs = list()
         for trg in bd_trgs:
-            self.trgs.append(CBuildTrgtTest.CBuildTrgtTypes(trg))
+            self.trgs.append(CBuildTrgtTest.CBuildTrgtType(trg))
         cfg = sort_test_cfg[1]['Config']
         self.min_name_len = cfg['MinNameLen']
         self.max_name_len = cfg['MaxNameLen']
@@ -149,12 +152,14 @@ class CBuildTrgtTest:
         return [name, self.trgs[i]]
 
     def __add_node(self, nx_g, name, b_type_name):
+        """ Added node with its type"""
         for trg in self.trgs:
             if trg.name == b_type_name:
                 nx_g.add_node(name, trg=trg)
                 return
 
     def __add_nodes(self, nx_g):
+        """ Added random nodes with its random dependencies"""
         d_t = dict()
         i_n = random.randint(1, self.max_step_nodes)
         for _ in range(i_n):
@@ -223,3 +228,32 @@ def write_test_dot(nx_g, out_fname=''):
     fout.close()
     print('Output file is "{}"'.format(out_fname))
     return out_fname
+
+
+def dot_file_line_proc(nx_g, line):
+    """ Parsing dot file line """
+    edge = re.split(r'\s*->\s*', line)
+    if len(edge) == 2:
+        name = re.sub(r'\s+|;', '', edge[0]).strip('\"')
+        child_name = re.sub(r'\s+|;', '', edge[1]).strip('\"')
+        nx_g.add_edge(name, child_name)
+    else:
+        temp = re.split(r'\s+', line, 2)
+        if (not temp[0]) & bool(temp[1]):
+            name = temp[1].strip('\"')
+            attributes = dict()
+            for attr_str in re.split(r'\[|,|\]|;|\n', temp[2]):
+                attr = re.split('=', attr_str)
+                if len(attr) == 2:
+                    attributes.update({
+                        attr[0].strip('\"'): attr[1].strip('\"')})
+            nx_g.add_node(name, **attributes)
+
+
+def load_dot(in_fname):
+    """ Read graph from dot format """
+    with open(in_fname, 'r') as in_f:
+        nx_g = nx.DiGraph()
+        for line in in_f:
+            dot_file_line_proc(nx_g, line)
+    return nx_g
