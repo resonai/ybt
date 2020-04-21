@@ -28,6 +28,8 @@ import random
 from unittest.mock import Mock
 
 import networkx
+from networkx.algorithms import dag
+import hashlib
 import pytest
 
 from . import test_utils as tu
@@ -213,32 +215,41 @@ def test_target_graph_intenral_dir(basic_conf):
         set(build_context.target_graph.edges))
 
 
+def calc_node_hash(graph, sort_g_list, node):
+    md5 = hashlib.md5()
+    md5.update(node.encode('utf8'))
+    childs = dag.descendants(graph, node)
+    for name in sort_g_list:
+        if name in childs:
+            md5.update(name.encode('utf8'))
+    return md5.hexdigest()
+
+
 def subgraph_stable_topsort_test(graph):
     """Test that sort is stable for subgraph"""
     def shuffle_graph(graph):
-        l_g = list(graph.nodes())
-        random.shuffle(l_g)
-        nx_g = networkx.DiGraph()
-        for name in l_g:
-            nx_g.add_node(name)
-        l_e = list(graph.edges())
-        for e_d in l_e:
-            nx_g.add_edge(e_d[0], e_d[1])
-        return nx_g
+        nodes = list(graph.nodes())
+        random.shuffle(nodes)
+        new_graph = networkx.DiGraph()
+        for name in nodes:
+            new_graph.add_node(name)
+        edges = list(graph.edges())
+        random.shuffle(edges)
+        for edge in edges:
+            new_graph.add_edge(edge[0], edge[1])
+        return new_graph
     top_sort_l = list(topological_sort(graph))
     hash_res0 = dict()
     for root in get_graph_roots(graph):
-        hash_res0[root] = tu.calc_node_hash(graph, top_sort_l, root)
+        hash_res0[root] = calc_node_hash(graph, top_sort_l, root)
     for i in range(5):
         cur_g = shuffle_graph(graph)
-        top_sort_l = list(topological_sort(cur_g))
-        for root in get_graph_roots(graph):
-            hash = tu.calc_node_hash(cur_g, top_sort_l, root)
-            assert hash_res0[root] == hash
+        cur_top_sort_l = list(topological_sort(cur_g))
+        assert top_sort_l == cur_top_sort_l
     for root in get_graph_roots(graph):
         cur_g = cut_from_graph(graph, root)
         top_sort_l = list(topological_sort(cur_g))
-        hash = tu.calc_node_hash(cur_g, top_sort_l, root)
+        hash = calc_node_hash(cur_g, top_sort_l, root)
         assert hash_res0[root] == hash
 
 
@@ -260,16 +271,6 @@ def test_stable_topological_sort2():
 
 
 def test_stable_topological_sort3():
-    """Using create_dag_eges
-       to create a random graph
-    """
-    graph = networkx.DiGraph()
-    for edge in tu.create_dag_eges(40, 0.4):
-        graph.add_edge(str(edge[0]), str(edge[1]))
-    subgraph_stable_topsort_test(graph)
-
-
-def test_stable_topological_sort4():
     """ On this graph failed stable_reverse_topological_sort"""
     graph = networkx.DiGraph()
     graph.add_edge('A', 'C')
@@ -280,7 +281,7 @@ def test_stable_topological_sort4():
     subgraph_stable_topsort_test(graph)
 
 
-def test_stable_topological_sort5():
+def test_stable_topological_sort4():
     """ On this graph failed old failed mod_kahn_top_sort"""
     graph = networkx.DiGraph()
     graph.add_edge('A', 'D')

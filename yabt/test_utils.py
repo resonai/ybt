@@ -23,9 +23,7 @@ utilities for tests
 import re
 import random
 import string
-import hashlib
 import networkx as nx
-from networkx.algorithms import dag
 from datetime import datetime
 
 
@@ -43,30 +41,6 @@ def generate_random_dag(nodes, min_rank=0, max_rank=10, edge_prob=0.3):
                          for i in random.sample(range(j), k=rank)
                          if random.random() > edge_prob)
     return g
-
-
-def create_dag_eges(num, p):
-    """ Generate a directed acyclic graph
-    Parameters
-    ----------
-    num : int
-        The number of nodes.
-    p : float
-        Probability for edge creation.
-    ofname : str
-        Name of out dot file
-    """
-    edges = list()
-    for i in range(num):
-        for j in range(i+1, num):
-            edges.append((i, j))
-    e_num = num * (num - 1) // 2
-    e_num = min(e_num, int(e_num * p))
-    num = len(edges)
-    while num > e_num:
-        num = num - 1
-        edges.remove(edges[random.randint(0, num)])
-    return edges
 
 
 class CBuildTrgtTest:
@@ -177,62 +151,52 @@ class CBuildTrgtTest:
         i = random.randint(0, len(self.trgs) - 1)
         return [name, self.trgs[i]]
 
-    def __add_nodes(self, nx_g):
+    def __add_nodes(self, graph):
         """ Added random nodes with its random dependencies"""
-        d_t = dict()
-        i_n = random.randint(1, self.max_step_nodes)
-        for _ in range(i_n):
+        edges = dict()
+        nod_num = random.randint(1, self.max_step_nodes)
+        for _ in range(nod_num):
             trg = self.__new_build_trgt()
-            d_t.update({trg[0]: trg[1]})
-        l_g = list(nx_g)
-        l_d = nx.get_node_attributes(nx_g, 'trg')
-        l_n = len(l_g)
-        for name in d_t:
-            if name not in nx_g:
-                trg = d_t[name]
+            edges.update({trg[0]: trg[1]})
+        nodes = list(graph)
+        trg_attrs = nx.get_node_attributes(graph, 'trg')
+        nodes_len = len(nodes)
+        for name in edges:
+            if name not in graph:
+                trg = edges[name]
                 childs = 0
-                if l_n > 0:
-                    r_n = random.randint(0, l_n - 1)
-                    for i in range(0, r_n):
-                        child_name = l_g[i]
-                        child_trg = l_d[child_name]
+                if nodes_len > 0:
+                    child_num = random.randint(0, nodes_len - 1)
+                    for i in range(0, child_num):
+                        child_name = nodes[i]
+                        child_trg = trg_attrs[child_name]
                         if trg.is_child(child_trg):
-                            nx_g.add_edge(name, child_name)
+                            graph.add_edge(name, child_name)
                             childs = childs + 1
                 if trg.min_childs <= childs:
-                    nx_g.add_node(name, trg=trg)
+                    graph.add_node(name, trg=trg)
                 elif childs > 0:
-                    nx_g.remove_node(name)
+                    graph.remove_node(name)
 
     def create_rand_graph(self):
         """ Created string random DAG """
-        nx_g = nx.DiGraph()
+        graph = nx.DiGraph()
         for _ in range(self.steps):
-            self.__add_nodes(nx_g)
-        return nx_g
+            self.__add_nodes(graph)
+        return graph
 
 
-def calc_node_hash(graph, sort_g_list, node):
-    md5 = hashlib.md5()
-    md5.update(node.encode('utf8'))
-    childs = dag.descendants(graph, node)
-    for name in sort_g_list:
-        if name in childs:
-            md5.update(name.encode('utf8'))
-    return md5.hexdigest()
-
-
-def write_test_dot(nx_g, out_fname=''):
+def write_test_dot(graph, out_fname=''):
     """Write build graph in dot format to `out_f` file-like object."""
     if not out_fname:
         now = datetime.now()
         out_fname = now.strftime('ybt_%2d_%2m_%Y_%2H_%2M_%2S_%f.dot')
     fout = open(out_fname, 'w')
     fout.write('strict digraph    {\n')
-    clrs = nx.get_node_attributes(nx_g, 'color')
-    stls = nx.get_node_attributes(nx_g, 'style')
-    fclrs = nx.get_node_attributes(nx_g, 'fillcolor')
-    for node in nx_g.nodes():
+    clrs = nx.get_node_attributes(graph, 'color')
+    stls = nx.get_node_attributes(graph, 'style')
+    fclrs = nx.get_node_attributes(graph, 'fillcolor')
+    for node in graph.nodes():
         s = '['
         if node in clrs:
             s = s + 'color=' + str(clrs[node]) + ','
@@ -242,20 +206,20 @@ def write_test_dot(nx_g, out_fname=''):
             s = s + 'color=' + str(fclrs[node]) + ','
         fout.write('  {} {}];\n'.format(node, s))
     fout.writelines('    {} -> {};\n'.format(u, v)
-                    for u, v in nx_g.edges())
+                    for u, v in graph.edges())
     fout.write('}\n\n')
     fout.close()
     print('Output file is "{}"'.format(out_fname))
     return out_fname
 
 
-def dot_file_line_proc(nx_g, line):
+def dot_file_line_proc(graph, line):
     """ Parsing dot file line """
     edge = re.split(r'\s*->\s*', line)
     if len(edge) == 2:
         name = re.sub(r'\s+|;', '', edge[0]).strip('\"')
         child_name = re.sub(r'\s+|;', '', edge[1]).strip('\"')
-        nx_g.add_edge(name, child_name)
+        graph.add_edge(name, child_name)
     else:
         temp = re.split(r'\s+', line, 2)
         if (not temp[0]) & bool(temp[1]):
@@ -266,13 +230,13 @@ def dot_file_line_proc(nx_g, line):
                 if len(attr) == 2:
                     attributes.update({
                         attr[0].strip('\"'): attr[1].strip('\"')})
-            nx_g.add_node(name, **attributes)
+            graph.add_node(name, **attributes)
 
 
 def load_dot(in_fname):
     """ Read graph from dot format """
     with open(in_fname, 'r') as in_f:
-        nx_g = nx.DiGraph()
+        graph = nx.DiGraph()
         for line in in_f:
-            dot_file_line_proc(nx_g, line)
-    return nx_g
+            dot_file_line_proc(graph, line)
+    return graph
