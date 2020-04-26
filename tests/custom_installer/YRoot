@@ -1,0 +1,21 @@
+ExtDockerImage('ubuntu', image='ubuntu', tag='18.04')
+
+CustomInstaller(
+    'append-hello-to-w00t',
+    script='append2w00t.sh',
+    script_args='hello there',
+    uri='',
+)
+
+CustomInstaller(
+    'append-more-to-w00t',
+    script='append2w00t.sh',
+    script_args=['how are you doing', 'this fine day?'],
+    uri='',
+)
+
+DockerImage(
+    'w00t',
+    base_image=':ubuntu',
+    deps=[':append-hello-to-w00t', ':append-more-to-w00t'],
+)
