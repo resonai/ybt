@@ -22,11 +22,14 @@ yabt buildfile parser tests
 """
 
 from os.path import join
+import re
 
 import pytest
 
 from .buildcontext import BuildContext
 from .graph import populate_targets_graph
+from .logging import make_logger
+logger = make_logger(__name__)
 
 
 @pytest.mark.usefixtures('in_error_project')
@@ -36,8 +39,9 @@ def test_parser_error(basic_conf, capsys):
     with pytest.raises(SystemExit):
         populate_targets_graph(build_context, basic_conf)
     _, err = capsys.readouterr()
-    ybuild_path = join('tests', 'errors', 'parser-error', 'YBuild')
-    assert '{}", line 6'.format(ybuild_path) in err
+    ybuild_path = re.escape(join('tests', 'errors', 'parser-error', 'YBuild'))
+    logger.debug('test_parser_error: {}', err)
+    assert re.search('{}\",\\ line\\ [4-8]'.format(ybuild_path), err)
     assert (
         "Fatal: Must provide fully-qualified target name (with `:') to "
         "avoid possible ambiguity - `users' not valid\n" in err)
