@@ -136,7 +136,6 @@ def link_files(files: set, workspace_src_dir: str,
     :raises ValueError: If `common_parent` is given (not `None`), but is *NOT*
                         a common parent of all `files`.
     """
-    norm_dir = normpath(workspace_src_dir)
     base_dir = ''
     if common_parent:
         common_parent = normpath(common_parent)
