@@ -221,6 +221,10 @@ def format_docker_run_params(params: dict):
     return param_strings
 
 
+def format_cmd_args(cmd_args):
+    return ('"{}"'.format(arg) for arg in cmd_args)
+
+
 def _replace_env_var(path):
     """
     replace all $VAR with the environment variable value
@@ -516,10 +520,14 @@ def build_docker_image(
             os.makedirs(workspace_packages_dir)
             run_installers = []
             for custom_installer_desc in packages:
-                target_name, script, package = custom_installer_desc
+                target_name, script, args, package = custom_installer_desc
                 package_tar = basename(package)
                 link_node(package, join(workspace_packages_dir, package_tar))
-                exec_cmd = 'bash'
+                exec_cmd = 'bash -s'
+                if args:
+                    exec_cmd = '{} -- {}'.format(
+                        exec_cmd,
+                        ' '.join(format_cmd_args(args)))
                 run_installers.extend([
                     'tar -xf {0}/{1} -C {0}'.format(tmp_install, package_tar),
                     'cd {}/{}'.format(tmp_install, target_name),
@@ -579,9 +587,6 @@ def build_docker_image(
                 ' '.join('"{}"="{}"'.format(key, value)
                          for key, value in sorted(effective_labels.items()))))
 
-    def format_docker_cmd(docker_cmd):
-        return ('"{}"'.format(cmd) for cmd in docker_cmd)
-
     if run_user:
         dockerfile.append('USER {}\n'.format(run_user))
 
@@ -597,7 +602,7 @@ def build_docker_image(
             entrypoint = ['tini', '--'] + entrypoint
         dockerfile.append(
             'ENTRYPOINT [{}]\n'.format(
-                ', '.join(format_docker_cmd(entrypoint))))
+                ', '.join(format_cmd_args(entrypoint))))
 
     # Add CMD (one layer)
     if cmd:
@@ -605,7 +610,7 @@ def build_docker_image(
         if full_path_cmd:
             cmd[0] = (PurePath('/usr/src/app') / cmd[0]).as_posix()
         dockerfile.append(
-            'CMD [{}]\n'.format(', '.join(format_docker_cmd(cmd))))
+            'CMD [{}]\n'.format(', '.join(format_cmd_args(cmd))))
 
     # TODO(itamar): write only if changed?
     with open(dockerfile_path, 'w') as dockerfile_f:

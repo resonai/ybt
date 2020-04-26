@@ -78,8 +78,8 @@ def test_package_managers_install_order(basic_conf):
         'apt-transport-https curl wget && rm -rf /var/lib/apt/lists/*\n',
         'COPY packages1 /tmp/install1\n',
         'RUN tar -xf /tmp/install1/node.tar.gz -C /tmp/install1 && '
-        'cd /tmp/install1/node && cat install-nodejs.sh | tr -d \'\\r\' | bash'
-        ' && cd / && rm -rf /tmp/install1\n',
+        'cd /tmp/install1/node && cat install-nodejs.sh | tr -d \'\\r\' '
+        '| bash -s && cd / && rm -rf /tmp/install1\n',
         'RUN apt-get update -y && apt-get install --no-install-recommends -y '
         'ruby ruby-dev && rm -rf /var/lib/apt/lists/*\n',
         'COPY requirements_pip_1.txt /usr/src/\n',

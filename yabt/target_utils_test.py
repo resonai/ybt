@@ -63,7 +63,7 @@ def test_norm_name_rel_ref_local():
     assert 'cat/**:*' == norm_name('cat', '**:*')
 
 
-def test_norm_name_rel_ref_sub():
+def test_norm_name_rel_ref_sib():
     """Test norm_name rel ref to a sibling module."""
     assert 'dog:bark' == norm_name('cat', '../dog:bark')
     assert 'dog:bark' == norm_name('cat', '../dog/.:bark')
@@ -93,8 +93,8 @@ def test_norm_name_unqualified_error():
             'possible ambiguity' in str(excinfo.value))
 
 
-_HELLO_PROG_HASH = 'e1d389cdbbc8f41cc9078a97e7f6d766'
-_PROTO_BUILDER = '2673afde9594dc5212450377dfc16b41'
+_HELLO_PROG_HASH = '0e049ee8ed31c616033076f8f90415a7'
+_PROTO_BUILDER = '11bab3a89f9c058e5b617705bcb67c51'
 _BOTH_HASHES = list(sorted([_HELLO_PROG_HASH, _PROTO_BUILDER]))
 
 
