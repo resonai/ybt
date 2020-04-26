@@ -117,6 +117,11 @@ def in_tests_project():
 
 
 @yield_fixture
+def in_custom_installer_project():
+    yield from yabt_project_fixture('custom_installer')
+
+
+@yield_fixture
 def tmp_dir():
     orig_dir = os.getcwd()
     _tmp_dir = tempfile.mkdtemp()
