@@ -27,9 +27,9 @@ from functools import reduce
 import random
 from unittest.mock import Mock
 
+import hashlib
 import networkx
 from networkx.algorithms import dag
-import hashlib
 import pytest
 
 from . import test_utils as tu
@@ -249,10 +249,11 @@ def subgraph_stable_topsort_test(graph):
     for root in get_graph_roots(graph):
         cur_g = cut_from_graph(graph, root)
         top_sort_l = list(topological_sort(cur_g))
-        hash = calc_node_hash(cur_g, top_sort_l, root)
-        assert hash_res0[root] == hash
+        node_hash = calc_node_hash(cur_g, top_sort_l, root)
+        assert hash_res0[root] == node_hash
 
 
+@pytest.mark.slow
 def test_stable_topological_sort1():
     """Using CBuildTrgtTest.create_rand_graph
        to create a random graph
@@ -266,7 +267,7 @@ def test_stable_topological_sort2():
     """ Using generate_random_dag
          to create a random graph
     """
-    graph = tu.generate_random_dag(list(map(lambda x: str(x), range(10))))
+    graph = tu.generate_random_dag([str(x) for x in range(10)])
     subgraph_stable_topsort_test(graph)
 
 
