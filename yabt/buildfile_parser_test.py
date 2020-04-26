@@ -39,9 +39,9 @@ def test_parser_error(basic_conf, capsys):
     with pytest.raises(SystemExit):
         populate_targets_graph(build_context, basic_conf)
     _, err = capsys.readouterr()
-    ybuild_path = join('tests', 'errors', 'parser-error', 'YBuild')
+    ybuild_path = re.escape(join('tests', 'errors', 'parser-error', 'YBuild'))
     logger.debug('test_parser_error: {}', err)
-    assert re.search('{}", line [4-8]'.format(ybuild_path), err)
+    assert re.search('{}\",\\ line\\ [4-8]'.format(ybuild_path), err)
     assert (
         "Fatal: Must provide fully-qualified target name (with `:') to "
         "avoid possible ambiguity - `users' not valid\n" in err)
