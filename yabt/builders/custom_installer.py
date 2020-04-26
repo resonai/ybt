@@ -53,6 +53,7 @@ register_builder_sig(
     [('script', PT.File),
      ('fetch', PT.list, None),
      ('local_data', PT.FileList, None),
+     ('script_args', PT.StrList, None),
      ('uri', PT.str, None),  # deprecated
      ('uri_type', PT.str, None),  # deprecated
      ])
@@ -184,12 +185,13 @@ def local_handler(build_context, target, fetch, package_dir, tar):
 
 
 def get_installer_desc(build_context, target) -> tuple:
-    """Return a target_name, script_name, package_tarball tuple for `target`"""
+    """Return a target_name, script, args, package_tarball
+       tuple for `target`"""
     workspace_dir = build_context.get_workspace('CustomInstaller', target.name)
     target_name = split_name(target.name)
     script_name = basename(target.props.script)
     package_tarball = '{}.tar.gz'.format(join(workspace_dir, target_name))
-    return target_name, script_name, package_tarball
+    return target_name, script_name, target.props.script_args, package_tarball
 
 
 @register_build_func('CustomInstaller')
@@ -206,7 +208,7 @@ def custom_installer_builder(build_context, target):
         rmtree(workspace_dir)
     os.makedirs(workspace_dir)
 
-    target_name, script_name, package_tarball = get_installer_desc(
+    target_name, script_name, _, package_tarball = get_installer_desc(
         build_context, target)
 
     logger.debug('Making custom installer package {}', package_tarball)
