@@ -26,13 +26,11 @@ NOT to be confused with the Docker builder...
 """
 
 import re
-from collections import defaultdict, deque
+from collections import defaultdict
 import os
-from os.path import (
-    abspath, basename, dirname, isfile, join, relpath, samefile, split)
+from os.path import abspath, basename, dirname, isfile, join
 from pathlib import PurePath
 import platform
-import shutil
 
 from ostrich.utils.path import commonpath
 from ostrich.utils.proc import run, PIPE, CalledProcessError
@@ -47,7 +45,7 @@ from .builders.ruby import format_gem_specifier
 from .pkgmgmt import (
     format_apt_specifier, format_pypi_specifier, parse_apt_repository)
 from .target_utils import ImageCachingBehavior
-from .utils import link_node, rmtree, yprint
+from .utils import link_node, rmtree
 
 
 logger = make_logger(__name__)
@@ -227,7 +225,7 @@ def _replace_env_var(path):
     """
     replace all $VAR with the environment variable value
     """
-    return re.sub('\$[a-zA-Z_][a-zA-Z0-9_]*',
+    return re.sub(r'\$[a-zA-Z_][a-zA-Z0-9_]*',
                   lambda match: os.environ[match.group()[1:]], path)
 
 
@@ -518,13 +516,14 @@ def build_docker_image(
             os.makedirs(workspace_packages_dir)
             run_installers = []
             for custom_installer_desc in packages:
-                target_name, install_script, package = custom_installer_desc
+                target_name, script, package = custom_installer_desc
                 package_tar = basename(package)
                 link_node(package, join(workspace_packages_dir, package_tar))
+                exec_cmd = 'bash'
                 run_installers.extend([
                     'tar -xf {0}/{1} -C {0}'.format(tmp_install, package_tar),
                     'cd {}/{}'.format(tmp_install, target_name),
-                    'cat {} | tr -d \'\\r\' | bash'.format(install_script),
+                    'cat {} | tr -d \'\\r\' | {}'.format(script, exec_cmd),
                 ])
             dockerfile.extend([
                 'COPY {} {}\n'.format(packages_dir, tmp_install),
@@ -646,8 +645,8 @@ def build_docker_image(
 
         runtime_params = extend_runtime_params(
             runtime_params, deps, build_context.conf.runtime_params)
-        with open(join(dirname(abspath(__file__)),
-                  'ybtbin.sh.tmpl'), 'r') as tmpl_f:
+        with open(join(dirname(abspath(__file__)), 'ybtbin.sh.tmpl'),
+                  'r') as tmpl_f:
             ybt_bin = tmpl_f.read().format(
                 image_name=docker_image, image_id=image_id,
                 docker_opts=' '.join(format_docker_run_params(runtime_params)),

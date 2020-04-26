@@ -24,8 +24,6 @@ yabt Apt Builders
 """
 
 
-import requests
-
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)
