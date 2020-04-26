@@ -40,7 +40,7 @@ def test_parser_error(basic_conf, capsys):
         populate_targets_graph(build_context, basic_conf)
     _, err = capsys.readouterr()
     ybuild_path = re.escape(join('tests', 'errors', 'parser-error', 'YBuild'))
-    logger.info('test_parser_error: {}', err)
+    logger.debug('test_parser_error: {}', err)
     assert re.search('{}\",\\ line\\ [4-8]'.format(ybuild_path), err)
     assert (
         "Fatal: Must provide fully-qualified target name (with `:') to "
