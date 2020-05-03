@@ -1,0 +1,3 @@
+GoProg('hello', sources='hello.go', in_buildenv='//:builder')
+
+GoApp('hello-app', base_image='//:scratch', main=':hello')

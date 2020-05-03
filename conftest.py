@@ -122,6 +122,11 @@ def in_custom_installer_project():
 
 
 @yield_fixture
+def in_golang_project():
+    yield from yabt_project_fixture('golang')
+
+
+@yield_fixture
 def tmp_dir():
     orig_dir = os.getcwd()
     _tmp_dir = tempfile.mkdtemp()
