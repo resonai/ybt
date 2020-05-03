@@ -104,7 +104,10 @@ def go_prog_builder(build_context, target):
         workspace_dir)
     bin_file = join(buildenv_workspace, binary)
     build_cmd = ['go', 'build', '-o', bin_file] + buildenv_sources
-    build_cmd_env = {'CGO_ENABLED': 0}
+    build_cmd_env = {
+        'CGO_ENABLED': 0,
+        'XDG_CACHE_HOME': '/tmp/.cache',
+    }
     build_cmd_env.update(target.props.cmd_env or {})
     build_context.run_in_buildenv(
         target.props.in_buildenv, build_cmd, build_cmd_env)
