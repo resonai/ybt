@@ -42,8 +42,7 @@ from ..utils import rmtree, yprint
 logger = make_logger(__name__)
 
 
-register_app_builder_sig(
-    'GoApp', [('executable', PT.File, None), ('main', PT.Target, None)])
+register_app_builder_sig('GoApp', [('main', PT.Target)])
 
 
 @register_manipulate_target_hook('GoApp')
@@ -61,19 +60,9 @@ def go_app_manipulate_target(build_context, target):
 def go_app_builder(build_context, target):
     """Pack a Go binary as a Docker image with its runtime dependencies."""
     yprint(build_context.conf, 'Build GoApp', target)
-    if target.props.executable and target.props.main:
-        raise KeyError(
-            '`main` and `executable` arguments are mutually exclusive')
-    if target.props.executable:
-        if target.props.executable not in target.artifacts.get(AT.app):
-            target.artifacts.add(AT.app, target.props.executable)
-        entrypoint = [target.props.executable]
-    elif target.props.main:
-        prog = build_context.targets[target.props.main]
-        binary = list(prog.artifacts.get(AT.binary).keys())[0]
-        entrypoint = ['/usr/src/bin/' + binary]
-    else:
-        raise KeyError('Must specify either `main` or `executable` argument')
+    prog = build_context.targets[target.props.main]
+    binary = list(prog.artifacts.get(AT.binary).keys())[0]
+    entrypoint = ['/usr/src/bin/' + binary]
     build_app_docker_and_bin(
         build_context, target, entrypoint=entrypoint)
 
