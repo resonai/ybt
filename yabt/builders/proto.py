@@ -83,7 +83,6 @@ def proto_builder(build_context, target):
     protoc_cmd = target.props.proto_cmd + ['--proto_path', buildenv_workspace]
     descriptor_path = join('proto', get_safe_path(target.name.lstrip(':')) +
                            '_descriptor.pb')
-    logger.info('Building PROTOS!!!!!!!!!!!1')
     if target.props.gen_cpp:
         protoc_cmd.extend(('--cpp_out', buildenv_workspace))
     if target.props.gen_python:
@@ -98,7 +97,6 @@ def proto_builder(build_context, target):
     if target.props.gen_python_grpc:
         protoc_cmd.extend(('--grpc_python_out', buildenv_workspace))
     if target.props.gen_go_grpc:
-        logger.info('Building GRPCs for GO. XXXXXXXXXXXXXX')
         protoc_cmd.append(
             '--go_out=plugins=grpc:{}'.format(buildenv_workspace))
     if target.props.gen_cpp_rpcz:
