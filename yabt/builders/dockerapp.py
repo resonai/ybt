@@ -29,7 +29,6 @@ from os.path import join
 from ostrich.utils.collections import listify
 
 from .docker import docker_builder
-from ..docker import build_docker_image, get_image_name
 from ..extend import PropType as PT, register_builder_sig
 from .. import target_utils
 
@@ -40,6 +39,7 @@ def register_app_builder_sig(builder_name, sig=None, docstring=None):
         [('base_image', PT.Target)] + listify(sig) + [
             ('image_name', PT.str, None),
             ('image_tag', PT.str, 'latest'),
+            ('docker_cmd', PT.StrList, None),
             ('full_path_cmd', PT.bool, False),
             ('work_dir', PT.str, '/usr/src/app'),
             ('env', PT.dict, None),
