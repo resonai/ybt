@@ -36,6 +36,7 @@ ArtifactType = Enum('ArtifactType', """app
                                        gen_py
                                        gen_cc
                                        gen_h
+                                       gen_go
                                        proto
                                        proto_descriptor
                                        custom_installer
@@ -70,6 +71,10 @@ class ArtifactStore:
     - "gen_h"   A generated C/C++ header file (e.g. from Proto's) that is used
                 by any dependent C++ builder (direct or indirect) to extend
                 the target headers. Cached as ouputs.
+    - "gen_go"  A generated Go source file (e.g. from Proto's) that is used
+                only by directly dependent Go builders (used to extend
+                sources). Cached as outputs.
+
 
     An artifact is added as a specific type, with a source path (pointing to
     the location of the artifact file relative to project root), and an
@@ -83,6 +88,7 @@ class ArtifactStore:
         ArtifactType.gen_py: 'gen',
         ArtifactType.gen_cc: '',
         ArtifactType.gen_h: '',
+        ArtifactType.gen_go: 'go',
         ArtifactType.proto_descriptor: 'gen'
     }
 
