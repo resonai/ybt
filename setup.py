@@ -50,6 +50,8 @@ setup(
             'ExtDockerImage = yabt.builders.docker',
             'FileGroup = yabt.builders.filegroup',
             'GemPackage = yabt.builders.ruby',
+            'GoApp = yabt.builders.golang',
+            'GoProg = yabt.builders.golang',
             'Grunt = yabt.builders.grunt',
             'NpmPackage = yabt.builders.nodejs',
             'PythonApp = yabt.builders.python',
