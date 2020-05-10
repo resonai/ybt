@@ -115,6 +115,7 @@ _EXP_JSON = """{
         "build_params": {},
         "build_user": null,
         "distro": {},
+        "docker_cmd": [],
         "docker_labels": {},
         "env": {},
         "executable": {},
