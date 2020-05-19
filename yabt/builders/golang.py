@@ -22,7 +22,7 @@ yabt Go Builder
 
 :author: Itamar Ostricher
 
-TODO: libs, external libs, protos, go test
+TODO: libs, external libs, go test
 TODO: does this even work with non-flat source file tree??
 """
 
