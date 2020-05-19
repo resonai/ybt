@@ -91,7 +91,28 @@ def rm_all_but_go_mod(workspace_dir):
 
 @register_build_func('GoProg')
 def go_prog_builder(build_context, target):
-    """Build a Go binary executable"""
+    """Build a Go binary executable.
+
+    We link all go files source and all proto generated files into workspace.
+    We generate a go.mod file in the workspace to make it the root of the
+    go project.
+    We create a go.mod file in proto dir with the same package name and add
+    a "replace proto => ./proto" directive in the go.mod.
+    We set the first dir in GOPATH to be yabtwork/go so that all downloaded
+    packages are managed in the user machine and not inside the ephemeral docker
+    When we clean the workspace we make sure to keep the go.mod since it is new
+    go build redownload all packages (can we solve this?)
+
+
+    TODOs:
+      - replace resonai.com with package name coming from the target/YSettings
+      - support none empty go.mod file defined by the target
+      - "replace proto => ./proto" is needed since the generated code import
+        doesn't have the package before imports of other generated go files.
+        See if there is another way to do it (understanding that can help us
+        create a GoLib builder)
+      - The code assumes GOPATH is /go - take it from env
+    """
     yprint(build_context.conf, 'Build GoProg', target)
     workspace_dir = build_context.get_workspace('GoProg', target.name)
 
