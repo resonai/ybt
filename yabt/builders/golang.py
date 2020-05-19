@@ -72,6 +72,7 @@ register_builder_sig(
     [('sources', PT.FileList),
      ('in_buildenv', PT.Target),
      ('cmd_env', None),
+     ('go_package', None),
      ])
 
 
@@ -105,16 +106,21 @@ def go_prog_builder(build_context, target):
 
 
     TODOs:
-      - replace resonai.com with package name coming from the target/YSettings
       - support none empty go.mod file defined by the target
       - "replace proto => ./proto" is needed since the generated code import
         doesn't have the package before imports of other generated go files.
         See if there is another way to do it (understanding that can help us
         create a GoLib builder)
-      - The code assumes GOPATH is /go - take it from env
     """
     yprint(build_context.conf, 'Build GoProg', target)
     workspace_dir = build_context.get_workspace('GoProg', target.name)
+    print(build_context.conf.common_conf)
+    go_package = (target.props.get('go_package') or
+                  build_context.conf.get('go_package', None))
+    if not go_package:
+      raise KeyError('Must specify go_package in YSettings common_conf '
+                     'or on target')
+
 
     # we leave the go.mod file otherwise the caching of downloaded packages
     # doesn't work
@@ -140,17 +146,25 @@ def go_prog_builder(build_context, target):
 
     download_cache_dir = build_context.conf.host_to_buildenv_path(
       join(build_context.conf.get_root_workspace_path(), 'go'))
-    build_cmd_env = {
-      'CGO_ENABLED': 0,
-      'GOPATH': '%s:/go' % download_cache_dir,  # TODO now /go
-    }
+
+    gopaths = [download_cache_dir]
+    user_gopath = (target.props.cmd_env or {}).get('GOPATH')
+    # if user didn't provide GOPATH we assumes it is /go
+    # TODO(eyal): A more correct behavior will be to check the GOPATH var
+    # inside the docker then to assumes it is /go.
+    # This code provides a way for the user to tell us what is the correct
+    # GOPATH but if it come handy we should implement looking into the docker
+    gopaths.append(user_gopath if user_gopath else '/go')
+    build_cmd_env = {}
     build_cmd_env.update(target.props.cmd_env or {})
+    build_cmd_env['GOPATH'] = ':'.join(gopaths)
+
 
 
     if not isfile(join(workspace_dir, 'go.mod')):
       build_context.run_in_buildenv(
         target.props.in_buildenv,
-        ['go', 'mod', 'init', 'resonai.com'],  # TODO now - take from config or go generic..
+        ['go', 'mod', 'init', go_package],
         build_cmd_env,
         work_dir=buildenv_workspace)
     if has_protos:
@@ -162,7 +176,7 @@ def go_prog_builder(build_context, target):
       if not isfile(join(workspace_dir, 'proto', 'go.mod')):
         build_context.run_in_buildenv(
           target.props.in_buildenv,
-          ['go', 'mod', 'init', 'resonai.com'],  # TODO now - take from config or go generic..
+          ['go', 'mod', 'init', go_package],
           build_cmd_env,
           work_dir=join(buildenv_workspace, 'proto'))
 
