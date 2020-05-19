@@ -1,0 +1,8 @@
+syntax = "proto2";
+
+package tests;
+option go_package = "proto/base_protos;ybt_com";
+
+message Hello {
+  optional string message = 1;
+}

@@ -1,0 +1,8 @@
+Proto(
+    'base-proto',
+    in_buildenv='//:builder-with-proto',
+    sources='base.proto',
+    gen_python=False,
+    gen_cpp=False,
+    gen_go=True,
+)

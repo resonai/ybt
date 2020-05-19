@@ -41,3 +41,16 @@ def test_golang_builder(basic_conf):
         ['docker', 'run', '--rm', build_context.targets[target_name].image_id,
          '-who', 'boomer'])
     assert hello_out == b'hello boomer\n'
+
+@pytest.mark.slow
+@pytest.mark.usefixtures('in_golang_project')
+def test_golang_builder_proto(basic_conf):
+    build_context = BuildContext(basic_conf)
+    target_name = 'hello:hello-proto-app'
+    basic_conf.targets = [target_name]
+    populate_targets_graph(build_context, basic_conf)
+    build_context.build_graph(run_tests=True)
+    hello_out = check_output(
+        ['docker', 'run', '--rm', build_context.targets[target_name].image_id,
+         '-who', 'boomer'])
+    assert hello_out == b'message: "hello boomer"\n\n'

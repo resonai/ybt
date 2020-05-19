@@ -1,3 +1,30 @@
 ExtDockerImage('scratch', image='scratch')
 
 ExtDockerImage('builder', image='golang', tag='1.14')
+
+CustomInstaller(
+  'protoc-gen-go',
+  uri='',
+  #deps='//3rdparty/apt:git',
+  script='install-protoc-gen-go.sh',
+  # packaging_params={
+  #     'set_env': {
+  #           'GOPATH': '/go',
+  #      },
+  #     'semicolon_join_env': {
+  #         'PATH': '/usr/local/go/bin:/go/bin',
+  #     },
+  # },
+)
+
+DockerImage(
+    'builder-with-proto',
+    image_name='golang-with-proto',
+    build_user='root',
+    run_user='root',
+    base_image=':builder',
+    deps=[
+        '//3rdparty:protobuf',
+        ':protoc-gen-go',
+    ],
+)

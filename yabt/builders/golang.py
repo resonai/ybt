@@ -142,7 +142,6 @@ def go_prog_builder(build_context, target):
       join(build_context.conf.get_root_workspace_path(), 'go'))
     build_cmd_env = {
       'CGO_ENABLED': 0,
-      #'XDG_CACHE_HOME': '%s/.cache' % download_cache_dir,
       'GOPATH': '%s:/go' % download_cache_dir,  # TODO now /go
     }
     build_cmd_env.update(target.props.cmd_env or {})

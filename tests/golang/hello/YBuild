@@ -1,3 +1,8 @@
 GoProg('hello', sources='hello.go', in_buildenv='//:builder')
-
 GoApp('hello-app', base_image='//:scratch', main=':hello')
+
+GoProg('hello-proto',
+       sources='hello-proto.go',
+       deps='//base_protos:base-proto',
+       in_buildenv='//:builder-with-proto')
+GoApp('hello-proto-app', base_image='//:scratch', main=':hello-proto')

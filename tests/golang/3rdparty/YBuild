@@ -1,0 +1,26 @@
+AptGroup(
+    'build-essentials-pack',
+    packages=[
+        'autoconf',
+        'automake',
+        'curl',
+        'g++',
+        'libtool',
+        'make',
+        'unzip',
+    ]
+)
+
+CustomInstaller(
+    'protobuf', # version 3.5.1
+    uri='https://github.com/google/protobuf/releases/download/v3.5.1/protobuf-python-3.5.1.tar.gz',
+    script='install-protobuf.sh',
+    deps=':build-essentials-pack'
+)
+
+PythonPackage(
+    'py-protobuf',
+    package='protobuf',
+    version='3.5.1',
+    pip='pip'
+)
