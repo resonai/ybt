@@ -157,7 +157,9 @@ def go_prog_builder(build_context, target):
     # This code provides a way for the user to tell us what is the correct
     # GOPATH but if it come handy we should implement looking into the docker
     gopaths.append(user_gopath if user_gopath else '/go')
-    build_cmd_env = {}
+    build_cmd_env = {
+      'XDG_CACHE_HOME': '/tmp/.cache',
+    }
     build_cmd_env.update(target.props.cmd_env or {})
     build_cmd_env['GOPATH'] = ':'.join(gopaths)
 
