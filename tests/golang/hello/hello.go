@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/common-nighthawk/go-figure"
+
 )
 
 func getGreet(who string) string {
@@ -12,6 +14,9 @@ func getGreet(who string) string {
 func main() {
 	who := flag.String("who", "world", "who to greet")
 	flag.Parse()
-	greet := getGreet(*who)
-	fmt.Printf("%s\n", greet)
+
+  greet := getGreet(*who)
+  myFigure := figure.NewFigure(greet, "", true)
+  myFigure.Print()
+
 }

@@ -72,7 +72,8 @@ register_builder_sig(
     [('sources', PT.FileList),
      ('in_buildenv', PT.Target),
      ('cmd_env', None),
-     ('go_package', None),
+     ('go_package', PT.str, None),
+     ('mod_file', PT.File, None),
      ])
 
 
@@ -106,7 +107,6 @@ def go_prog_builder(build_context, target):
 
 
     TODOs:
-      - support none empty go.mod file defined by the target
       - "replace proto => ./proto" is needed since the generated code import
         doesn't have the package before imports of other generated go files.
         See if there is another way to do it (understanding that can help us
@@ -114,7 +114,6 @@ def go_prog_builder(build_context, target):
     """
     yprint(build_context.conf, 'Build GoProg', target)
     workspace_dir = build_context.get_workspace('GoProg', target.name)
-    print(build_context.conf.common_conf)
     go_package = (target.props.get('go_package') or
                   build_context.conf.get('go_package', None))
     if not go_package:
@@ -131,7 +130,10 @@ def go_prog_builder(build_context, target):
         workspace_dir)
     buildenv_sources = [join(buildenv_workspace, src)
                         for src in target.props.sources]
-
+    if target.props.get('mod_file'):
+      link_node(join(build_context.conf.project_root,
+                     target.props.get('mod_file')),
+                join(workspace_dir, 'go.mod'))
     link_files(target.props.sources, workspace_dir, None, build_context.conf)
     has_protos = False
     for dep in build_context.generate_all_deps(target):
