@@ -81,15 +81,17 @@ register_builder_sig(
 def go_prog_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
 
+
 def rm_all_but_go_mod(workspace_dir):
-  for fname in listdir(workspace_dir):
-    if fname == 'go.mod':
-      continue
-    filepath = join(workspace_dir, fname)
-    if isfile(filepath):
-      remove(filepath)
-    else:
-      rmtree(filepath)
+    for fname in listdir(workspace_dir):
+        if fname == 'go.mod':
+            continue
+        filepath = join(workspace_dir, fname)
+        if isfile(filepath):
+            remove(filepath)
+        else:
+            rmtree(filepath)
+
 
 @register_build_func('GoProg')
 def go_prog_builder(build_context, target):
@@ -101,7 +103,8 @@ def go_prog_builder(build_context, target):
     We create a go.mod file in proto dir with the same package name and add
     a "replace proto => ./proto" directive in the go.mod.
     We set the first dir in GOPATH to be yabtwork/go so that all downloaded
-    packages are managed in the user machine and not inside the ephemeral docker
+    packages are managed in the user machine and not inside the ephemeral
+    docker.
     When we clean the workspace we make sure to keep the go.mod since it is new
     go build redownload all packages (can we solve this?)
 
@@ -117,9 +120,8 @@ def go_prog_builder(build_context, target):
     go_package = (target.props.get('go_package') or
                   build_context.conf.get('go_package', None))
     if not go_package:
-      raise KeyError('Must specify go_package in YSettings common_conf '
-                     'or on target')
-
+        raise KeyError('Must specify go_package in YSettings common_conf '
+                       'or on target')
 
     # we leave the go.mod file otherwise the caching of downloaded packages
     # doesn't work
@@ -131,20 +133,19 @@ def go_prog_builder(build_context, target):
     buildenv_sources = [join(buildenv_workspace, src)
                         for src in target.props.sources]
     if target.props.get('mod_file'):
-      link_node(join(build_context.conf.project_root,
-                     target.props.get('mod_file')),
-                join(workspace_dir, 'go.mod'))
+        link_node(join(build_context.conf.project_root,
+                       target.props.get('mod_file')),
+                  join(workspace_dir, 'go.mod'))
     link_files(target.props.sources, workspace_dir, None, build_context.conf)
     has_protos = False
     for dep in build_context.generate_all_deps(target):
-      artifact_map = dep.artifacts.get(AT.gen_go)
-      if not artifact_map:
-        continue
-      has_protos = True
-      for dst, src in artifact_map.items():
-        target_file = join(workspace_dir, dst)
-        link_node(join(build_context.conf.project_root, src), target_file)
-
+        artifact_map = dep.artifacts.get(AT.gen_go)
+        if not artifact_map:
+            continue
+        has_protos = True
+        for dst, src in artifact_map.items():
+            target_file = join(workspace_dir, dst)
+            link_node(join(build_context.conf.project_root, src), target_file)
 
     download_cache_dir = build_context.conf.host_to_buildenv_path(
       join(build_context.conf.get_root_workspace_path(), 'go'))
@@ -163,26 +164,24 @@ def go_prog_builder(build_context, target):
     build_cmd_env.update(target.props.cmd_env or {})
     build_cmd_env['GOPATH'] = ':'.join(gopaths)
 
-
-
     if not isfile(join(workspace_dir, 'go.mod')):
-      build_context.run_in_buildenv(
-        target.props.in_buildenv,
-        ['go', 'mod', 'init', go_package],
-        build_cmd_env,
-        work_dir=buildenv_workspace)
-    if has_protos:
-      build_context.run_in_buildenv(
-        target.props.in_buildenv,
-        ['go', 'mod', 'edit', '-replace', 'proto=./proto'],
-        build_cmd_env,
-        work_dir=buildenv_workspace)
-      if not isfile(join(workspace_dir, 'proto', 'go.mod')):
         build_context.run_in_buildenv(
           target.props.in_buildenv,
           ['go', 'mod', 'init', go_package],
           build_cmd_env,
-          work_dir=join(buildenv_workspace, 'proto'))
+          work_dir=buildenv_workspace)
+    if has_protos:
+        build_context.run_in_buildenv(
+          target.props.in_buildenv,
+          ['go', 'mod', 'edit', '-replace', 'proto=./proto'],
+          build_cmd_env,
+          work_dir=buildenv_workspace)
+        if not isfile(join(workspace_dir, 'proto', 'go.mod')):
+            build_context.run_in_buildenv(
+              target.props.in_buildenv,
+              ['go', 'mod', 'init', go_package],
+              build_cmd_env,
+              work_dir=join(buildenv_workspace, 'proto'))
 
     bin_file = join(buildenv_workspace, binary)
     build_cmd = ['go', 'build', '-o', bin_file] + buildenv_sources
