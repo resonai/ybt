@@ -81,9 +81,11 @@ register_builder_sig(
 def go_prog_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
 
+
 @register_build_func('GoProg')
 def go_prog_builder(build_context, target):
     go_prog_builder_internal(build_context, target, command='build')
+
 
 register_builder_sig(
     'GoTest',
@@ -94,9 +96,11 @@ register_builder_sig(
      ('mod_file', PT.File, None),
      ])
 
+
 @register_manipulate_target_hook('GoTest')
 def go_prog_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
+
 
 @register_build_func('GoTest')
 def go_prog_builder(build_context, target):
