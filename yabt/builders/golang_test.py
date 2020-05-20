@@ -39,8 +39,17 @@ def test_golang_builder(basic_conf):
     build_context.build_graph(run_tests=True)
     hello_out = check_output(
         ['docker', 'run', '--rm', build_context.targets[target_name].image_id,
-         '-who', 'boomer'])
-    assert hello_out == b'hello boomer\n'
+         '-who', 'app'])
+    expected=br'''
+  _              _   _
+ | |__     ___  | | | |   ___       __ _   _ __    _ __
+ | '_ \   / _ \ | | | |  / _ \     / _` | | '_ \  | '_ \
+ | | | | |  __/ | | | | | (_) |   | (_| | | |_) | | |_) |
+ |_| |_|  \___| |_| |_|  \___/     \__,_| | .__/  | .__/
+                                          |_|     |_|
+'''
+    assert expected==(b"\n" + hello_out)
+
 
 @pytest.mark.slow
 @pytest.mark.usefixtures('in_golang_project')
