@@ -93,7 +93,7 @@ def test_norm_name_unqualified_error():
             'possible ambiguity' in str(excinfo.value))
 
 
-_HELLO_PROG_HASH = '0e049ee8ed31c616033076f8f90415a7'
+_HELLO_PROG_HASH = '19bd1e73278f9a524de049d0d950c3af'
 _PROTO_BUILDER = '11bab3a89f9c058e5b617705bcb67c51'
 _BOTH_HASHES = list(sorted([_HELLO_PROG_HASH, _PROTO_BUILDER]))
 
