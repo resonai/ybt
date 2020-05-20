@@ -7,7 +7,7 @@ import (
 
 )
 
-func getGreet(who string) string {
+func GetGreet(who string) string {
 	return fmt.Sprintf("hello %s", who)
 }
 
@@ -15,7 +15,7 @@ func main() {
 	who := flag.String("who", "world", "who to greet")
 	flag.Parse()
 
-  greet := getGreet(*who)
+  greet := GetGreet(*who)
   myFigure := figure.NewFigure(greet, "", true)
   myFigure.Print()
 

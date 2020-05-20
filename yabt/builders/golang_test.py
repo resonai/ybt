@@ -52,6 +52,16 @@ def test_golang_builder(basic_conf):
 
 
 @pytest.mark.slow
+@pytest.mark.usefixtures('in_golang_project')
+def test_golang_test(basic_conf):
+    build_context = BuildContext(basic_conf)
+    target_name = 'hello:hello_test'
+    basic_conf.targets = [target_name]
+    populate_targets_graph(build_context, basic_conf)
+    build_context.build_graph(run_tests=True)
+
+
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_proto_project')
 def test_golang_builder_proto(basic_conf):
     build_context = BuildContext(basic_conf)

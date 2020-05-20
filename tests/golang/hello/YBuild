@@ -2,4 +2,11 @@ GoProg('hello',
        sources='hello.go',
        in_buildenv='//:builder',
        mod_file='go.mod')
+
+GoTest('hello_test',
+       sources='hello_test.go',
+       deps=':hello',
+       in_buildenv='//:builder',
+       mod_file='go.mod')
+
 GoApp('hello-app', base_image='//:scratch', main=':hello')

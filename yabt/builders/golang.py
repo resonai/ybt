@@ -81,6 +81,28 @@ register_builder_sig(
 def go_prog_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
 
+@register_build_func('GoProg')
+def go_prog_builder(build_context, target):
+    go_prog_builder_internal(build_context, target, command='build')
+
+register_builder_sig(
+    'GoTest',
+    [('sources', PT.FileList),
+     ('in_buildenv', PT.Target),
+     ('cmd_env', None),
+     ('go_package', PT.str, None),
+     ('mod_file', PT.File, None),
+     ])
+
+@register_manipulate_target_hook('GoTest')
+def go_prog_manipulate_target(build_context, target):
+    target.buildenv = target.props.in_buildenv
+
+@register_build_func('GoTest')
+def go_prog_builder(build_context, target):
+    target.tags.add('testable')
+    go_prog_builder_internal(build_context, target, command='test')
+
 
 def rm_all_but_go_mod(workspace_dir):
     for fname in listdir(workspace_dir):
@@ -93,9 +115,9 @@ def rm_all_but_go_mod(workspace_dir):
             rmtree(filepath)
 
 
-@register_build_func('GoProg')
-def go_prog_builder(build_context, target):
-    """Build a Go binary executable.
+def go_prog_builder_internal(build_context, target, command):
+    """Build or test a Go binary executable.
+    command is either build or test
 
     We link all go files source and all proto generated files into workspace.
     We generate a go.mod file in the workspace to make it the root of the
@@ -115,8 +137,9 @@ def go_prog_builder(build_context, target):
         See if there is another way to do it (understanding that can help us
         create a GoLib builder)
     """
-    yprint(build_context.conf, 'Build GoProg', target)
-    workspace_dir = build_context.get_workspace('GoProg', target.name)
+    builder_name = target.builder_name
+    yprint(build_context.conf, 'Build', builder_name, target)
+    workspace_dir = build_context.get_workspace(builder_name, target.name)
     go_package = (target.props.get('go_package') or
                   build_context.conf.get('go_package', None))
     if not go_package:
@@ -136,9 +159,10 @@ def go_prog_builder(build_context, target):
         link_node(join(build_context.conf.project_root,
                        target.props.get('mod_file')),
                   join(workspace_dir, 'go.mod'))
-    link_files(target.props.sources, workspace_dir, None, build_context.conf)
+    sources_to_link = list(target.props.sources)
     has_protos = False
     for dep in build_context.generate_all_deps(target):
+        sources_to_link.extend(dep.props.get('sources', []))
         artifact_map = dep.artifacts.get(AT.gen_go)
         if not artifact_map:
             continue
@@ -146,6 +170,8 @@ def go_prog_builder(build_context, target):
         for dst, src in artifact_map.items():
             target_file = join(workspace_dir, dst)
             link_node(join(build_context.conf.project_root, src), target_file)
+
+    link_files(sources_to_link, workspace_dir, None, build_context.conf)
 
     download_cache_dir = build_context.conf.host_to_buildenv_path(
       join(build_context.conf.get_root_workspace_path(), 'go'))
@@ -184,7 +210,7 @@ def go_prog_builder(build_context, target):
               work_dir=join(buildenv_workspace, 'proto'))
 
     bin_file = join(buildenv_workspace, binary)
-    build_cmd = ['go', 'build', '-o', bin_file] + buildenv_sources
+    build_cmd = ['go', command, '-o', bin_file] + buildenv_sources
     build_context.run_in_buildenv(
       target.props.in_buildenv, build_cmd, build_cmd_env,
       work_dir=buildenv_workspace)
