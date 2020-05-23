@@ -40,15 +40,15 @@ def test_golang_builder(basic_conf):
     hello_out = check_output(
         ['docker', 'run', '--rm', build_context.targets[target_name].image_id,
          '-who', 'app'])
-    expected = br'''
+    expected = br"""
   _              _   _
  | |__     ___  | | | |   ___       __ _   _ __    _ __
  | '_ \   / _ \ | | | |  / _ \     / _` | | '_ \  | '_ \
  | | | | |  __/ | | | | | (_) |   | (_| | | |_) | | |_) |
  |_| |_|  \___| |_| |_|  \___/     \__,_| | .__/  | .__/
                                           |_|     |_|
-'''
-    assert expected == (b"\n" + hello_out)
+"""
+    assert expected == (b'\n' + hello_out)
 
 
 @pytest.mark.slow

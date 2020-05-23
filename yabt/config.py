@@ -121,9 +121,9 @@ class Config:
                    (BUILD_PROJ_FILE if '' == build_module
                     else self.build_file_name))
 
-    def get_root_workspace_path(self) -> str:
+    def get_go_packages_path(self) -> str:
         return os.path.join(
-            self.project_root, self.builders_workspace_dir)
+            self.project_root, self.builders_workspace_dir, 'go')
 
     def get_workspace_path(self) -> str:
         return os.path.join(

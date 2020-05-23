@@ -68,4 +68,5 @@ GoProg('hello-go',
        deps=':hello-proto',
        go_package='foo.com',
        in_buildenv='//:proto-builder')
+
 GoApp('hello-go-app', base_image='//:ubuntu', main=':hello-go')

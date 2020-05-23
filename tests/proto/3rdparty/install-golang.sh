@@ -9,6 +9,6 @@ mkdir "$GOPATH"
 # Support for grpc generation.
 apt update
 apt-get install -y git
-#go get google.golang.org/grpc
+
 go get github.com/golang/protobuf/protoc-gen-go
 chmod -R 777 "$GOPATH"

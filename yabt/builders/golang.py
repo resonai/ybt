@@ -22,10 +22,10 @@ yabt Go Builder
 
 :author: Itamar Ostricher
 
-TODO: libs, external libs, go test
+TODO: libs, external libs
 TODO: does this even work with non-flat source file tree??
 """
-
+from ..config import YSETTINGS_FILE
 from os import listdir, remove
 from os.path import isfile, join, relpath
 
@@ -36,8 +36,7 @@ from ..extend import (
     register_manipulate_target_hook)
 from ..logging import make_logger
 from ..target_utils import split
-from ..utils import rmtree, yprint, link_files, link_node
-
+from ..utils import link_files, link_node, rmtree, yprint
 
 logger = make_logger(__name__)
 
@@ -71,9 +70,9 @@ register_builder_sig(
     'GoProg',
     [('sources', PT.FileList),
      ('in_buildenv', PT.Target),
-     ('cmd_env', None),
      ('go_package', PT.str, None),
      ('mod_file', PT.File, None),
+     ('cmd_env', None),
      ])
 
 
@@ -84,7 +83,8 @@ def go_prog_manipulate_target(build_context, target):
 
 @register_build_func('GoProg')
 def go_prog_builder(build_context, target):
-    go_prog_builder_internal(build_context, target, command='build')
+    """Build a Go binary executable"""
+    go_builder_internal(build_context, target, command='build')
 
 
 register_builder_sig(
@@ -98,14 +98,15 @@ register_builder_sig(
 
 
 @register_manipulate_target_hook('GoTest')
-def go_prog_manipulate_target(build_context, target):
+def go_test_manipulate_target(build_context, target):
+    target.tags.add('testable')
     target.buildenv = target.props.in_buildenv
 
 
 @register_build_func('GoTest')
-def go_prog_builder(build_context, target):
-    target.tags.add('testable')
-    go_prog_builder_internal(build_context, target, command='test')
+def go_test_builder(build_context, target):
+    """Test a Go test"""
+    go_builder_internal(build_context, target, command='test')
 
 
 def rm_all_but_go_mod(workspace_dir):
@@ -119,7 +120,7 @@ def rm_all_but_go_mod(workspace_dir):
             rmtree(filepath)
 
 
-def go_prog_builder_internal(build_context, target, command):
+def go_builder_internal(build_context, target, command):
     """Build or test a Go binary executable.
     command is either build or test
 
@@ -142,13 +143,14 @@ def go_prog_builder_internal(build_context, target, command):
         create a GoLib builder)
     """
     builder_name = target.builder_name
-    yprint(build_context.conf, 'Build', builder_name, target)
+    yprint(build_context.conf, command, builder_name, target)
     workspace_dir = build_context.get_workspace(builder_name, target.name)
     go_package = (target.props.get('go_package') or
                   build_context.conf.get('go_package', None))
+    go_mod_path = join(workspace_dir, 'go.mod')
     if not go_package:
-        raise KeyError('Must specify go_package in YSettings common_conf '
-                       'or on target')
+        raise KeyError('Must specify go_package in {} common_conf '
+                       'or on target'.format(YSETTINGS_FILE))
 
     # we leave the go.mod file otherwise the caching of downloaded packages
     # doesn't work
@@ -162,7 +164,7 @@ def go_prog_builder_internal(build_context, target, command):
     if target.props.get('mod_file'):
         link_node(join(build_context.conf.project_root,
                        target.props.get('mod_file')),
-                  join(workspace_dir, 'go.mod'))
+                  go_mod_path)
     sources_to_link = list(target.props.sources)
     has_protos = False
     for dep in build_context.generate_all_deps(target):
@@ -178,7 +180,7 @@ def go_prog_builder_internal(build_context, target, command):
     link_files(sources_to_link, workspace_dir, None, build_context.conf)
 
     download_cache_dir = build_context.conf.host_to_buildenv_path(
-      join(build_context.conf.get_root_workspace_path(), 'go'))
+      build_context.conf.get_go_packages_path())
 
     gopaths = [download_cache_dir]
     user_gopath = (target.props.cmd_env or {}).get('GOPATH')
@@ -189,12 +191,12 @@ def go_prog_builder_internal(build_context, target, command):
     # GOPATH but if it come handy we should implement looking into the docker
     gopaths.append(user_gopath if user_gopath else '/go')
     build_cmd_env = {
-      'XDG_CACHE_HOME': '/tmp/.cache',
+        'XDG_CACHE_HOME': '/tmp/.cache',
     }
     build_cmd_env.update(target.props.cmd_env or {})
     build_cmd_env['GOPATH'] = ':'.join(gopaths)
 
-    if not isfile(join(workspace_dir, 'go.mod')):
+    if not isfile(go_mod_path):
         build_context.run_in_buildenv(
           target.props.in_buildenv,
           ['go', 'mod', 'init', go_package],

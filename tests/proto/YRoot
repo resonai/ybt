@@ -21,7 +21,7 @@ DockerImage(
     image_caching_behavior=base_image_caching_behavior(
         conf,
         remote_image_name='yabt/proto-builder',
-        remote_image_tag='3.5.1-go')
+        remote_image_tag='3.5.1-go1.14.2')
 )
 
 DockerImage(
