@@ -24,3 +24,17 @@ PythonPackage(
     version='3.5.1',
     pip='pip'
 )
+
+CustomInstaller(
+    'golang',
+    uri='https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz',
+    script='install-golang.sh',
+    packaging_params={
+        'set_env': {
+            'GOPATH': '/go',
+        },
+        'semicolon_join_env': {
+            'PATH': '/usr/local/go/bin:/go/bin',
+        },
+    },
+)

@@ -17,11 +17,11 @@ ExtDockerImage(
 DockerImage(
     'proto-builder',
     base_image=':ubuntu',
-    deps='//3rdparty:protobuf',
+    deps=['//3rdparty:protobuf', '//3rdparty:golang'],
     image_caching_behavior=base_image_caching_behavior(
         conf,
-        remote_image_name='itamarost/proto-builder',
-        remote_image_tag='3.5.1')
+        remote_image_name='yabt/proto-builder',
+        remote_image_tag='3.5.1-go1.14.2')
 )
 
 DockerImage(

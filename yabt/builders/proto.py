@@ -47,10 +47,12 @@ register_builder_sig(
      ('proto_cmd', PT.list, 'protoc'),
      ('gen_python', PT.bool, True),
      ('gen_cpp', PT.bool, True),
+     ('gen_go', PT.bool, False),
      ('gen_python_rpcz', PT.bool, False),
      ('gen_cpp_rpcz', PT.bool, False),
      ('gen_python_grpc', PT.bool, False),
      ('gen_cpp_grpc', PT.bool, False),
+     ('gen_go_grpc', PT.bool, False),
      ('gen_descriptor', PT.bool, False),
      ('grpc_plugin_path', PT.str, '/usr/local/bin/grpc_cpp_plugin'),
      ('copy_generated_to', PT.File, None),
@@ -85,6 +87,8 @@ def proto_builder(build_context, target):
         protoc_cmd.extend(('--cpp_out', buildenv_workspace))
     if target.props.gen_python:
         protoc_cmd.extend(('--python_out', buildenv_workspace))
+    if target.props.gen_go and not target.props.gen_go_grpc:
+        protoc_cmd.extend(('--go_out', buildenv_workspace))
     if target.props.gen_cpp_grpc:
         protoc_cmd.extend(
             ('--grpc_out', buildenv_workspace,
@@ -92,6 +96,9 @@ def proto_builder(build_context, target):
              .format(target.props.grpc_plugin_path)))
     if target.props.gen_python_grpc:
         protoc_cmd.extend(('--grpc_python_out', buildenv_workspace))
+    if target.props.gen_go_grpc:
+        protoc_cmd.append(
+            '--go_out=plugins=grpc:{}'.format(buildenv_workspace))
     if target.props.gen_cpp_rpcz:
         protoc_cmd.extend(('--cpp_rpcz_out', buildenv_workspace))
     if target.props.gen_python_rpcz:
@@ -130,6 +137,8 @@ def proto_builder(build_context, target):
         if target.props.gen_cpp:
             process_generated(src_base + '.pb.cc', AT.gen_cc)
             process_generated(src_base + '.pb.h', AT.gen_h)
+        if target.props.gen_go or target.props.gen_go_grpc:
+            process_generated(src_base + '.pb.go', AT.gen_go)
         if target.props.gen_python_rpcz:
             process_generated(src_base + '_rpcz.py', AT.gen_py)
         if target.props.gen_cpp_rpcz:

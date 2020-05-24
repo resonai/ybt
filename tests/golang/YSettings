@@ -1,0 +1,4 @@
+def get_common_config(config, args):
+    return {
+        'go_package': 'bar.com',
+    }
