@@ -72,8 +72,8 @@ class ArtifactStore:
                 by any dependent C++ builder (direct or indirect) to extend
                 the target headers. Cached as ouputs.
     - "gen_go"  A generated Go source file (e.g. from Proto's) that is used
-                only by directly dependent Go builders (used to extend
-                sources). Cached as outputs.
+                only by directly and indirect dependents Go builders (used to
+                extend sources). Cached as outputs.
 
 
     An artifact is added as a specific type, with a source path (pointing to

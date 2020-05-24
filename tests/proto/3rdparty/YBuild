@@ -31,8 +31,8 @@ CustomInstaller(
     script='install-golang.sh',
     packaging_params={
         'set_env': {
-              'GOPATH': '/go',
-         },
+            'GOPATH': '/go',
+        },
         'semicolon_join_env': {
             'PATH': '/usr/local/go/bin:/go/bin',
         },

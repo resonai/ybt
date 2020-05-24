@@ -66,14 +66,16 @@ def go_app_builder(build_context, target):
         build_context, target, entrypoint=entrypoint)
 
 
-register_builder_sig(
-    'GoProg',
-    [('sources', PT.FileList),
-     ('in_buildenv', PT.Target),
-     ('go_package', PT.str, None),
-     ('mod_file', PT.File, None),
-     ('cmd_env', None),
-     ])
+# Common Go builder signature terms
+GO_SIG = [
+    ('sources', PT.FileList),
+    ('in_buildenv', PT.Target),
+    ('go_package', PT.str, None),
+    ('mod_file', PT.File, None),
+    ('cmd_env', None),
+]
+
+register_builder_sig('GoProg', GO_SIG)
 
 
 @register_manipulate_target_hook('GoProg')
@@ -87,14 +89,7 @@ def go_prog_builder(build_context, target):
     go_builder_internal(build_context, target, command='build')
 
 
-register_builder_sig(
-    'GoTest',
-    [('sources', PT.FileList),
-     ('in_buildenv', PT.Target),
-     ('cmd_env', None),
-     ('go_package', PT.str, None),
-     ('mod_file', PT.File, None),
-     ])
+register_builder_sig('GoTest', GO_SIG)
 
 
 @register_manipulate_target_hook('GoTest')
@@ -167,6 +162,10 @@ def go_builder_internal(build_context, target, command):
                   go_mod_path)
     sources_to_link = list(target.props.sources)
     has_protos = False
+
+    # Goging over all deps and pulling their sources.
+    # TODO(eyal): This pull sources of all types which is most likely not
+    # needed but not harming. We should revisit this in later iterations.
     for dep in build_context.generate_all_deps(target):
         sources_to_link.extend(dep.props.get('sources', []))
         artifact_map = dep.artifacts.get(AT.gen_go)
