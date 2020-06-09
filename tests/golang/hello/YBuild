@@ -1,6 +1,11 @@
 GoProg('hello',
        sources='hello.go',
        in_buildenv='//:builder',
+       runtime_params={
+         'volumes': [
+           '/tmp:/tmp',
+         ]
+       },
        mod_file='go.mod')
 
 GoTest('hello_test',

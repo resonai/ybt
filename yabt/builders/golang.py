@@ -29,6 +29,7 @@ from ..config import YSETTINGS_FILE
 from os import listdir, remove
 from os.path import isfile, join, relpath
 
+from yabt.docker import extend_runtime_params, format_docker_run_params
 from ..artifact import ArtifactType as AT
 from .dockerapp import build_app_docker_and_bin, register_app_builder_sig
 from ..extend import (
@@ -216,8 +217,15 @@ def go_builder_internal(build_context, target, command):
 
     bin_file = join(buildenv_workspace, binary)
     build_cmd = ['go', command, '-o', bin_file] + buildenv_sources
+
+    run_params = extend_runtime_params(
+        target.props.runtime_params,
+        build_context.walk_target_deps_topological_order(target),
+        build_context.conf.runtime_params, True)
+
     build_context.run_in_buildenv(
       target.props.in_buildenv, build_cmd, build_cmd_env,
+      run_params=format_docker_run_params(run_params),
       work_dir=buildenv_workspace)
     target.artifacts.add(
         AT.binary,
