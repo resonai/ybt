@@ -212,7 +212,7 @@ def format_docker_run_params(params: dict):
     if params.get('work_dir'):
         param_strings.extend(['-w', params['work_dir']])
     for var, value in params['env'].items():
-        param_strings.extend(['-e', '{}="{}"'.format(var, value)])
+        param_strings.extend(['-e', '{}={}'.format(var, value)])
     if params.get('network'):
         param_strings.extend(['--net', params['network']])
     if params.get('runtime'):
@@ -249,7 +249,7 @@ def update_runtime_params(runtime_params: dict, new_rt_param: dict,
     else:
         runtime_params['volumes'].extend(listify(
             new_rt_param.get('volumes')))
-    runtime_params['env'].update(dict(runtime_params.get('env', {})))
+    runtime_params['env'].update(dict(new_rt_param.get('env', {})))
     for param in ('container_name', 'daemonize', 'interactive', 'term',
                   'auto_it', 'rm', 'work_dir', 'impersonate', 'network'):
         if param in new_rt_param:

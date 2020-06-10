@@ -8,3 +8,9 @@ func TestGetGreet(t *testing.T) {
 		t.Errorf("Unexpected greeting \"%s\"", greet)
 	}
 }
+
+func TestPrintFooFromEnv(t *testing.T) {
+	if greet := hello.PrintFooFromEnv(); greet != "hello foo" {
+		t.Errorf("Unexpected greeting \"%s\"", greet)
+	}
+}
