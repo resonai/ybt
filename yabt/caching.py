@@ -37,7 +37,8 @@ from ostrich.utils.text import get_safe_path
 
 from .artifact import ArtifactType as AT
 from .config import Config
-from .docker import get_image_name, handle_build_cache, tag_docker_image
+from .docker import (get_image_name, handle_build_cache,
+                     tag_docker_image, push_docker_image)
 from .graph import get_descendants
 from .logging import make_logger
 from .target_utils import ImageCachingBehavior, Target
@@ -212,6 +213,15 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
                 image_full_name = artifact['dst']
                 try:
                     tag_docker_image(image_id, image_full_name)
+                    icb = ImageCachingBehavior(
+                      get_image_name(target),
+                      target.props.image_tag,
+                      target.props.image_caching_behavior)
+                    if icb.push_image_after_build:
+                      tag_docker_image(image_id, icb.remote_image)
+                      push_docker_image(icb.remote_image,
+                                        build_context.conf.docker_push_cmd)
+
                 except:
                     logger.debug('Docker image with ID {} not found locally',
                                  image_id)

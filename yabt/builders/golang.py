@@ -34,7 +34,7 @@ from ..artifact import ArtifactType as AT
 from .dockerapp import build_app_docker_and_bin, register_app_builder_sig
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
-    register_manipulate_target_hook)
+    register_manipulate_target_hook, register_test_func)
 from ..logging import make_logger
 from ..target_utils import split
 from ..utils import link_files, link_node, rmtree, yprint
@@ -99,8 +99,13 @@ def go_test_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
 
 
-@register_build_func('GoTest')
+@register_test_func('GoTest')
 def go_test_builder(build_context, target):
+    """Test a Go test"""
+    go_builder_internal(build_context, target, command='test')
+
+@register_build_func('GoTest')
+def go_build_test_builder(build_context, target):
     """Test a Go test"""
     go_builder_internal(build_context, target, command='test')
 
