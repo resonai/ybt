@@ -214,13 +214,13 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
                 try:
                     tag_docker_image(image_id, image_full_name)
                     icb = ImageCachingBehavior(
-                      get_image_name(target),
-                      target.props.image_tag,
-                      target.props.image_caching_behavior)
+                        get_image_name(target),
+                        target.props.image_tag,
+                        target.props.image_caching_behavior)
                     if icb.push_image_after_build:
-                      tag_docker_image(image_id, icb.remote_image)
-                      push_docker_image(icb.remote_image,
-                                        build_context.conf.docker_push_cmd)
+                        tag_docker_image(image_id, icb.remote_image)
+                        push_docker_image(icb.remote_image,
+                                          build_context.conf.docker_push_cmd)
 
                 except:
                     logger.debug('Docker image with ID {} not found locally',
