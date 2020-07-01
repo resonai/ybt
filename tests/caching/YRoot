@@ -1,4 +1,5 @@
-from yabt.docker import base_image_caching_behavior
+from yabt.docker import (base_image_caching_behavior,
+                         deployable_caching_behavior)
 
 AptGroup('tools', packages=['autoconf', 'automake', 'curl'])
 
@@ -34,5 +35,15 @@ DockerImage(
     # contains the same deo
     deps=':unzip'
 )
+
+DockerImage(
+    'deploy-image',
+    base_image=':ubuntu',
+    image_caching_behavior=deployable_caching_behavior(
+        conf,
+        remote_image_name='yabt/deploy-image',
+        remote_image_tag='v1')
+)
+
 
 TargetGroup('all-images', deps=[':an-image', ':builder', ':builder-base'])
