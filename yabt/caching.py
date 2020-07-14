@@ -184,43 +184,55 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
             except FileNotFoundError:
                 pass
             return False, False
-    # read summary file and restore relevant fields into target
-    with open(join(cache_dir, 'summary.json'), 'r') as summary_file:
-        summary = json.loads(summary_file.read())
-    for field in ('build_time', 'test_time', 'created', 'accessed'):
-        target.summary[field] = summary.get(field)
-    # compare artifacts hash
-    if (hash_tree(join(cache_dir, 'artifacts.json')) !=
-            summary.get('artifacts_hash', 'no hash')):
+    try:
+        # read summary file and restore relevant fields into target
+        with open(join(cache_dir, 'summary.json'), 'r') as summary_file:
+            summary = json.loads(summary_file.read())
+        for field in ('build_time', 'test_time', 'created', 'accessed'):
+            target.summary[field] = summary.get(field)
+        # compare artifacts hash
+        if (hash_tree(join(cache_dir, 'artifacts.json')) !=
+                summary.get('artifacts_hash', 'no hash')):
+            return False, False
+        # read cached artifacts metadata
+        with open(join(cache_dir, 'artifacts.json'), 'r') as artifacts_meta_file:
+            artifact_desc = json.loads(artifacts_meta_file.read())
+        # restore all artifacts
+        for type_name, artifact_list in artifact_desc.items():
+            artifact_type = getattr(AT, type_name)
+            for artifact in artifact_list:
+                # restore artifact to its expected src path
+                if artifact_type not in _NO_CACHE_TYPES:
+                    if not restore_artifact(
+                            artifact['src'], artifact['hash'], build_context.conf):
+                        target.artifacts.reset()
+                        return False, False
+                if artifact_type in (AT.docker_image,):
+                    # "restore" docker image from local registry
+                    image_id = artifact['src']
+                    image_full_name = artifact['dst']
+                    try:
+                        tag_docker_image(image_id, image_full_name)
+                    except:
+                        logger.debug('Docker image with ID {} not found locally',
+                                     image_id)
+                        target.artifacts.reset()
+                        return False, False
+                    target.image_id = image_id
+                target.artifacts.add(
+                    artifact_type, artifact['src'], artifact['dst'])
+        write_summary(summary, cache_dir)
+    except json.decoder.JSONDecodeError:
+        logger.warning("Got JsonDecodeError when trying to read cache of "
+                       "target {}. There is probably a corrupted file. "
+                       "Deleting the cache and not using it.", target.name)
+        try:
+            shutil.rmtree(cache_dir)
+        except FileNotFoundError:
+            pass
         return False, False
-    # read cached artifacts metadata
-    with open(join(cache_dir, 'artifacts.json'), 'r') as artifacts_meta_file:
-        artifact_desc = json.loads(artifacts_meta_file.read())
-    # restore all artifacts
-    for type_name, artifact_list in artifact_desc.items():
-        artifact_type = getattr(AT, type_name)
-        for artifact in artifact_list:
-            # restore artifact to its expected src path
-            if artifact_type not in _NO_CACHE_TYPES:
-                if not restore_artifact(
-                        artifact['src'], artifact['hash'], build_context.conf):
-                    target.artifacts.reset()
-                    return False, False
-            if artifact_type in (AT.docker_image,):
-                # "restore" docker image from local registry
-                image_id = artifact['src']
-                image_full_name = artifact['dst']
-                try:
-                    tag_docker_image(image_id, image_full_name)
-                except:
-                    logger.debug('Docker image with ID {} not found locally',
-                                 image_id)
-                    target.artifacts.reset()
-                    return False, False
-                target.image_id = image_id
-            target.artifacts.add(
-                artifact_type, artifact['src'], artifact['dst'])
-    write_summary(summary, cache_dir)
+
+
     # check that the testing cache exists.
     if not isfile(join(cache_dir, 'tested.json')):
         logger.debug('No testing cache found for target {}', target.name)
