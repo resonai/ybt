@@ -245,10 +245,20 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
         logger.debug('PythonTest target: {}. not using cache.', target.name)
         return True, False
     # read the testing cache.
-    with open(join(cache_dir, 'tested.json'), 'r') as tested_file:
-        target.tested = json.loads(tested_file.read())
-        test_key = target.test_hash(build_context)
-        return True, (target.tested.get(test_key) is not None)
+    try:
+        with open(join(cache_dir, 'tested.json'), 'r') as tested_file:
+            target.tested = json.loads(tested_file.read())
+            test_key = target.test_hash(build_context)
+            return True, (target.tested.get(test_key) is not None)
+    except json.decoder.JSONDecodeError:
+        logger.warning("Got JsonDecodeError when trying to read cache of "
+                       "test {}. There is probably a corrupted file. "
+                       "Deleting the cache and not using it.", target.name)
+        try:
+            os.remove(join(cache_dir, 'tested.json'))
+        except FileNotFoundError:
+            pass
+        return True, False
 
 
 def copy_artifact(src_path: str, artifact_hash: str, conf: Config):
