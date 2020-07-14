@@ -195,7 +195,8 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
                 summary.get('artifacts_hash', 'no hash')):
             return False, False
         # read cached artifacts metadata
-        with open(join(cache_dir, 'artifacts.json'), 'r') as artifacts_meta_file:
+        with open(join(cache_dir, 'artifacts.json'), 'r') \
+                as artifacts_meta_file:
             artifact_desc = json.loads(artifacts_meta_file.read())
         # restore all artifacts
         for type_name, artifact_list in artifact_desc.items():
@@ -203,8 +204,8 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
             for artifact in artifact_list:
                 # restore artifact to its expected src path
                 if artifact_type not in _NO_CACHE_TYPES:
-                    if not restore_artifact(
-                            artifact['src'], artifact['hash'], build_context.conf):
+                    if not restore_artifact(artifact['src'], artifact['hash'],
+                                            build_context.conf):
                         target.artifacts.reset()
                         return False, False
                 if artifact_type in (AT.docker_image,):
@@ -214,8 +215,8 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
                     try:
                         tag_docker_image(image_id, image_full_name)
                     except:
-                        logger.debug('Docker image with ID {} not found locally',
-                                     image_id)
+                        logger.debug('Docker image with ID {} not found '
+                                     'locally', image_id)
                         target.artifacts.reset()
                         return False, False
                     target.image_id = image_id
@@ -231,7 +232,6 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
         except FileNotFoundError:
             pass
         return False, False
-
 
     # check that the testing cache exists.
     if not isfile(join(cache_dir, 'tested.json')):
