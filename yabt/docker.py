@@ -168,19 +168,27 @@ def handle_build_cache(
     and non-trivial operations that are not usually expected from functions
     with such names.
     """
-    if icb.pull_if_cached or (icb.pull_if_not_cached and
-                              get_cached_image_id(icb.remote_image) is None):
+    # janky optimization ahead! (because `get_cached_image_id` is expensive)
+    # a bunch of ugly conditions that result the evaluation of
+    # `get_cached_image_id`
+    image_id = None
+    if (
+            ((not icb.pull_if_cached) and icb.pull_if_not_cached) or
+            icb.skip_build_if_cached or
+            (not icb.allow_build_if_not_cached)
+       ):
+        image_id = get_cached_image_id(icb.remote_image)
+    if icb.pull_if_cached or (icb.pull_if_not_cached and image_id is None):
         try:
             pull_docker_image(icb.remote_image, conf.docker_pull_cmd)
+            image_id = get_cached_image_id(icb.remote_image)
         except CalledProcessError:
             pass
     local_image = '{}:{}'.format(name, tag)
-    if (icb.skip_build_if_cached and
-            get_cached_image_id(icb.remote_image) is not None):
+    if icb.skip_build_if_cached and image_id is not None:
         tag_docker_image(icb.remote_image, local_image)
-        return get_cached_image_id(local_image)
-    if ((not icb.allow_build_if_not_cached) and
-            get_cached_image_id(icb.remote_image) is None):
+        return image_id
+    if (not icb.allow_build_if_not_cached) and image_id is None:
         raise RuntimeError('No cached image for {}'.format(local_image))
     return None
 
