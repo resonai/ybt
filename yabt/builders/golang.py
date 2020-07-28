@@ -72,9 +72,7 @@ GO_SIG = [
     ('sources', PT.FileList),
     ('in_buildenv', PT.Target),
     ('protos', PT.TargetList, None),
-    ('go_package', PT.str, None),
     ('go_module', PT.str, None),
-    ('mod_file', PT.File, None),
     ('cmd_env', None),
 ]
 
@@ -89,7 +87,7 @@ def go_prog_manipulate_target(build_context, target):
 @register_build_func('GoProg')
 def go_prog_builder(build_context, target):
     """Build a Go binary executable"""
-    go_builder_internal_new(build_context, target, command='build')
+    go_builder_internal(build_context, target, command='build')
 
 
 register_builder_sig('GoPackage', GO_SIG)
@@ -104,7 +102,7 @@ def go_package_manipulate_target(build_context, target):
 @register_build_func('GoPackage')
 def go_package_builder(build_context, target):
     """Build a Go package"""
-    go_builder_internal_new(build_context, target, command='build', is_binary=False)
+    go_builder_internal(build_context, target, command='build', is_binary=False)
 
 
 register_builder_sig('GoTest', GO_SIG)
@@ -119,7 +117,7 @@ def go_test_manipulate_target(build_context, target):
 @register_build_func('GoTest')
 def go_test_builder(build_context, target):
     """Test a Go test"""
-    go_builder_internal_new(build_context, target, command='test')
+    go_builder_internal(build_context, target, command='test')
 
 
 def rm_all_but_go_mod(workspace_dir):
@@ -133,124 +131,7 @@ def rm_all_but_go_mod(workspace_dir):
             rmtree(filepath)
 
 
-def go_builder_internal(build_context, target, command):
-    """Build or test a Go binary executable.
-    command is either build or test
-
-    We link all go files source and all proto generated files into workspace.
-    We generate a go.mod file in the workspace to make it the root of the
-    go project.
-    We create a go.mod file in proto dir with the same package name and add
-    a "replace proto => ./proto" directive in the go.mod.
-    We set the first dir in GOPATH to be yabtwork/go so that all downloaded
-    packages are managed in the user machine and not inside the ephemeral
-    docker.
-    When we clean the workspace we make sure to keep the go.mod since it is new
-    go build redownload all packages (can we solve this?)
-
-
-    TODOs:
-      - "replace proto => ./proto" is needed since the generated code import
-        doesn't have the package before imports of other generated go files.
-        See if there is another way to do it (understanding that can help us
-        create a GoLib builder)
-    """
-    builder_name = target.builder_name
-    yprint(build_context.conf, command, builder_name, target)
-    workspace_dir = build_context.get_workspace(builder_name, target.name)
-    go_package = (target.props.get('go_package') or
-                  build_context.conf.get('go_package', None))
-    go_mod_path = join(workspace_dir, 'go.mod')
-    if not go_package:
-        raise KeyError('Must specify go_package in {} common_conf '
-                       'or on target'.format(YSETTINGS_FILE))
-
-    # we leave the go.mod file otherwise the caching of downloaded packages
-    # doesn't work
-    rm_all_but_go_mod(workspace_dir)
-    binary = join(*split(target.name))
-
-    buildenv_workspace = build_context.conf.host_to_buildenv_path(
-        workspace_dir)
-    buildenv_sources = [join(buildenv_workspace, src)
-                        for src in target.props.sources]
-    if target.props.get('mod_file'):
-        link_node(join(build_context.conf.project_root,
-                       target.props.get('mod_file')),
-                  go_mod_path)
-    sources_to_link = list(target.props.sources)
-    has_protos = False
-
-    # Goging over all deps and pulling their sources.
-    # TODO(eyal): This pull sources of all types which is most likely not
-    # needed but not harming. We should revisit this in later iterations.
-    for dep in build_context.generate_all_deps(target):
-        sources_to_link.extend(dep.props.get('sources', []))
-        artifact_map = dep.artifacts.get(AT.gen_go)
-        if not artifact_map:
-            continue
-        has_protos = True
-        for dst, src in artifact_map.items():
-            target_file = join(workspace_dir, dst)
-            link_node(join(build_context.conf.project_root, src), target_file)
-
-    link_files(sources_to_link, workspace_dir, None, build_context.conf)
-
-    download_cache_dir = build_context.conf.host_to_buildenv_path(
-      build_context.conf.get_go_packages_path())
-
-    gopaths = [download_cache_dir]
-    user_gopath = (target.props.cmd_env or {}).get('GOPATH')
-    # if user didn't provide GOPATH we assumes it is /go
-    # TODO(eyal): A more correct behavior will be to check the GOPATH var
-    # inside the docker then to assumes it is /go.
-    # This code provides a way for the user to tell us what is the correct
-    # GOPATH but if it come handy we should implement looking into the docker
-    gopaths.append(user_gopath if user_gopath else '/go')
-    build_cmd_env = {
-        'XDG_CACHE_HOME': '/tmp/.cache',
-    }
-    build_cmd_env.update(target.props.cmd_env or {})
-    build_cmd_env['GOPATH'] = ':'.join(gopaths)
-
-    if not isfile(go_mod_path):
-        build_context.run_in_buildenv(
-          target.props.in_buildenv,
-          ['go', 'mod', 'init', go_package],
-          build_cmd_env,
-          work_dir=buildenv_workspace)
-    if has_protos:
-        build_context.run_in_buildenv(
-          target.props.in_buildenv,
-          ['go', 'mod', 'edit', '-replace', 'proto=./proto'],
-          build_cmd_env,
-          work_dir=buildenv_workspace)
-        if not isfile(join(workspace_dir, 'proto', 'go.mod')):
-            build_context.run_in_buildenv(
-              target.props.in_buildenv,
-              ['go', 'mod', 'init', go_package],
-              build_cmd_env,
-              work_dir=join(buildenv_workspace, 'proto'))
-
-    bin_file = join(buildenv_workspace, binary)
-    build_cmd = ['go', command, '-o', bin_file] + buildenv_sources
-
-    run_params = extend_runtime_params(
-        target.props.runtime_params,
-        build_context.walk_target_deps_topological_order(target),
-        build_context.conf.runtime_params, True)
-
-    build_context.run_in_buildenv(
-      target.props.in_buildenv, build_cmd, build_cmd_env,
-      run_params=format_docker_run_params(run_params),
-      work_dir=buildenv_workspace)
-    target.artifacts.add(
-        AT.binary,
-        relpath(join(workspace_dir, binary), build_context.conf.project_root),
-        binary)
-
-
-def go_builder_internal_new(build_context, target, command, is_binary=True):
+def go_builder_internal(build_context, target, command, is_binary=True):
     """
     Build or test a Go package or Go binary executable.
 
@@ -258,7 +139,23 @@ def go_builder_internal_new(build_context, target, command, is_binary=True):
     :param build_context:
     :param target:
     :param command: Can be either 'build' or 'test'
-    :return:
+    :return: Nothing
+
+    Build of all Go targets is done under one module tree workspace.
+    We link all Go source files to the module tree.
+    We link all Go proto generated files to 'proto' sub-module under the root module tree.
+    We create a go.mod file in module root, with "replace proto => ./proto", and another go.mod
+    file in the 'proto' root with same module name.
+    We set the first dir in GOPATH to be yabtwork/go so that all downloaded
+    packages are managed in the user machine and not inside the ephemeral
+    docker.
+    Workspace is not cleaned, since it accumulates all the Go source files from all Go targets.
+
+    TODOs:
+      - Support multiple modules in the same repo. Currently only one module is supported. Better than
+        to define go_module in YSettings and not in the different targets. Using different go_modules is untested, and
+        will probably will not be able to import packages from one module in another one.
+
     """
 
     builder_name = target.builder_name
