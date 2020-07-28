@@ -1,0 +1,15 @@
+GoPackage('hello_lib_go',
+          sources='utils.go',
+          in_buildenv='//:builder',
+          deps=[])
+
+GoTest('utils_test',
+       sources='utils_test.go',
+       deps=':hello_lib_go',
+       in_buildenv='//:builder',
+       runtime_params={
+          'env': {
+              'FOO': 'foo',
+          },
+       },
+)
