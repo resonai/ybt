@@ -71,7 +71,9 @@ def go_app_builder(build_context, target):
 GO_SIG = [
     ('sources', PT.FileList),
     ('in_buildenv', PT.Target),
+    ('protos', PT.TargetList, None),
     ('go_package', PT.str, None),
+    ('go_module', PT.str, None),
     ('mod_file', PT.File, None),
     ('cmd_env', None),
 ]
@@ -87,7 +89,22 @@ def go_prog_manipulate_target(build_context, target):
 @register_build_func('GoProg')
 def go_prog_builder(build_context, target):
     """Build a Go binary executable"""
-    go_builder_internal(build_context, target, command='build')
+    go_builder_internal_new(build_context, target, command='build')
+
+
+register_builder_sig('GoPackage', GO_SIG)
+
+
+@register_manipulate_target_hook('GoPackage')
+def go_package_manipulate_target(build_context, target):
+    target.buildenv = target.props.in_buildenv
+    target.deps.extend(target.props.protos)
+
+
+@register_build_func('GoPackage')
+def go_package_builder(build_context, target):
+    """Build a Go package"""
+    go_builder_internal_new(build_context, target, command='build', is_binary=False)
 
 
 register_builder_sig('GoTest', GO_SIG)
@@ -102,7 +119,7 @@ def go_test_manipulate_target(build_context, target):
 @register_build_func('GoTest')
 def go_test_builder(build_context, target):
     """Test a Go test"""
-    go_builder_internal(build_context, target, command='test')
+    go_builder_internal_new(build_context, target, command='test')
 
 
 def rm_all_but_go_mod(workspace_dir):
@@ -231,3 +248,93 @@ def go_builder_internal(build_context, target, command):
         AT.binary,
         relpath(join(workspace_dir, binary), build_context.conf.project_root),
         binary)
+
+
+def go_builder_internal_new(build_context, target, command, is_binary=True):
+    """
+    Build or test a Go package or Go binary executable.
+
+    :param is_binary: True if binary artifact.
+    :param build_context:
+    :param target:
+    :param command: Can be either 'build' or 'test'
+    :return:
+    """
+
+    builder_name = target.builder_name
+    yprint(build_context.conf, command, builder_name, target)
+    go_module = target.props.get('go_module', None) or build_context.conf.get('go_module', None)
+    if not go_module:
+        raise KeyError("Must specify go_module in {} common_conf or on target".format(YSETTINGS_FILE))
+    workspace_dir = join(build_context.conf.get_go_workspace_path(), go_module)
+
+    buildenv_workspace = build_context.conf.host_to_buildenv_path(workspace_dir)
+    buildenv_sources = [join(buildenv_workspace, src) for src in target.props.sources]
+
+    has_protos = False
+    for proto_dep_name in target.props.protos:
+        proto_dep = build_context.targets[proto_dep_name]
+        artifact_map = proto_dep.artifacts.get(AT.gen_go)
+        if not artifact_map:
+            continue
+        has_protos = True
+        for dst, src in artifact_map.items():
+            target_file = join(workspace_dir, dst)
+            link_node(join(build_context.conf.project_root, src), target_file)
+            buildenv_sources.append(join(buildenv_workspace, dst))
+
+    sources_to_link = list(target.props.sources)
+    link_files(sources_to_link, workspace_dir, None, build_context.conf)
+
+    download_cache_dir = build_context.conf.host_to_buildenv_path(
+        build_context.conf.get_go_packages_path())
+
+    gopaths = [download_cache_dir]
+    user_gopath = (target.props.cmd_env or {}).get('GOPATH')
+    # if user didn't provide GOPATH we assumes it is /go
+    # TODO(eyal): A more correct behavior will be to check the GOPATH var
+    # inside the docker then to assumes it is /go.
+    # This code provides a way for the user to tell us what is the correct
+    # GOPATH but if it come handy we should implement looking into the docker
+    gopaths.append(user_gopath if user_gopath else '/go')
+    build_cmd_env = {
+        'XDG_CACHE_HOME': '/tmp/.cache',
+    }
+    build_cmd_env.update(target.props.cmd_env or {})
+    build_cmd_env['GOPATH'] = ':'.join(gopaths)
+
+    go_mod_path = join(workspace_dir, 'go.mod')
+    if not isfile(go_mod_path):
+        build_context.run_in_buildenv(
+            target.props.in_buildenv,
+            ['go', 'mod', 'init', go_module],
+            build_cmd_env,
+            work_dir=buildenv_workspace
+        )
+    if has_protos and not isfile(join(workspace_dir, 'proto', 'go.mod')):
+        build_context.run_in_buildenv(
+            target.props.in_buildenv,
+            ['go', 'mod', 'edit', '-replace', 'proto=./proto'],
+            build_cmd_env,
+            work_dir=buildenv_workspace
+        )
+        build_context.run_in_buildenv(
+            target.props.in_buildenv,
+            ['go', 'mod', 'init', go_module],
+            build_cmd_env,
+            work_dir=join(buildenv_workspace, 'proto')
+        )
+
+    binary = join(*split(target.name)) if is_binary else None
+    binary_args = []
+    if binary:
+        bin_file = join(buildenv_workspace, binary)
+        binary_args.extend(['-o', bin_file])
+    build_cmd = ['go', command] + binary_args + buildenv_sources
+    run_params = extend_runtime_params(target.props.runtime_params,
+                                       build_context.walk_target_deps_topological_order(target),
+                                       build_context.conf.runtime_params, True)
+    build_context.run_in_buildenv(target.props.in_buildenv, build_cmd, build_cmd_env,
+                                  run_params=format_docker_run_params(run_params), work_dir=buildenv_workspace)
+    if binary:
+        target.artifacts.add(AT.binary, relpath(join(workspace_dir, binary), build_context.conf.project_root), binary)
