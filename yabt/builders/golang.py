@@ -73,7 +73,6 @@ GO_SIG = [
     ('sources', PT.FileList),
     ('in_buildenv', PT.Target),
     ('protos', PT.TargetList, None),
-    ('go_module', PT.str, None),
     ('cmd_env', None),
 ]
 
@@ -174,7 +173,7 @@ def go_builder_internal(build_context, target, command, is_binary=True):
 
     builder_name = target.builder_name
     yprint(build_context.conf, command, builder_name, target)
-    go_module = target.props.get('go_module', None) or build_context.conf.get('go_module', None)
+    go_module = build_context.conf.get('go_module', None)
     if not go_module:
         raise KeyError("Must specify go_module in {} common_conf or on target".format(YSETTINGS_FILE))
     workspace_dir = join(build_context.conf.get_go_workspace_path(), go_module)
