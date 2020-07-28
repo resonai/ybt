@@ -25,9 +25,10 @@ yabt Go Builder
 TODO: libs, external libs
 TODO: does this even work with non-flat source file tree??
 """
+import shutil
 from ..config import YSETTINGS_FILE
 from os import listdir, remove
-from os.path import isfile, join, relpath
+from os.path import isfile, join, relpath, dirname, basename
 
 from yabt.docker import extend_runtime_params, format_docker_run_params
 from ..artifact import ArtifactType as AT
@@ -131,6 +132,19 @@ def rm_all_but_go_mod(workspace_dir):
             rmtree(filepath)
 
 
+def generate_global_go_mod(build_context, target, build_cmd_env, go_module, global_mod_path):
+    global_mod_dir = dirname(global_mod_path)
+    global_mod_file = basename(global_mod_path)
+    build_context.run_in_buildenv(
+        target.props.in_buildenv,
+        ['go', 'mod', 'init', go_module],
+        build_cmd_env,
+        work_dir=build_context.conf.host_to_buildenv_path(global_mod_dir)
+    )
+    if global_mod_file != 'go.mod':
+        shutil.move(join(global_mod_dir, 'go.mod'), global_mod_path)
+
+
 def go_builder_internal(build_context, target, command, is_binary=True):
     """
     Build or test a Go package or Go binary executable.
@@ -201,6 +215,12 @@ def go_builder_internal(build_context, target, command, is_binary=True):
     build_cmd_env['GOPATH'] = ':'.join(gopaths)
 
     go_mod_path = join(workspace_dir, 'go.mod')
+    global_mod_path = build_context.conf.get('go_mod_file', None)
+    if global_mod_path:
+        global_mod_path = join(build_context.conf.project_root, global_mod_path)
+        if not isfile(global_mod_path):
+            generate_global_go_mod(build_context, target, build_cmd_env, go_module, global_mod_path)
+        link_node(join(build_context.conf.project_root, global_mod_path), go_mod_path)
     if not isfile(go_mod_path):
         build_context.run_in_buildenv(
             target.props.in_buildenv,
