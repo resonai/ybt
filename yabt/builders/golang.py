@@ -69,14 +69,16 @@ def go_app_builder(build_context, target):
 
 
 # Common Go builder signature terms
-GO_SIG = [
+GO_COMMON_SIG = [
     ('sources', PT.FileList),
     ('in_buildenv', PT.Target),
-    ('mod_file', PT.File, None),
     ('cmd_env', None),
 ]
+GO_BIN_SIG = GO_COMMON_SIG + [
+    ('mod_file', PT.File, None),
+]
 
-register_builder_sig('GoProg', GO_SIG)
+register_builder_sig('GoProg', GO_BIN_SIG)
 
 
 @register_manipulate_target_hook('GoProg')
@@ -90,7 +92,7 @@ def go_prog_builder(build_context, target):
     go_builder_internal(build_context, target, command='build')
 
 
-register_builder_sig('GoPackage', GO_SIG)
+register_builder_sig('GoPackage', GO_COMMON_SIG)
 
 
 @register_manipulate_target_hook('GoPackage')
@@ -104,7 +106,7 @@ def go_package_builder(build_context, target):
     go_builder_internal(build_context, target, command='build', is_binary=False)
 
 
-register_builder_sig('GoTest', GO_SIG)
+register_builder_sig('GoTest', GO_BIN_SIG)
 
 
 @register_manipulate_target_hook('GoTest')
