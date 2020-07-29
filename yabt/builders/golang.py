@@ -213,7 +213,7 @@ def go_builder_internal(build_context, target, command, is_binary=True):
     # GOPATH but if it come handy we should implement looking into the docker
     gopaths.append(user_gopath if user_gopath else '/go')
     build_cmd_env = {
-        'XDG_CACHE_HOME': '/tmp/.cache',
+        'XDG_CACHE_HOME': download_cache_dir,
     }
     build_cmd_env.update(target.props.cmd_env or {})
     build_cmd_env['GOPATH'] = ':'.join(gopaths)
