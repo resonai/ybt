@@ -72,7 +72,7 @@ def go_app_builder(build_context, target):
 GO_SIG = [
     ('sources', PT.FileList),
     ('in_buildenv', PT.Target),
-    ('mod_file', PT.str, None),
+    ('mod_file', PT.File, None),
     ('protos', PT.TargetList, None),
     ('cmd_env', None),
 ]
