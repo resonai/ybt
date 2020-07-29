@@ -192,12 +192,9 @@ def go_builder_internal(build_context, target, command, is_binary=True):
         if not artifact_map:
             continue
         has_protos = True
-        add_to_build = dep.name in target.deps
         for dst, src in artifact_map.items():
             target_file = join(workspace_dir, dst)
             link_node(join(build_context.conf.project_root, src), target_file)
-            if add_to_build:
-                buildenv_sources.append(join(buildenv_workspace, dst))
     
     link_files(files_to_link, workspace_dir, None, build_context.conf)
     

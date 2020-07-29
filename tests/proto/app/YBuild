@@ -63,16 +63,9 @@ Proto(
 
 ProtoCollector('hello1-collector', deps=':hello1-proto')
 
-GoPackage(
-    'hello-proto-lib',
-    sources=[],
-    deps=':hello-proto',
-    in_buildenv='//:proto-builder'
-)
-
 GoProg('hello-go',
        sources='hello.go',
-       deps=':hello-proto-lib',
+       deps=':hello-proto',
        in_buildenv='//:proto-builder')
 
 GoApp('hello-go-app', base_image='//:ubuntu', main=':hello-go')
