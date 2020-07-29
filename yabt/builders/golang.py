@@ -73,7 +73,6 @@ GO_SIG = [
     ('sources', PT.FileList),
     ('in_buildenv', PT.Target),
     ('mod_file', PT.File, None),
-    ('protos', PT.TargetList, None),
     ('cmd_env', None),
 ]
 
@@ -97,7 +96,6 @@ register_builder_sig('GoPackage', GO_SIG)
 @register_manipulate_target_hook('GoPackage')
 def go_package_manipulate_target(build_context, target):
     target.buildenv = target.props.in_buildenv
-    target.deps.extend(target.props.protos)
 
 
 @register_build_func('GoPackage')
@@ -194,7 +192,7 @@ def go_builder_internal(build_context, target, command, is_binary=True):
         if not artifact_map:
             continue
         has_protos = True
-        add_to_build = dep.name in target.props.protos
+        add_to_build = dep.name in target.deps
         for dst, src in artifact_map.items():
             target_file = join(workspace_dir, dst)
             link_node(join(build_context.conf.project_root, src), target_file)

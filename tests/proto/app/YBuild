@@ -66,7 +66,7 @@ ProtoCollector('hello1-collector', deps=':hello1-proto')
 GoPackage(
     'hello-proto-lib',
     sources=[],
-    protos=':hello-proto',
+    deps=':hello-proto',
     in_buildenv='//:proto-builder'
 )
 
