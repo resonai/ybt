@@ -103,7 +103,8 @@ def go_package_manipulate_target(build_context, target):
 @register_build_func('GoPackage')
 def go_package_builder(build_context, target):
     """Build a Go package"""
-    go_builder_internal(build_context, target, command='build', is_binary=False)
+    go_builder_internal(build_context, target, command='build',
+                        is_binary=False)
 
 
 register_builder_sig('GoTest', GO_BIN_SIG)
@@ -132,7 +133,8 @@ def rm_all_but_go_mod(workspace_dir):
             rmtree(filepath)
 
 
-def generate_user_go_mod(build_context, target, build_cmd_env, go_module, user_mod_path):
+def generate_user_go_mod(build_context, target, build_cmd_env, go_module,
+                         user_mod_path):
     user_mod_dir = dirname(user_mod_path)
     user_mod_file = basename(user_mod_path)
     build_context.run_in_buildenv(
@@ -155,19 +157,24 @@ def go_builder_internal(build_context, target, command, is_binary=True):
     :param command: Can be either 'build' or 'test'
     :return: Nothing
 
-    Build of Go targets is done building a module tree under the target workspace.
+    Build of Go targets is done building a module tree under the target
+    workspace.
     We link all Go source files from all dependencies to the module tree.
-    We link all Go proto generated files to 'proto' sub-module under the module tree.
-    We create a go.mod file in module root, with "replace proto => ./proto", and another go.mod
+    We link all Go proto generated files to 'proto' sub-module under the
+    module tree.
+    We create a go.mod file in module root, with "replace proto => ./proto",
+    and another go.mod
     file in the 'proto' root with same module name.
     We set the first dir in GOPATH to be yabtwork/go so that all downloaded
     packages are managed in the user machine and not inside the ephemeral
     docker.
 
     TODOs:
-      - Support multiple modules in the same repo. Currently only one module is supported. Better than
-        to define go_module in YSettings and not in the different targets. Using different go_modules is untested, and
-        will probably will not be able to import packages from one module in another one.
+      - Support multiple modules in the same repo. Currently only one module
+        is supported. Better than to define go_module in YSettings and not in
+        the different targets. Using different go_modules is untested, and
+        will probably will not be able to import packages from one module in
+        another one.
 
     """
 
@@ -176,19 +183,26 @@ def go_builder_internal(build_context, target, command, is_binary=True):
     
     go_module = build_context.conf.get('go_module', None)
     if not go_module:
-        raise KeyError("Must specify go_module in {} common_conf".format(YSETTINGS_FILE))
+        raise KeyError("Must specify go_module in {} common_conf".format(
+            YSETTINGS_FILE
+        ))
     
     workspace_dir = build_context.get_workspace(builder_name, target.name)
     rm_all_but_go_mod(workspace_dir)
 
-    buildenv_workspace = build_context.conf.host_to_buildenv_path(workspace_dir)
-    buildenv_sources = [join(buildenv_workspace, src) for src in target.props.sources]
+    buildenv_workspace = build_context.conf.host_to_buildenv_path(
+        workspace_dir
+    )
+    buildenv_sources = [
+        join(buildenv_workspace, src) for src in target.props.sources
+    ]
 
     files_to_link = list(target.props.sources)
 
     has_protos = False
     for dep in build_context.generate_all_deps(target):
-        files_to_link.extend(filter(lambda x: x.endswith('.go'), dep.props.get('sources', [])))
+        files_to_link.extend(filter(lambda x: x.endswith('.go'),
+                                    dep.props.get('sources', [])))
         files_to_link.extend(dep.props.get('files', []))
         artifact_map = dep.artifacts.get(AT.gen_go)
         if not artifact_map:
@@ -196,7 +210,8 @@ def go_builder_internal(build_context, target, command, is_binary=True):
         has_protos = True
         for dst, src in artifact_map.items():
             target_file = join(workspace_dir, dst)
-            link_node(join(build_context.conf.project_root, src), target_file)
+            link_node(join(build_context.conf.project_root, src),
+                      target_file)
     
     link_files(files_to_link, workspace_dir, None, build_context.conf)
     
@@ -218,11 +233,13 @@ def go_builder_internal(build_context, target, command, is_binary=True):
     build_cmd_env['GOPATH'] = ':'.join(gopaths)
 
     go_mod_path = join(workspace_dir, 'go.mod')
-    user_mod_path = target.props.get('mod_file', None) or build_context.conf.get('go_mod_file', None)
+    user_mod_path = target.props.get('mod_file', None) or \
+                    build_context.conf.get('go_mod_file', None)
     if user_mod_path:
         user_mod_path = join(build_context.conf.project_root, user_mod_path)
         if not isfile(user_mod_path):
-            generate_user_go_mod(build_context, target, build_cmd_env, go_module, user_mod_path)
+            generate_user_go_mod(build_context, target, build_cmd_env,
+                                 go_module, user_mod_path)
         link_node(user_mod_path, go_mod_path)
     if not isfile(go_mod_path):
         build_context.run_in_buildenv(
@@ -252,13 +269,22 @@ def go_builder_internal(build_context, target, command, is_binary=True):
             bin_file = join(buildenv_workspace, binary)
             binary_args.extend(['-o', bin_file])
         build_cmd = ['go', command] + binary_args + buildenv_sources
-        run_params = extend_runtime_params(target.props.runtime_params,
-                                           build_context.walk_target_deps_topological_order(target),
-                                           build_context.conf.runtime_params, True)
-        build_context.run_in_buildenv(target.props.in_buildenv, build_cmd, build_cmd_env,
-                                      run_params=format_docker_run_params(run_params), 
+        run_params = extend_runtime_params(
+            target.props.runtime_params,
+            build_context.walk_target_deps_topological_order(target),
+            build_context.conf.runtime_params,
+            True
+        )
+        build_context.run_in_buildenv(target.props.in_buildenv, build_cmd,
+                                      build_cmd_env,
+                                      run_params=format_docker_run_params(
+                                          run_params
+                                      ),
                                       work_dir=buildenv_workspace)
         if binary:
-            target.artifacts.add(AT.binary, relpath(join(workspace_dir, binary), build_context.conf.project_root), binary)
+            target.artifacts.add(
+                AT.binary, relpath(join(workspace_dir, binary),
+                                   build_context.conf.project_root), binary
+            )
     else:
         logger.warn("target {} has no sources to build".format(target.name))
