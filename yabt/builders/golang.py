@@ -180,13 +180,13 @@ def go_builder_internal(build_context, target, command, is_binary=True):
 
     builder_name = target.builder_name
     yprint(build_context.conf, command, builder_name, target)
-    
+
     go_module = build_context.conf.get('go_module', None)
     if not go_module:
         raise KeyError("Must specify go_module in {} common_conf".format(
             YSETTINGS_FILE
         ))
-    
+
     workspace_dir = build_context.get_workspace(builder_name, target.name)
     rm_all_but_go_mod(workspace_dir)
 
@@ -212,9 +212,9 @@ def go_builder_internal(build_context, target, command, is_binary=True):
             target_file = join(workspace_dir, dst)
             link_node(join(build_context.conf.project_root, src),
                       target_file)
-    
+
     link_files(files_to_link, workspace_dir, None, build_context.conf)
-    
+
     download_cache_dir = build_context.conf.host_to_buildenv_path(
         build_context.conf.get_go_packages_path())
 
@@ -233,8 +233,9 @@ def go_builder_internal(build_context, target, command, is_binary=True):
     build_cmd_env['GOPATH'] = ':'.join(gopaths)
 
     go_mod_path = join(workspace_dir, 'go.mod')
-    user_mod_path = target.props.get('mod_file', None) or \
-                    build_context.conf.get('go_mod_file', None)
+    user_mod_path = \
+        target.props.get('mod_file', None) or \
+        build_context.conf.get('go_mod_file', None)
     if user_mod_path:
         user_mod_path = join(build_context.conf.project_root, user_mod_path)
         if not isfile(user_mod_path):
