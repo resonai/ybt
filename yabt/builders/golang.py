@@ -188,7 +188,7 @@ def go_builder_internal(build_context, target, command, is_binary=True):
         ))
 
     workspace_dir = build_context.get_workspace(builder_name, target.name)
-    rm_all_but_go_mod(workspace_dir)
+    rmtree(workspace_dir)
 
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir
