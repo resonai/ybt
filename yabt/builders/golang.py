@@ -199,7 +199,6 @@ def go_builder_internal(build_context, target, command, is_binary=True):
 
     files_to_link = list(target.props.sources)
 
-    has_protos = False
     for dep in build_context.generate_all_deps(target):
         files_to_link.extend(filter(lambda x: x.endswith('.go'),
                                     dep.props.get('sources', [])))
@@ -207,7 +206,6 @@ def go_builder_internal(build_context, target, command, is_binary=True):
         artifact_map = dep.artifacts.get(AT.gen_go)
         if not artifact_map:
             continue
-        has_protos = True
         for dst, src in artifact_map.items():
             target_file = join(workspace_dir, dst)
             link_node(join(build_context.conf.project_root, src),
@@ -248,19 +246,6 @@ def go_builder_internal(build_context, target, command, is_binary=True):
             ['go', 'mod', 'init', go_module],
             build_cmd_env,
             work_dir=buildenv_workspace
-        )
-    if has_protos and not isfile(join(workspace_dir, 'proto', 'go.mod')):
-        build_context.run_in_buildenv(
-            target.props.in_buildenv,
-            ['go', 'mod', 'edit', '-replace', 'proto=./proto'],
-            build_cmd_env,
-            work_dir=buildenv_workspace
-        )
-        build_context.run_in_buildenv(
-            target.props.in_buildenv,
-            ['go', 'mod', 'init', go_module],
-            build_cmd_env,
-            work_dir=join(buildenv_workspace, 'proto')
         )
 
     if len(buildenv_sources) > 0:
