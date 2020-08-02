@@ -162,9 +162,7 @@ def go_builder_internal(build_context, target, command, is_binary=True):
     We link all Go source files from all dependencies to the module tree.
     We link all Go proto generated files to 'proto' sub-module under the
     module tree.
-    We create a go.mod file in module root, with "replace proto => ./proto",
-    and another go.mod
-    file in the 'proto' root with same module name.
+    We create a go.mod file in module root with a global module-name.
     We set the first dir in GOPATH to be yabtwork/go so that all downloaded
     packages are managed in the user machine and not inside the ephemeral
     docker.
@@ -202,7 +200,8 @@ def go_builder_internal(build_context, target, command, is_binary=True):
     for dep in build_context.generate_all_deps(target):
         files_to_link.extend(filter(lambda x: x.endswith('.go'),
                                     dep.props.get('sources', [])))
-        files_to_link.extend(dep.props.get('files', []))
+        if dep.builder_name == 'FileGroup':
+            files_to_link.extend(dep.props.get('files', []))
         artifact_map = dep.artifacts.get(AT.gen_go)
         if not artifact_map:
             continue
