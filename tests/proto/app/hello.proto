@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package tests;
-option go_package = "proto/app;ybt_com";
+option go_package = "foo.com/proto/app;ybt_com";
 
 message Hello {
     string message = 1;

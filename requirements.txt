@@ -12,7 +12,8 @@ google-cloud-storage
 scandir>=1.2
 
 # For testing
-pytest>=4.6
+# pytest 6.0.0 breaks pytest-pep8 on deprecation error
+pytest>=4.6,<6
 pytest-cov>=2.6.1
 pytest-pep8>=1.0
 tox>=2.3

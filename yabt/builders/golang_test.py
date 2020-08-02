@@ -55,7 +55,7 @@ def test_golang_builder(basic_conf):
 @pytest.mark.usefixtures('in_golang_project')
 def test_golang_test(basic_conf):
     build_context = BuildContext(basic_conf)
-    target_name = 'hello:hello_test'
+    target_name = 'hello_lib:utils_test'
     basic_conf.targets = [target_name]
     populate_targets_graph(build_context, basic_conf)
     build_context.build_graph(run_tests=True)

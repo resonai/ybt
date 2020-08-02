@@ -1,7 +1,10 @@
-package main
+package hello_lib
 
-import "testing"
-import hello "foo.com/hello"
+import (
+    "testing"
+
+    hello "bar.com/hello_lib"
+)
 
 func TestGetGreet(t *testing.T) {
 	if greet := hello.GetGreet("boomer"); greet != "hello boomer" {
