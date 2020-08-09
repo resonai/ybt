@@ -257,7 +257,8 @@ def go_builder_internal(build_context, target, command, is_binary=True):
         verbose_args = []
         if target.props.verbose:
             verbose_args = ['-v']
-        build_cmd = ['go', command] + verbose_args + binary_args + buildenv_sources
+        build_cmd = ['go', command] + verbose_args + \
+            binary_args + buildenv_sources
         run_params = extend_runtime_params(
             target.props.runtime_params,
             build_context.walk_target_deps_topological_order(target),
