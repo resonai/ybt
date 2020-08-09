@@ -72,6 +72,7 @@ def go_app_builder(build_context, target):
 GO_COMMON_SIG = [
     ('sources', PT.FileList),
     ('in_buildenv', PT.Target),
+    ('verbose', PT.bool, False),
     ('cmd_env', None),
 ]
 GO_BIN_SIG = GO_COMMON_SIG + [
@@ -253,7 +254,10 @@ def go_builder_internal(build_context, target, command, is_binary=True):
         if binary:
             bin_file = join(buildenv_workspace, binary)
             binary_args.extend(['-o', bin_file])
-        build_cmd = ['go', command] + binary_args + buildenv_sources
+        verbose_args = []
+        if target.props.verbose:
+            verbose_args = ['-v']
+        build_cmd = ['go', command] + verbose_args + binary_args + buildenv_sources
         run_params = extend_runtime_params(
             target.props.runtime_params,
             build_context.walk_target_deps_topological_order(target),
