@@ -1,19 +1,29 @@
 package hello_lib
 
 import (
-    "testing"
+	"flag"
+  "testing"
 
-    hello "bar.com/hello_lib"
+	"github.com/stretchr/testify/assert"
+
+  hello "bar.com/hello_lib"
+)
+
+var (
+	greetTo = flag.String("greet_to", "wrong", "Greetings To")
 )
 
 func TestGetGreet(t *testing.T) {
-	if greet := hello.GetGreet("boomer"); greet != "hello boomer" {
-		t.Errorf("Unexpected greeting \"%s\"", greet)
-	}
+	greet := hello.GetGreet("boomer")
+	assert.Equalf(t, "hello boomer", greet, "Unexpected greeting \"%s\"", greet)
 }
 
 func TestPrintFooFromEnv(t *testing.T) {
-	if greet := hello.PrintFooFromEnv(); greet != "hello foo" {
-		t.Errorf("Unexpected greeting \"%s\"", greet)
-	}
+	greet := hello.PrintFooFromEnv()
+	assert.Equalf(t, "hello foo", greet, "Unexpected greeting \"%s\"", greet)
+}
+
+func TestGetGreetFromFlag(t *testing.T) {
+	greet := hello.GetGreet(*greetTo)
+	assert.Equalf(t, "hello boomer", greet, "Unexpected greeting \"%s\"", greet)
 }

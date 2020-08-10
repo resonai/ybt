@@ -72,11 +72,14 @@ def go_app_builder(build_context, target):
 GO_COMMON_SIG = [
     ('sources', PT.FileList),
     ('in_buildenv', PT.Target),
-    ('verbose', PT.bool, False),
     ('cmd_env', None),
+    ('build_flags', PT.StrList, ['-v']),
 ]
 GO_BIN_SIG = GO_COMMON_SIG + [
     ('mod_file', PT.File, None),
+]
+GO_TEST_SIG = GO_BIN_SIG + [
+    ('test_flags', PT.StrList, None),
 ]
 
 register_builder_sig('GoProg', GO_BIN_SIG)
@@ -108,7 +111,7 @@ def go_package_builder(build_context, target):
                         is_binary=False)
 
 
-register_builder_sig('GoTest', GO_BIN_SIG)
+register_builder_sig('GoTest', GO_TEST_SIG)
 
 
 @register_manipulate_target_hook('GoTest')
@@ -255,10 +258,10 @@ def go_builder_internal(build_context, target, command, is_binary=True):
             bin_file = join(buildenv_workspace, binary)
             binary_args.extend(['-o', bin_file])
         verbose_args = []
-        if target.props.verbose:
-            verbose_args = ['-v']
-        build_cmd = ['go', command] + verbose_args + \
+        build_cmd = ['go', command] + target.props.build_flags + \
             binary_args + buildenv_sources
+        if command == 'test':
+            build_cmd.extend(target.props.test_flags)
         run_params = extend_runtime_params(
             target.props.runtime_params,
             build_context.walk_target_deps_topological_order(target),
