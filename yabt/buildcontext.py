@@ -417,7 +417,7 @@ class BuildContext:
         docker_run.append(format_qualified_image_name(buildenv_target))
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
-                    buildenv_target_name, docker_run)
+                    buildenv_target_name, ' '.join(docker_run))
         # TODO: Consider changing the PIPEs to temp files.
         if 'stderr' not in kwargs:
             kwargs['stderr'] = PIPE
