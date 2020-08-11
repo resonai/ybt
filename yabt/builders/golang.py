@@ -35,7 +35,7 @@ from ..artifact import ArtifactType as AT
 from .dockerapp import build_app_docker_and_bin, register_app_builder_sig
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
-    register_manipulate_target_hook)
+    register_test_func, register_manipulate_target_hook)
 from ..logging import make_logger
 from ..target_utils import split
 from ..utils import link_files, link_node, rmtree, yprint
@@ -73,7 +73,7 @@ GO_COMMON_SIG = [
     ('sources', PT.FileList),
     ('in_buildenv', PT.Target),
     ('cmd_env', None),
-    ('build_flags', PT.StrList, ['-v']),
+    ('build_flags', PT.StrList, None),
 ]
 GO_BIN_SIG = GO_COMMON_SIG + [
     ('mod_file', PT.File, None),
@@ -124,6 +124,25 @@ def go_test_manipulate_target(build_context, target):
 def go_test_builder(build_context, target):
     """Test a Go test"""
     go_builder_internal(build_context, target, command='test')
+
+
+@register_test_func('GoTest')
+def go_test_tester(build_context, target):
+    """Run a Go test executable"""
+    yprint(build_context.conf, "Run GoTest", target)
+    workspace_dir = build_context.get_workspace('GoTest', target.name)
+    buildenv_workspace = build_context.conf.host_to_buildenv_path(
+        workspace_dir)
+    test_cmd = [join(buildenv_workspace, *split(target.name))]
+    test_cmd.append('--test.v')
+    test_cmd.extend(target.props.test_flags)
+    run_params = extend_runtime_params(
+        target.props.runtime_params,
+        build_context.walk_target_deps_topological_order(target),
+        build_context.conf.runtime_params, True)
+    build_context.run_in_buildenv(
+        target.props.in_buildenv, test_cmd,
+        run_params=format_docker_run_params(run_params))
 
 
 def rm_all_but_go_mod(workspace_dir):
@@ -204,8 +223,6 @@ def go_builder_internal(build_context, target, command, is_binary=True):
     for dep in build_context.generate_all_deps(target):
         files_to_link.extend(filter(lambda x: x.endswith('.go'),
                                     dep.props.get('sources', [])))
-        if dep.builder_name == 'FileGroup':
-            files_to_link.extend(dep.props.get('files', []))
         artifact_map = dep.artifacts.get(AT.gen_go)
         if not artifact_map:
             continue
@@ -255,13 +272,13 @@ def go_builder_internal(build_context, target, command, is_binary=True):
         binary = join(*split(target.name)) if is_binary else None
         binary_args = []
         if binary:
+            if command == 'test':
+                binary_args.append('-c')
             bin_file = join(buildenv_workspace, binary)
             binary_args.extend(['-o', bin_file])
-        verbose_args = []
+
         build_cmd = ['go', command] + target.props.build_flags + \
             binary_args + buildenv_sources
-        if command == 'test':
-            build_cmd.extend(target.props.test_flags)
         run_params = extend_runtime_params(
             target.props.runtime_params,
             build_context.walk_target_deps_topological_order(target),
