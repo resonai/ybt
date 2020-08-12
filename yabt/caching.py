@@ -223,10 +223,11 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
                 target.artifacts.add(
                     artifact_type, artifact['src'], artifact['dst'])
         write_summary(summary, cache_dir)
-    except json.decoder.JSONDecodeError:
-        logger.warning("Got JsonDecodeError when trying to read cache of "
+    except (json.decoder.JSONDecodeError, FileNotFoundError) as ex:
+        logger.warning("Got {} when trying to read cache of "
                        "target {}. There is probably a corrupted file. "
-                       "Deleting the cache and not using it.", target.name)
+                       "Deleting the cache and not using it.", 
+                       type(ex).__name__, target.name)
         try:
             shutil.rmtree(cache_dir)
         except FileNotFoundError:
