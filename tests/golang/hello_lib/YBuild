@@ -7,6 +7,7 @@ GoTest('utils_test',
        sources='utils_test.go',
        deps=':hello_lib_go',
        in_buildenv='//:builder',
+       test_flags=['--greet_to','boomer'],
        runtime_params={
           'env': {
               'FOO': 'foo',
