@@ -226,7 +226,7 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
     except (json.decoder.JSONDecodeError, FileNotFoundError) as ex:
         logger.warning("Got {} when trying to read cache of "
                        "target {}. There is probably a corrupted file. "
-                       "Deleting the cache and not using it.", 
+                       "Deleting the cache and not using it.",
                        type(ex).__name__, target.name)
         try:
             shutil.rmtree(cache_dir)
