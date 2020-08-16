@@ -417,7 +417,8 @@ class BuildContext:
         docker_run.append(format_qualified_image_name(buildenv_target))
         docker_run.extend(cmd)
         logger.info('Running command in build env "{}" using command {}',
-                    buildenv_target_name, ' '.join(docker_run))
+                    buildenv_target_name, ' '.join(
+                        format_for_cli(part) for part in docker_run))
         # TODO: Consider changing the PIPEs to temp files.
         if 'stderr' not in kwargs:
             kwargs['stderr'] = PIPE
@@ -653,3 +654,7 @@ class BuildContext:
                         list(self.failed_nodes), self.skipped_nodes)
         else:
             logger.info('Finished building target graph successfully')
+
+
+def format_for_cli(part):
+    return '"{}"'.format(part) if ' ' in part else part
