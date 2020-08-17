@@ -1,0 +1,9 @@
+GoPackage('goodbye_lib',
+          sources='goodbye_utils.go',
+          in_buildenv='//:builder')
+
+# Example for test target using more than one source files
+GoTest('goodbye_utils_test',
+       sources=['goodbye_utils_test.go', 'test_utils.go'],
+       in_buildenv='//:builder',
+       deps=':goodbye_lib')
