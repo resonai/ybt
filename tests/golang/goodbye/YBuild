@@ -1,0 +1,10 @@
+GoProg('goodbye',
+       sources='goodbye_main.go',
+       in_buildenv='//:builder')
+
+GoApp('goodbye-app', base_image='//:scratch', main=':goodbye')
+
+# Example of Go test using TestMain and calling functions from the main func file
+GoTest('goodbye-test',
+       sources=['goodbye_main.go', 'goodbye_test.go'],
+       in_buildenv='//:builder')

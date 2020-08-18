@@ -214,12 +214,18 @@ def go_builder_internal(build_context, target, command, is_binary=True):
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir
     )
+    target_sources = []
+    for src in target.props.sources:
+        workspace_src = join("src", src)
+        target_file = join(workspace_dir, workspace_src)
+        link_node(join(build_context.conf.project_root, src),
+                  target_file)
+        target_sources.append(workspace_src)
     buildenv_sources = [
-        join(buildenv_workspace, src) for src in target.props.sources
+        join(buildenv_workspace, src) for src in target_sources
     ]
 
-    files_to_link = list(target.props.sources)
-
+    files_to_link = []
     for dep in build_context.generate_all_deps(target):
         files_to_link.extend(filter(lambda x: x.endswith('.go'),
                                     dep.props.get('sources', [])))
@@ -231,7 +237,8 @@ def go_builder_internal(build_context, target, command, is_binary=True):
             link_node(join(build_context.conf.project_root, src),
                       target_file)
 
-    link_files(files_to_link, workspace_dir, None, build_context.conf)
+    if len(files_to_link) > 0:
+        link_files(files_to_link, workspace_dir, None, build_context.conf)
 
     download_cache_dir = build_context.conf.host_to_buildenv_path(
         build_context.conf.get_go_packages_path())

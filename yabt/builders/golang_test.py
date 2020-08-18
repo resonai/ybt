@@ -62,6 +62,26 @@ def test_golang_test(basic_conf):
 
 
 @pytest.mark.slow
+@pytest.mark.usefixtures('in_golang_project')
+def test_golang_test_multisrc(basic_conf):
+    build_context = BuildContext(basic_conf)
+    target_name = 'goodbye_lib:goodbye_utils_test'
+    basic_conf.targets = [target_name]
+    populate_targets_graph(build_context, basic_conf)
+    build_context.build_graph(run_tests=True)
+
+
+@pytest.mark.slow
+@pytest.mark.usefixtures('in_golang_project')
+def test_golang_test_mainfuncs(basic_conf):
+    build_context = BuildContext(basic_conf)
+    target_name = 'goodbye:goodbye-test'
+    basic_conf.targets = [target_name]
+    populate_targets_graph(build_context, basic_conf)
+    build_context.build_graph(run_tests=True)
+
+
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_proto_project')
 def test_golang_builder_proto(basic_conf):
     build_context = BuildContext(basic_conf)
