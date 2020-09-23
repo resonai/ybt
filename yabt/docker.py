@@ -225,6 +225,8 @@ def format_docker_run_params(params: dict):
         param_strings.extend(['--net', params['network']])
     if params.get('runtime'):
         param_strings.extend(['--runtime', params['runtime']])
+    if params.get('gpus'):
+        param_strings.extend(['--gpus', params['gpus']])
 
     return param_strings
 
