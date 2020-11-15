@@ -1,33 +1,12 @@
 #!/bin/bash
 
-# Split command line on `--`
-# Anything before the first `--` is passed as args to the container command
-# Anything after the first `--` is passed as extra Docker options
-# The `--` must be surrounded by whitespace
+# to add more args to the docker command set a var YBT_DOCKER_OPTS:
+# YBT_DOCKER_OPTS='-e FOO=bar' $0
 
 fd=0
 [[ -t "$fd" || -p /dev/stdin ]] && IT="-it" || IT=""
 
-ARGS=""
-DOCKER_OPTS="{default_opts}"
-PHASE=1
-
-for arg in "$@"; do
-  if [ "$arg" == "--" ]; then
-    if [ $PHASE == 1 ]; then
-      PHASE=2
-    else
-      DOCKER_OPTS="$DOCKER_OPTS --"
-    fi
-  else
-    if [ $PHASE == 1 ]; then
-      ARGS="$ARGS $arg"
-    else
-      DOCKER_OPTS="$DOCKER_OPTS $arg"
-    fi
-  fi
-done
 
 # Command for running Docker image `{image_name}'
-echo docker run {docker_opts} $DOCKER_OPTS {image_name} $ARGS
-docker run {docker_opts} $DOCKER_OPTS {image_id} $ARGS
+echo docker run {docker_opts} {default_opts} $YBT_DOCKER_OPTS {image_name} $@
+docker run {docker_opts} {default_opts} $YBT_DOCKER_OPTS {image_id} $@
