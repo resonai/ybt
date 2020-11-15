@@ -81,7 +81,7 @@ setup(
     ],
     setup_requires=['pytest-runner'],
     extras_require={
-        'test': ['pytest', 'pytest-cov', 'pytest-pep8'],
+        'test': ['pytest', 'pytest-cov', 'pytest-flake8'],
     },
     zip_safe=True,
     license='Apache License, Version 2.0',

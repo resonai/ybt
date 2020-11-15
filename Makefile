@@ -5,8 +5,8 @@ help:
 	@echo 'Makefile for YABT                                                  '
 	@echo '                                                                   '
 	@echo 'Usage:                                                             '
-	@echo '   make test       Run full test suite with active Python and PEP8 '
-	@echo '   make quicktest  Run test suite with active Python and PEP8      '
+	@echo '   make test       Run full test suite with active Python and FLAKE8 '
+	@echo '   make quicktest  Run test suite with active Python and FLAKE8      '
 	@echo '   make lint       Check style for project and tests               '
 	@echo '   make dist       Build source & wheel distributions              '
 	@echo '   make clean      Clean build & dist output directories           '
@@ -15,10 +15,10 @@ help:
 	@echo '                                                                   '
 
 test:
-	py.test --pep8 --cov=yabt --with-slow
+	py.test --flake8 --cov=yabt --with-slow
 
 quicktest:
-	py.test --pep8 --cov=yabt
+	py.test --flake8 --cov=yabt
 
 tox:
 	TOXENV=py34,py35,py36 tox
