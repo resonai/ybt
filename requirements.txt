@@ -6,7 +6,9 @@ munch>=2.1
 networkx>=2.0
 ostrichlib>=0.1
 requests>=2.18.0
-# seems google-cloud-storage needs six without declaring it.
+
+# google-cloud-storage needs six of at least 1.13 but I'm not sure why we are
+# getting an older version so we force it here.
 six>=1.13.0
 google-cloud-storage
 
@@ -14,8 +16,7 @@ google-cloud-storage
 scandir>=1.2
 
 # For testing
-# pytest 6.0.0 breaks pytest-pep8 on deprecation error
-pytest>=4.6,<6
+pytest>=4.6
 pytest-cov>=2.6.1
-pytest-pep8>=1.0
+pytest-flake8>=1.0
 tox>=2.3

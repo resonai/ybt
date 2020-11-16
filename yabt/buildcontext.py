@@ -575,7 +575,7 @@ class BuildContext:
                         self.test_target(target)
                         target.info['test_time'] = time() - test_start
                         target.tested[target.test_hash(self)] = target.info[
-                          'test_time']
+                            'test_time']
                         logger.info(
                             'Test of target {} completed in {} sec '
                             'with {} fails',
