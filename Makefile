@@ -2,17 +2,17 @@ PYTHON?=python3
 BASEDIR=$(CURDIR)
 
 help:
-	@echo 'Makefile for YABT                                                  '
-	@echo '                                                                   '
-	@echo 'Usage:                                                             '
+	@echo 'Makefile for YABT                                                    '
+	@echo '                                                                     '
+	@echo 'Usage:                                                               '
 	@echo '   make test       Run full test suite with active Python and FLAKE8 '
 	@echo '   make quicktest  Run test suite with active Python and FLAKE8      '
-	@echo '   make lint       Check style for project and tests               '
-	@echo '   make dist       Build source & wheel distributions              '
-	@echo '   make clean      Clean build & dist output directories           '
-	@echo '   make pypi       Clean, build dist, and upload to PyPI (twine)   '
-	@echo '   make release    Bump version, tag & push (trigger Travis deploy)'
-	@echo '                                                                   '
+	@echo '   make lint       Check style for project and tests                 '
+	@echo '   make dist       Build source & wheel distributions                '
+	@echo '   make clean      Clean build & dist output directories             '
+	@echo '   make pypi       Clean, build dist, and upload to PyPI (twine)     '
+	@echo '   make release    Bump version, tag & push (trigger Travis deploy)  '
+	@echo '                                                                     '
 
 test:
 	py.test --flake8 --cov=yabt --with-slow

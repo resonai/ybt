@@ -7,6 +7,8 @@ networkx>=2.0
 ostrichlib>=0.1
 requests>=2.18.0
 
+# google-cloud-storage needs six of at least 1.13 but I'm not sure why we are
+# getting an older version so we force it here.
 six>=1.13.0
 google-cloud-storage
 
