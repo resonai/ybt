@@ -52,9 +52,9 @@ logger = make_logger(__name__)
 
 
 KNOWN_RUNTIME_PARAMS = frozenset((
-        'ports', 'volumes', 'container_name', 'daemonize', 'interactive',
-        'term', 'auto_it', 'rm', 'env', 'work_dir', 'impersonate', 'network',
-        'runtime'))
+        'ports', 'volumes', 'container_name', 'daemonize', 'devices',
+        'interactive', 'term', 'auto_it', 'rm', 'env', 'work_dir',
+        'impersonate', 'network', 'runtime'))
 
 
 def make_pip_requirements(pip_requirements: set, pip_req_file_path: str):
@@ -217,6 +217,8 @@ def format_docker_run_params(params: dict):
         param_strings.extend(['-p', port])
     for volume in params['volumes']:
         param_strings.extend(['-v', volume])
+    for device in params['devices']:
+        param_strings.extend(['-device', device])
     if params.get('work_dir'):
         param_strings.extend(['-w', params['work_dir']])
     for var, value in params['env'].items():
@@ -256,9 +258,13 @@ def update_runtime_params(runtime_params: dict, new_rt_param: dict,
     if replace_env:
         runtime_params['volumes'].extend(
             map(_replace_env_var, listify(new_rt_param.get('volumes'))))
+        runtime_params['devices'].extend(
+            map(_replace_env_var, listify(new_rt_param.get('devices'))))
     else:
         runtime_params['volumes'].extend(listify(
             new_rt_param.get('volumes')))
+        runtime_params['devices'].extend(listify(
+            new_rt_param.get('devices')))
     runtime_params['env'].update(dict(new_rt_param.get('env', {})))
     for param in ('container_name', 'daemonize', 'interactive', 'term',
                   'auto_it', 'rm', 'work_dir', 'impersonate', 'network'):
@@ -278,8 +284,11 @@ def extend_runtime_params(runtime_params, deps, extra_params=None,
     if replace_env:
         runtime_params['volumes'] = list(map(
             _replace_env_var, listify(runtime_params.get('volumes'))))
+        runtime_params['devices'] = list(map(
+            _replace_env_var, listify(runtime_params.get('devices'))))
     else:
         runtime_params['volumes'] = listify(runtime_params.get('volumes'))
+        runtime_params['devices'] = listify(runtime_params.get('devices'))
     runtime_params['env'] = dict(runtime_params.get('env', {}))
 
     for dep in deps:
