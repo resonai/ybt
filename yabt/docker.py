@@ -53,7 +53,7 @@ logger = make_logger(__name__)
 
 KNOWN_RUNTIME_PARAMS = frozenset((
         'ports', 'volumes', 'container_name', 'daemonize', 'devices',
-        'interactive', 'term', 'auto_it', 'rm', 'env', 'work_dir',
+        'interactive', 'term', 'auto_it', 'rm', 'env', 'work_dir', 'gpus',
         'impersonate', 'network', 'runtime'))
 
 
@@ -218,7 +218,7 @@ def format_docker_run_params(params: dict):
     for volume in params['volumes']:
         param_strings.extend(['-v', volume])
     for device in params['devices']:
-        param_strings.extend(['-device', device])
+        param_strings.extend(['--device', device])
     if params.get('work_dir'):
         param_strings.extend(['-w', params['work_dir']])
     for var, value in params['env'].items():
