@@ -26,6 +26,9 @@ TODO: libs, external libs
 TODO: does this even work with non-flat source file tree??
 """
 import shutil
+
+from ostrich.utils.collections import listify
+
 from ..config import YSETTINGS_FILE
 from os import listdir, remove
 from os.path import isfile, join, relpath, dirname, basename
@@ -118,6 +121,10 @@ register_builder_sig('GoTest', GO_TEST_SIG)
 def go_test_manipulate_target(build_context, target):
     target.tags.add('testable')
     target.buildenv = target.props.in_buildenv
+    # manipulate the test_flags prop during target extraction (as opposed to
+    # during build func), so it is considered during target hashing (for cache)
+    target.props.test_flags.extend(listify(
+        build_context.conf.get('gotest_params', {}).get('extra_exec_flags')))
 
 
 @register_build_func('GoTest')
@@ -134,7 +141,6 @@ def go_test_tester(build_context, target):
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     test_cmd = [join(buildenv_workspace, *split(target.name))]
-    test_cmd.append('--test.v')
     test_cmd.extend(target.props.test_flags)
     run_params = extend_runtime_params(
         target.props.runtime_params,
