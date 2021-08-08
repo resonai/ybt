@@ -273,7 +273,7 @@ def copy_artifact(src_path: str, artifact_hash: str, conf: Config):
     """
     cache_dir = conf.get_artifacts_cache_dir()
     if not isdir(cache_dir):
-        makedirs(cache_dir)
+        makedirs(cache_dir, exist_ok=True)
     cached_artifact_path = join(cache_dir, artifact_hash)
     if isfile(cached_artifact_path) or isdir(cached_artifact_path):
         logger.debug('Skipping copy of existing cached artifact {} -> {}',
@@ -351,7 +351,7 @@ def save_target_in_cache(target: Target, build_context):
     cache_dir = build_context.conf.get_cache_dir(target, build_context)
     if isdir(cache_dir):
         rmtree(cache_dir)
-    makedirs(cache_dir)
+    makedirs(cache_dir, exist_ok=True)
     logger.debug('Saving target metadata in cache under {}', cache_dir)
     # write target metadata
     with open(join(cache_dir, 'target.json'), 'w') as meta_file:
