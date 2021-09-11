@@ -10,6 +10,11 @@ AptPackage(
 )
 
 AptPackage(
+    'npm',
+    package='npm',
+)
+
+AptPackage(
     'apt-transport-https',
     package='apt-transport-https',
     deps=':curl'
@@ -17,7 +22,7 @@ AptPackage(
 
 CustomInstaller(
     'node',
-    uri='https://deb.nodesource.com/setup_10.x',
+    uri='https://deb.nodesource.com/setup_16.x',
     script='install-nodejs.sh',
     deps=':apt-transport-https',
     packaging_params={
@@ -57,7 +62,10 @@ PythonPackage(
 NpmPackage(
     'leftpad',
     package='left-pad',
-    deps=':flask'
+    deps=[
+      ':flask',
+      ':npm',
+    ]
 )
 
 GemPackage(
