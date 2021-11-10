@@ -24,9 +24,8 @@ Gives information about the target
 import json
 
 from .config import Config
-from .docker import get_image_name
 from .logging import make_logger
-from .target_utils import ImageCachingBehavior, parse_target_selectors
+from .target_utils import parse_target_selectors
 
 
 logger = make_logger(__name__)
@@ -37,10 +36,11 @@ def print_target_info(conf: Config, build_context):
   targets_info = {}
   for target_name in targets:
     target = build_context.targets[target_name]
-    targets_info[target_name] = {
-      'image_name': get_image_name(target),
-      'image_tag': target.props.image_tag,
-      'remote_image_name': target.props.image_caching_behavior.get('remote_image_name', None),
-      'remote_image_tag': target.props.image_caching_behavior.get('remote_image_tag', None)
+    info = {
+      'workspace': build_context.get_workspace(target.builder_name, target_name)
     }
+    if 'image_caching_behavior' in target.props:
+      info['remote_image_name'] = target.props.image_caching_behavior.get('remote_image_name', None)
+      info['remote_image_tag'] = target.props.image_caching_behavior.get('remote_image_tag', None)
+    targets_info[target_name] = info
   print(json.dumps(targets_info))
