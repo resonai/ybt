@@ -36,7 +36,9 @@ def print_target_info(conf: Config, build_context):
       'workspace': build_context.get_workspace(target.builder_name, target_name)
     }
     if 'image_caching_behavior' in target.props:
-      info['remote_image_name'] = target.props.image_caching_behavior.get('remote_image_name', None)
-      info['remote_image_tag'] = target.props.image_caching_behavior.get('remote_image_tag', None)
+      if 'remote_image_name' in target.props.image_caching_behavior:
+        info['remote_image_name'] = target.props.image_caching_behavior['remote_image_name']
+      if 'remote_image_tag' in target.props.image_caching_behavior:
+        info['remote_image_tag'] = target.props.image_caching_behavior['remote_image_tag']
     targets_info[target_name] = info
   print(json.dumps(targets_info))
