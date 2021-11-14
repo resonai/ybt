@@ -28,17 +28,20 @@ from .target_utils import parse_target_selectors
 
 
 def print_target_info(conf: Config, build_context):
-  targets = parse_target_selectors(conf.targets, conf)
-  targets_info = {}
-  for target_name in targets:
-    target = build_context.targets[target_name]
-    info = {
-      'workspace': build_context.get_workspace(target.builder_name, target_name)
-    }
-    if 'image_caching_behavior' in target.props:
-      if 'remote_image_name' in target.props.image_caching_behavior:
-        info['remote_image_name'] = target.props.image_caching_behavior['remote_image_name']
-      if 'remote_image_tag' in target.props.image_caching_behavior:
-        info['remote_image_tag'] = target.props.image_caching_behavior['remote_image_tag']
-    targets_info[target_name] = info
-  print(json.dumps(targets_info))
+    targets = parse_target_selectors(conf.targets, conf)
+    targets_info = {}
+    for target_name in targets:
+        target = build_context.targets[target_name]
+        info = {
+            'workspace': build_context.get_workspace(target.builder_name,
+                                                     target_name)
+        }
+        if 'image_caching_behavior' in target.props:
+            if 'remote_image_name' in target.props.image_caching_behavior:
+                info['remote_image_name'] = \
+                    target.props.image_caching_behavior['remote_image_name']
+            if 'remote_image_tag' in target.props.image_caching_behavior:
+                info['remote_image_tag'] = \
+                    target.props.image_caching_behavior['remote_image_tag']
+        targets_info[target_name] = info
+    print(json.dumps(targets_info))

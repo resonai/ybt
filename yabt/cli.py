@@ -142,7 +142,8 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         PARSER.add('--upload-tests-to-global-cache', default=False,
                    action='store_true',
                    help='upload to global cache tests that were run')
-        PARSER.add('cmd', choices=['build', 'dot', 'test', 'tree', 'version', 'info'])
+        PARSER.add('cmd', choices=['build', 'dot', 'test', 'tree', 'version',
+                                   'info'])
         PARSER.add('targets', nargs='*')
     return PARSER
 
