@@ -24,11 +24,7 @@ Gives information about the target
 import json
 
 from .config import Config
-from .logging import make_logger
 from .target_utils import parse_target_selectors
-
-
-logger = make_logger(__name__)
 
 
 def print_target_info(conf: Config, build_context):
