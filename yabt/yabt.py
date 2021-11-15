@@ -34,7 +34,7 @@ from .extend import Plugin
 from .graph import populate_targets_graph
 from .dot import write_dot
 from .logging import make_logger
-from .target_info import print_target_info
+from .target_info import get_target_info_json
 from .target_utils import parse_target_selectors, split
 from .utils import fatal
 
@@ -105,7 +105,7 @@ def cmd_dot(conf: Config):
 def cmd_info(conf: Config):
     build_context = BuildContext(conf)
     populate_targets_graph(build_context, conf)
-    print_target_info(conf, build_context)
+    print(get_target_info_json(conf, build_context))
 
 
 def cmd_tree(conf: Config):

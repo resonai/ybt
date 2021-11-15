@@ -27,7 +27,7 @@ from .config import Config
 from .target_utils import parse_target_selectors
 
 
-def print_target_info(conf: Config, build_context):
+def get_target_info_json(conf: Config, build_context):
     targets = parse_target_selectors(conf.targets, conf)
     targets_info = {}
     for target_name in targets:
@@ -44,4 +44,4 @@ def print_target_info(conf: Config, build_context):
                 info['remote_image_tag'] = \
                     target.props.image_caching_behavior['remote_image_tag']
         targets_info[target_name] = info
-    print(json.dumps(targets_info))
+    return json.dumps(targets_info)
