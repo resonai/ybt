@@ -106,7 +106,7 @@ def test_generate_needed_lists(basic_conf):
     populate_targets_graph(build_context, basic_conf)
     build_context.build_graph()
     result = build_context.run_in_buildenv(
-        ':another-image', ['echo' 'another-image.list nodesource.list'],
+        ':another-image', ['echo', 'another-image.list nodesource.list'],
         auto_uid=False,
         stdout=PIPE, stderr=PIPE)
     print(result.stdout)
