@@ -105,16 +105,16 @@ def test_generate_needed_lists(basic_conf):
     basic_conf.targets = [':another-image']
     populate_targets_graph(build_context, basic_conf)
     build_context.build_graph()
-    result = build_context.run_in_buildenv(
+    result2 = build_context.run_in_buildenv(
         ':another-image', ['echo', 'another-image.list nodesource.list'],
         auto_uid=False,
         stdout=PIPE, stderr=PIPE)
-    print(result.stdout)
-    resul2 = build_context.run_in_buildenv(
+    print(result2.stdout)
+    result = build_context.run_in_buildenv(
         ':another-image', ['ls', '-l', '/'],
         auto_uid=False,
         stdout=PIPE, stderr=PIPE)
-    print(result2.stdout)
+    print(result.stdout)
     assert 0 == result.returncode
     for file in [
             b'another-image.list',
