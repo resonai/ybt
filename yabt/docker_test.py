@@ -107,6 +107,7 @@ def test_generate_needed_lists(basic_conf):
     build_context.build_graph()
     result = build_context.run_in_buildenv(
         ':another-image', ['ls', '/etc/apt/sources.list.d/'],
+        auto_uid=False,
         stdout=PIPE, stderr=PIPE)
     assert 0 == result.returncode
     for file in [
