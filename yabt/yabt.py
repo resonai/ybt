@@ -34,7 +34,8 @@ from .extend import Plugin
 from .graph import populate_targets_graph
 from .dot import write_dot
 from .logging import make_logger
-from .target_utils import parse_target_selectors, split, Target
+from .target_info import get_target_info_json
+from .target_utils import parse_target_selectors, split
 from .utils import fatal
 
 
@@ -101,6 +102,12 @@ def cmd_dot(conf: Config):
             write_dot(build_context, conf, out_file)
 
 
+def cmd_info(conf: Config):
+    build_context = BuildContext(conf)
+    populate_targets_graph(build_context, conf)
+    print(get_target_info_json(conf, build_context))
+
+
 def cmd_tree(conf: Config):
     """Print out a neat targets dependency tree based on requested targets."""
     build_context = BuildContext(conf)
@@ -136,6 +143,7 @@ def main():
         'dot': YabtCommand(func=cmd_dot, requires_project=True),
         'test': YabtCommand(func=cmd_test, requires_project=True),
         'tree': YabtCommand(func=cmd_tree, requires_project=True),
+        'info': YabtCommand(func=cmd_info, requires_project=True),
         'version': YabtCommand(func=cmd_version, requires_project=False),
         'list-builders': YabtCommand(func=cmd_list, requires_project=False),
     }
