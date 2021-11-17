@@ -38,8 +38,6 @@ PROJECT_DIR = path.join(path.dirname(path.abspath(__file__)), '..', '..',
 OP_OBJ_FILE = path.join('yabtwork', 'release_flavor', 'CppLib',
                         '_binary_operation', 'src', 'binary_operation.o')
 
-logger = make_logger(__name__)
-
 
 def build_main_app():
     basic_conf = cli.init_and_get_conf(
@@ -68,6 +66,4 @@ def test_caching(tmp_dir):
 
     build_main_app()
     assert op_obj_timestamp == path.getmtime(OP_OBJ_FILE)  # This assert fails
-    logger.info(check_output(['docker', 'run', 'main-app:latest']))
-    logger.info(type(check_output(['docker', 'run', 'main-app:latest'])))
     assert check_output(['docker', 'run', 'main-app:latest']) == b'20'
