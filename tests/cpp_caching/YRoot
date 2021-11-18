@@ -59,7 +59,7 @@ CppLib(
 
 CppProg('main',
     sources='main.cc',
-    deps=[':op_user_lib'],
+    deps=':op_user_lib',
     in_buildenv='//:builder'
 )
 
