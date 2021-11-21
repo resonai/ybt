@@ -61,3 +61,11 @@ CppProg(
 )
 
 CppApp('main-app', base_image='//:ubuntu', main=':main')
+
+
+CppGTest(
+    'op_user_test',
+    sources='op_user_test.cc',
+    deps=':op_user_lib',
+    in_buildenv='//:builder-with-gtest',
+)
