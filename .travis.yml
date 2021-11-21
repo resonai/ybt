@@ -39,3 +39,7 @@ jobs:
         on:
           tags: true
           repo: resonai/ybt
+
+branches:
+  only:
+  - master
