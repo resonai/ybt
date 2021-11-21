@@ -1,1 +1,1 @@
-float use_op();
+int use_op();

@@ -1,1 +1,1 @@
-float op(float a, float b);
+float op(int a, int b);
