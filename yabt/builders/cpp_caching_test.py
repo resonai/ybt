@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019 Resonai Ltd. All rights reserved
+# Copyright 2021 Resonai Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ import shutil
 from .. import cli
 from ..buildcontext import BuildContext
 from ..graph import populate_targets_graph
-from ..logging import make_logger
 
 PROJECT_DIR = path.join(path.dirname(path.abspath(__file__)), '..', '..',
                         'tests', 'cpp_caching')
