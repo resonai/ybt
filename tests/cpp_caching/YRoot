@@ -57,7 +57,8 @@ CppLib(
     in_buildenv='//:builder'
 )
 
-CppProg('main',
+CppProg(
+    'main',
     sources='main.cc',
     deps=[':op_user_lib'],
     in_buildenv='//:builder'
