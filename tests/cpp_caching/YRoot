@@ -19,12 +19,8 @@ AptGroup(
     'clang',
     packages=[
         'clang-8',
-        'libclang-common-8-dev',
-        'libclang-8-dev',
         'libllvm8',
-        'lldb-8',
         'llvm-8',
-        'llvm-8-dev',
         'llvm-8-runtime',
     ],
     deps=[':llvm-repo-key'],
