@@ -49,14 +49,14 @@ CppLib(
     'op_user_lib',
     sources='op_user_lib.cc',
     headers='op_user_lib.h',
-    deps=[':binary_operation'],
+    deps=':binary_operation',
     in_buildenv='//:builder'
 )
 
 CppProg(
     'main',
     sources='main.cc',
-    deps=[':op_user_lib'],
+    deps=':op_user_lib',
     in_buildenv='//:builder'
 )
 
