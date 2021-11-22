@@ -57,7 +57,6 @@ def build_test():
 
 
 @pytest.mark.slow
-@pytest.mark.skip(reason="Not supported feature")
 def test_caching_prog(tmp_dir):
     shutil.copytree(PROJECT_DIR, 'cpp_caching')
     os.chdir('cpp_caching')
@@ -77,7 +76,6 @@ def test_caching_prog(tmp_dir):
 
 
 @pytest.mark.slow
-@pytest.mark.skip(reason="Not supported feature")
 def test_caching_gtest(tmp_dir):
     shutil.copytree(PROJECT_DIR, 'cpp_caching')
     os.chdir('cpp_caching')
