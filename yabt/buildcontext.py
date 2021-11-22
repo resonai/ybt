@@ -498,7 +498,9 @@ class BuildContext:
         if not target.props.cachable:
             return False
         # if any dependency of the target is dirty, then the target is dirty
-        if any(self.targets[dep].is_dirty for dep in target.deps):
+        builder = Plugin.builders[target.builder_name]
+        if not builder.cache_json_func and \
+                any(self.targets[dep].is_dirty for dep in target.deps):
             logger.info('Cannot use cache of target: {} because it has dirty '
                         'dependencies: {}', target.name,
                         [dep for dep in target.deps
