@@ -35,7 +35,7 @@ from ..graph import populate_targets_graph
 PROJECT_DIR = path.join(path.dirname(path.abspath(__file__)), '..', '..',
                         'tests', 'cpp_caching')
 OP_OBJ_FILE = path.join('yabtwork', 'release_flavor', 'CppLib',
-                        '_binary_operation', 'src', 'op_user_lib.o')
+                        '_op_user_lib', 'src', 'op_user_lib.o')
 
 
 def build_main_app():
