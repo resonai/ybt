@@ -43,3 +43,4 @@ jobs:
 branches:
   only:
   - master
+  - /^v[0-9.]*$/
