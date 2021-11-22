@@ -1,0 +1,71 @@
+ExtDockerImage('ubuntu', image='ubuntu', tag='18.04')
+
+AptPackage('gnupg', package='gnupg')
+
+AptPackage('curl', package='curl')
+
+AptPackage('ca-certificates', package='ca-certificates')
+
+CustomInstaller(
+    'llvm-repo-key',
+    uri='',
+    deps=[':curl', ':ca-certificates',],
+    script='install-llvm-repo-key.sh',
+)
+
+DockerImage('ubuntu-gpg', base_image=':ubuntu', deps=':gnupg')
+
+AptGroup(
+    'clang',
+    packages=[
+        'clang-8',
+        'libllvm8',
+        'llvm-8',
+        'llvm-8-runtime',
+    ],
+    deps=[':llvm-repo-key'],
+#    repository='deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main',
+#    repo_key='15CF4D18AF4F7421'
+)
+
+CustomInstaller(
+    'gtest',
+    fetch='https://github.com/google/googletest/archive/release-1.8.0.tar.gz',
+    script='install-gtest.sh'
+)
+
+DockerImage('builder', base_image=':ubuntu-gpg', deps=':clang')
+
+DockerImage('builder-with-gtest', base_image=':builder', deps=':gtest')
+
+CppLib(
+    'binary_operation',
+    sources='binary_operation.cc',
+    headers='binary_operation.h',
+    in_buildenv='//:builder'
+)
+
+CppLib(
+    'op_user_lib',
+    sources='op_user_lib.cc',
+    headers='op_user_lib.h',
+    deps=':binary_operation',
+    in_buildenv='//:builder'
+)
+
+CppProg(
+    'main',
+    sources='main.cc',
+    deps=':op_user_lib',
+    in_buildenv='//:builder'
+)
+
+CppApp('main-app', base_image='//:ubuntu', main=':main')
+
+
+CppGTest(
+    'op_user_test',
+    sources='op_user_test.cc',
+    deps=':op_user_lib',
+    in_buildenv='//:builder-with-gtest',
+)
