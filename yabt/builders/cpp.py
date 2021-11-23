@@ -25,6 +25,8 @@ yabt C++ Builder
 TODO: support injecting compile/link flags for 3rd party libs
 TODO: CppSharedLib builder
 """
+
+
 from hashlib import md5
 from os.path import basename, dirname, join, relpath, splitext
 
@@ -411,19 +413,25 @@ def calc_hash(json_str):
     return m.hexdigest()
 
 
+def get_deps_specific_hash(build_context, target, dep_type, hash_name):
+    hashes = []
+    for dep_name in listify(target.deps):
+        dep_target = build_context.targets[dep_name]
+        if dep_target.builder_name == dep_type:
+            if getattr(dep_target, hash_name) is None:
+                dep_target.compute_json(build_context)
+            hashes.append(getattr(dep_target, hash_name))
+        else:
+            hashes.append(dep_target.hash(build_context))
+    return hashes
+
+
 @register_cache_json_func('CppLib')
 def cpp_lib_cache_json(build_context, target: Target):
     deps_hashes = [build_context.targets[target_name].hash(build_context)
                    for target_name in listify(target.deps)]
-    headers_hashes = []
-    for dep_name in listify(target.deps):
-        dep_target = build_context.targets[dep_name]
-        if dep_target.builder_name == 'CppLib':
-            if dep_target._headers_hash is None:
-                dep_target.compute_json(build_context)
-            headers_hashes.append(dep_target._headers_hash)
-        else:
-            headers_hashes.append(dep_target.hash(build_context))
+    headers_hashes = get_deps_specific_hash(build_context, target, 'CppLib',
+                                            '_headers_hash')
     full_json = target.compute_target_json(build_context, [], deps_hashes)
     headers_json = target.compute_target_json(build_context, ['sources'],
                                               headers_hashes)
@@ -436,18 +444,13 @@ def cpp_lib_cache_json(build_context, target: Target):
 
 @register_cache_json_func('CppProg')
 def cpp_prog_cache_json(build_context, target: Target):
-    full_hashes = []
-    for dep_name in listify(target.deps):
-        dep_target = build_context.targets[dep_name]
-        if dep_target.builder_name == 'CppLib':
-            if dep_target._full_hash is None:
-                dep_target.compute_json(build_context)
-            full_hashes.append(dep_target._full_hash)
-        else:
-            full_hashes.append(dep_target.hash(build_context))
+    full_hashes = get_deps_specific_hash(build_context, target, 'CppLib',
+                                         '_full_hash')
     return target.compute_target_json(build_context, [], full_hashes)
 
 
 @register_cache_json_func('CppGTest')
 def cpp_gtest_cache_json(build_context, target: Target):
-    return cpp_prog_cache_json(build_context, target)
+    full_hashes = get_deps_specific_hash(build_context, target, 'CppLib',
+                                         '_full_hash')
+    return target.compute_target_json(build_context, [], full_hashes)
