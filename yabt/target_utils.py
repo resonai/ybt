@@ -250,7 +250,8 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
             if sig_spec is None:
                 continue
             if prop in self._prop_json_testlist:
-                test_props[prop] = process_prop(sig_spec.type, self.props[prop],
+                test_props[prop] = process_prop(sig_spec.type,
+                                                self.props[prop],
                                                 build_context)
         json_test_dict = dict(
             props=test_props,

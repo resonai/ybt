@@ -435,7 +435,8 @@ def cpp_lib_cache_json(build_context, target: Target):
     full_json = target.compute_target_json(build_context, [], deps_hashes)
     headers_json = target.compute_target_json(build_context, ['sources'],
                                               headers_hashes)
-    sources_json = target.compute_target_json(build_context, [], headers_hashes)
+    sources_json = target.compute_target_json(build_context, [],
+                                              headers_hashes)
 
     target._full_hash = calc_hash(full_json)
     target._headers_hash = calc_hash(headers_json)
