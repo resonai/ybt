@@ -443,6 +443,7 @@ def test_caching(tmp_dir):
     tests = [rebuild, rebuild_after_modify, delete_file_and_return_no_modify,
              add_dependency, failing_test, download_from_global_cache,
              # TODO(Dana): there is a problem with the following tests.
+             # See: https://github.com/resonai/ybt/issues/220
              # no_cache_at_all,
              # randomly_delete_summary_from_global_cache,
              # randomly_delete_artifacts_desc_from_global_cache,
