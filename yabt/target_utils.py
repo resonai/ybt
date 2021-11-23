@@ -259,7 +259,7 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
 
     def compute_json(self, build_context):
         """
-        Compute all json representing the target.
+        Compute and store all json representing the target.
         """
         builder = Plugin.builders[self.builder_name]
         if builder.cache_json_func:
