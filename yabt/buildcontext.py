@@ -497,7 +497,8 @@ class BuildContext:
         # if the target's `cachable` prop is falsy, then it is dirty
         if not target.props.cachable:
             return False
-        # if any dependency of the target is dirty, then the target is dirty
+        # if any dependency of the target is dirty, then the target is dirty.
+        # This isn't necessarily true for targets that calculate their own hash.
         builder = Plugin.builders[target.builder_name]
         if not builder.cache_json_func and \
                 any(self.targets[dep].is_dirty for dep in target.deps):
