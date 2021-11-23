@@ -418,7 +418,7 @@ def get_deps_specific_hash(build_context, target, dep_type, hash_name):
     for dep_name in listify(target.deps):
         dep_target = build_context.targets[dep_name]
         if dep_target.builder_name == dep_type:
-            if getattr(dep_target, hash_name) is None:
+            if not hasattr(dep_target, hash_name):
                 dep_target.compute_json(build_context)
             hashes.append(getattr(dep_target, hash_name))
         else:
