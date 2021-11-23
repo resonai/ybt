@@ -188,7 +188,7 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         items = ('{}={!r}'.format(k, self.__dict__[k]) for k in keys)
         return '{}({})'.format(type(self).__name__, ', '.join(items))
 
-    def compute_target_json(self, build_context, props_black_list, deps_hashes):
+    def compute_target_json(self, build_context, prop_blacklist, deps_hashes):
         """Compute a JSON serialization of this target for caching
            purposes.
 
@@ -210,10 +210,13 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         fact that when cached artifacts are restored, their path may be a
         function of the target name in non-essential ways (such as a workspace
         dir name).
+
+        prop_blacklist - props we don't put in the json
+        deps_hashes - precalculated hashes of direct dependencies
         """
         props = {}
         for prop in self.props:
-            if prop in self._prop_json_blacklist or prop in props_black_list:
+            if prop in self._prop_json_blacklist or prop in prop_blacklist:
                 continue
             sig_spec = Plugin.builders[self.builder_name].sig.get(prop)
             if sig_spec is None:
@@ -235,6 +238,10 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         return json.dumps(json_dict, sort_keys=True, indent=4)
 
     def compute_test_json(self, build_context):
+        """
+        Compute the json representing the test of this target. it includes only
+        the test props.
+        """
         test_props = {}
         for prop in self.props:
             if prop in self._prop_json_blacklist:
@@ -243,8 +250,7 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
             if sig_spec is None:
                 continue
             if prop in self._prop_json_testlist:
-                test_props[prop] = process_prop(sig_spec.type,
-                                                self.props[prop],
+                test_props[prop] = process_prop(sig_spec.type, self.props[prop],
                                                 build_context)
         json_test_dict = dict(
             props=test_props,
@@ -252,6 +258,9 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         return json.dumps(json_test_dict, sort_keys=True, indent=4)
 
     def compute_json(self, build_context):
+        """
+        Compute all json representing the target.
+        """
         builder = Plugin.builders[self.builder_name]
         if builder.cache_json_func:
             self._json = builder.cache_json_func(build_context, self)
