@@ -40,7 +40,8 @@ OP_OBJ_FILE = path.join('yabtwork', 'release_flavor', 'CppLib',
 
 def build_main_app():
     basic_conf = cli.init_and_get_conf(
-        ['--non-interactive', '--continue-after-fail', 'build'])
+        ['--non-interactive', '--continue-after-fail', '--scm-provider',
+         'none', 'build'])
     build_context = BuildContext(basic_conf)
     basic_conf.targets = [':main-app']
     populate_targets_graph(build_context, basic_conf)
@@ -49,7 +50,8 @@ def build_main_app():
 
 def build_test():
     basic_conf = cli.init_and_get_conf(
-        ['--non-interactive', '--continue-after-fail', 'build'])
+        ['--non-interactive', '--continue-after-fail', '--scm-provider',
+         'none', 'build'])
     build_context = BuildContext(basic_conf)
     basic_conf.targets = [':op_user_test']
     populate_targets_graph(build_context, basic_conf)
