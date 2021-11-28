@@ -428,6 +428,22 @@ def get_deps_specific_hash(build_context, target, dep_type, hash_name):
 
 @register_cache_json_func('CppLib')
 def cpp_lib_cache_json(build_context, target: Target):
+    """
+    When a file `a.cc` includes `b.h`, cpp compiler allows us to not compile
+    `a.cc` if only `b.cc` is changed since last compilation. In this case we
+    only need to compile  `b.cc` and if `a.cc` contains a main function
+    (in our case, it is a CppProg or CppGTest target), link a.
+
+    To support it, we define 3 different hashes:
+    - Full hash: props, files, full hashes of CppLib deps, cache hashes
+                 (the hash used to access the cache) of all other deps.
+    - Headers hash: props, headers files, headers hashes of CppLib deps, cache
+                    hashes of all other deps.
+    - Sources hash: props, files (headers & sources), headers hashes of CppLib
+                    deps, cache hashes of all other deps.
+
+    The hash used to access the cache is the sources hash.
+    """
     deps_hashes = [build_context.targets[target_name].hash(build_context)
                    for target_name in listify(target.deps)]
     headers_hashes = get_deps_specific_hash(build_context, target, 'CppLib',
@@ -445,6 +461,11 @@ def cpp_lib_cache_json(build_context, target: Target):
 
 @register_cache_json_func('CppProg')
 def cpp_prog_cache_json(build_context, target: Target):
+    """
+    We want to link if any CppLib we depend on was changed. So the hash we use 
+    to access the cache contains props, files, full hashes of CppLib deps
+    and cache hashes of all other deps.
+    """
     full_hashes = get_deps_specific_hash(build_context, target, 'CppLib',
                                          '_full_hash')
     return target.compute_target_json(build_context, [], full_hashes)
@@ -452,6 +473,9 @@ def cpp_prog_cache_json(build_context, target: Target):
 
 @register_cache_json_func('CppGTest')
 def cpp_gtest_cache_json(build_context, target: Target):
+    """
+    Same as in CppProg
+    """
     full_hashes = get_deps_specific_hash(build_context, target, 'CppLib',
                                          '_full_hash')
     return target.compute_target_json(build_context, [], full_hashes)
