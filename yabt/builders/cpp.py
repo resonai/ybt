@@ -462,7 +462,7 @@ def cpp_lib_cache_json(build_context, target: Target):
 @register_cache_json_func('CppProg')
 def cpp_prog_cache_json(build_context, target: Target):
     """
-    We want to link if any CppLib we depend on was changed. So the hash we use 
+    We want to link if any CppLib we depend on was changed. So the hash we use
     to access the cache contains props, files, full hashes of CppLib deps
     and cache hashes of all other deps.
     """
