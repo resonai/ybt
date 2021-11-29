@@ -91,6 +91,7 @@ class Builder:
         self.sig = None
         self.func = None
         self.test_func = None
+        self.cache_json_func = None
         self.docstring = None
         self.min_positional_args = 1  # the `name`
 
@@ -242,6 +243,23 @@ def register_test_func(builder_name):
         def tester_wrapper(*args, **kwrags):
             return test_func(*args, **kwrags)
         return tester_wrapper
+    return register_decorator
+
+
+def register_cache_json_func(builder_name):
+    def register_decorator(cache_json_func):
+        if Plugin.builders[builder_name].cache_json_func:
+            raise KeyError('{} already registered a cache_json function!'
+                           .format(builder_name))
+        Plugin.builders[builder_name].cache_json_func = cache_json_func
+        logger.debug('Registered {0} builder signature from '
+                     '{1.__module__}.{1.__name__}()', builder_name,
+                     cache_json_func)
+
+        @wraps(cache_json_func)
+        def cache_json_wrapper(*args, **kwrags):
+            return cache_json_func(*args, **kwrags)
+        return cache_json_wrapper
     return register_decorator
 
 

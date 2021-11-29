@@ -35,12 +35,13 @@ from ..graph import populate_targets_graph
 PROJECT_DIR = path.join(path.dirname(path.abspath(__file__)), '..', '..',
                         'tests', 'cpp_caching')
 OP_OBJ_FILE = path.join('yabtwork', 'release_flavor', 'CppLib',
-                        '_binary_operation', 'src', 'binary_operation.o')
+                        '_op_user_lib', 'src', 'op_user_lib.o')
 
 
 def build_main_app():
     basic_conf = cli.init_and_get_conf(
-        ['--non-interactive', '--continue-after-fail', 'build'])
+        ['--non-interactive', '--continue-after-fail', '--scm-provider',
+         'none', 'build'])
     build_context = BuildContext(basic_conf)
     basic_conf.targets = [':main-app']
     populate_targets_graph(build_context, basic_conf)
@@ -49,7 +50,8 @@ def build_main_app():
 
 def build_test():
     basic_conf = cli.init_and_get_conf(
-        ['--non-interactive', '--continue-after-fail', 'build'])
+        ['--non-interactive', '--continue-after-fail', '--scm-provider',
+         'none', 'build'])
     build_context = BuildContext(basic_conf)
     basic_conf.targets = [':op_user_test']
     populate_targets_graph(build_context, basic_conf)
@@ -57,7 +59,6 @@ def build_test():
 
 
 @pytest.mark.slow
-@pytest.mark.skip(reason="Not supported feature")
 def test_caching_prog(tmp_dir):
     shutil.copytree(PROJECT_DIR, 'cpp_caching')
     os.chdir('cpp_caching')
@@ -72,12 +73,11 @@ def test_caching_prog(tmp_dir):
         f.write(binary_operation_code.replace('+', '*'))
 
     build_main_app()
-    assert op_obj_timestamp == path.getmtime(OP_OBJ_FILE)  # This assert fails
+    assert op_obj_timestamp == path.getmtime(OP_OBJ_FILE)
     assert check_output(['docker', 'run', 'main-app:latest']) == b'20'
 
 
 @pytest.mark.slow
-@pytest.mark.skip(reason="Not supported feature")
 def test_caching_gtest(tmp_dir):
     shutil.copytree(PROJECT_DIR, 'cpp_caching')
     os.chdir('cpp_caching')
@@ -92,4 +92,4 @@ def test_caching_gtest(tmp_dir):
 
     with pytest.raises(SystemExit):
         build_test()
-    assert op_obj_timestamp == path.getmtime(OP_OBJ_FILE)  # This assert fails
+    assert op_obj_timestamp == path.getmtime(OP_OBJ_FILE)

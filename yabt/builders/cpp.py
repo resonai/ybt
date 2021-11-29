@@ -27,6 +27,7 @@ TODO: CppSharedLib builder
 """
 
 
+from hashlib import md5
 from os.path import basename, dirname, join, relpath, splitext
 
 from ostrich.utils.collections import listify
@@ -36,9 +37,10 @@ from ..artifact import ArtifactType as AT
 from .dockerapp import build_app_docker_and_bin, register_app_builder_sig
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
-    register_manipulate_target_hook, register_test_func)
+    register_manipulate_target_hook, register_test_func,
+    register_cache_json_func)
 from ..logging import make_logger
-from ..target_utils import split
+from ..target_utils import split, Target
 from ..utils import link_files, rmtree, yprint
 
 
@@ -403,3 +405,77 @@ def cpp_lib_builder(build_context, target):
         buildenv_workspace, target.props.cmd_env)
     for obj_file in objects:
         target.artifacts.add(AT.object, obj_file)
+
+
+def calc_hash(json_str):
+    m = md5()
+    m.update(json_str.encode('utf8'))
+    return m.hexdigest()
+
+
+def get_deps_specific_hash(build_context, target, dep_type, hash_name):
+    hashes = []
+    for dep_name in listify(target.deps):
+        dep_target = build_context.targets[dep_name]
+        if dep_target.builder_name == dep_type:
+            if not hasattr(dep_target, hash_name):
+                dep_target.compute_json(build_context)
+            hashes.append(getattr(dep_target, hash_name))
+        else:
+            hashes.append(dep_target.hash(build_context))
+    return hashes
+
+
+@register_cache_json_func('CppLib')
+def cpp_lib_cache_json(build_context, target: Target):
+    """
+    When a file `a.cc` includes `b.h`, cpp compiler allows us to not compile
+    `a.cc` if only `b.cc` is changed since last compilation. In this case we
+    only need to compile  `b.cc` and if `a.cc` contains a main function
+    (in our case, it is a CppProg or CppGTest target), link a.
+
+    To support it, we define 3 different hashes:
+    - Full hash: props, files, full hashes of CppLib deps, cache hashes
+                 (the hash used to access the cache) of all other deps.
+    - Headers hash: props, headers files, headers hashes of CppLib deps, cache
+                    hashes of all other deps.
+    - Sources hash: props, files (headers & sources), headers hashes of CppLib
+                    deps, cache hashes of all other deps.
+
+    The hash used to access the cache is the sources hash.
+    """
+    deps_hashes = [build_context.targets[target_name].hash(build_context)
+                   for target_name in listify(target.deps)]
+    headers_hashes = get_deps_specific_hash(build_context, target, 'CppLib',
+                                            '_headers_hash')
+    full_json = target.compute_target_json(build_context, [], deps_hashes)
+    headers_json = target.compute_target_json(build_context, ['sources'],
+                                              headers_hashes)
+    sources_json = target.compute_target_json(build_context, [],
+                                              headers_hashes)
+
+    target._full_hash = calc_hash(full_json)
+    target._headers_hash = calc_hash(headers_json)
+    return sources_json
+
+
+@register_cache_json_func('CppProg')
+def cpp_prog_cache_json(build_context, target: Target):
+    """
+    We want to link if any CppLib we depend on was changed. So the hash we use
+    to access the cache contains props, files, full hashes of CppLib deps
+    and cache hashes of all other deps.
+    """
+    full_hashes = get_deps_specific_hash(build_context, target, 'CppLib',
+                                         '_full_hash')
+    return target.compute_target_json(build_context, [], full_hashes)
+
+
+@register_cache_json_func('CppGTest')
+def cpp_gtest_cache_json(build_context, target: Target):
+    """
+    Same as in CppProg
+    """
+    full_hashes = get_deps_specific_hash(build_context, target, 'CppLib',
+                                         '_full_hash')
+    return target.compute_target_json(build_context, [], full_hashes)

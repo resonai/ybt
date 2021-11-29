@@ -188,8 +188,8 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         items = ('{}={!r}'.format(k, self.__dict__[k]) for k in keys)
         return '{}({})'.format(type(self).__name__, ', '.join(items))
 
-    def compute_json(self, build_context):
-        """Compute and store a JSON serialization of this target for caching
+    def compute_target_json(self, build_context, prop_blacklist, deps_hashes):
+        """Compute a JSON serialization of this target for caching
            purposes.
 
         The serialization includes:
@@ -210,8 +210,38 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         fact that when cached artifacts are restored, their path may be a
         function of the target name in non-essential ways (such as a workspace
         dir name).
+
+        prop_blacklist - props we don't put in the json
+        deps_hashes - precalculated hashes of direct dependencies
         """
         props = {}
+        for prop in self.props:
+            if prop in self._prop_json_blacklist or prop in prop_blacklist:
+                continue
+            sig_spec = Plugin.builders[self.builder_name].sig.get(prop)
+            if sig_spec is None:
+                continue
+            if prop not in self._prop_json_testlist:
+                props[prop] = process_prop(sig_spec.type, self.props[prop],
+                                           build_context)
+        json_dict = dict(
+            # TODO: avoid including the name in the hashed json...
+            name=self.name,
+            builder_name=self.builder_name,
+            deps=sorted(deps_hashes),
+            props=props,
+            buildenv=hashify_targets(self.buildenv, build_context),
+            tags=sorted(list(self.tags)),
+            flavor=build_context.conf.flavor,  # TODO: any other conf args?
+            # yabt_version=__version__,  # TODO: is this needed?
+        )
+        return json.dumps(json_dict, sort_keys=True, indent=4)
+
+    def compute_test_json(self, build_context):
+        """
+        Compute the json representing the test of this target. it includes only
+        the test props.
+        """
         test_props = {}
         for prop in self.props:
             if prop in self._prop_json_blacklist:
@@ -223,26 +253,24 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
                 test_props[prop] = process_prop(sig_spec.type,
                                                 self.props[prop],
                                                 build_context)
-            else:
-                props[prop] = process_prop(sig_spec.type, self.props[prop],
-                                           build_context)
-        json_dict = dict(
-            # TODO: avoid including the name in the hashed json...
-            name=self.name,
-            builder_name=self.builder_name,
-            deps=hashify_targets(self.deps, build_context),
-            props=props,
-            buildenv=hashify_targets(self.buildenv, build_context),
-            tags=sorted(list(self.tags)),
-            flavor=build_context.conf.flavor,  # TODO: any other conf args?
-            # yabt_version=__version__,  # TODO: is this needed?
-        )
         json_test_dict = dict(
             props=test_props,
         )
+        return json.dumps(json_test_dict, sort_keys=True, indent=4)
 
-        self._json = json.dumps(json_dict, sort_keys=True, indent=4)
-        self._test_json = json.dumps(json_test_dict, sort_keys=True, indent=4)
+    def compute_json(self, build_context):
+        """
+        Compute and store all json representing the target.
+        """
+        builder = Plugin.builders[self.builder_name]
+        if builder.cache_json_func:
+            self._json = builder.cache_json_func(build_context, self)
+        else:
+            self._json = self.compute_target_json(
+                build_context, [],
+                [build_context.targets[target_name].hash(build_context)
+                 for target_name in listify(self.deps)])
+        self._test_json = self.compute_test_json(build_context)
 
     def json(self, build_context) -> str:
         """Return JSON serialization of this target for caching purposes."""
