@@ -73,7 +73,7 @@ def test_caching_prog(tmp_dir):
         f.write(binary_operation_code.replace('+', '*'))
 
     build_main_app()
-    assert op_obj_timestamp == path.getmtime(OP_OBJ_FILE)  # This assert fails
+    assert op_obj_timestamp == path.getmtime(OP_OBJ_FILE)
     assert check_output(['docker', 'run', 'main-app:latest']) == b'20'
 
 
@@ -92,4 +92,4 @@ def test_caching_gtest(tmp_dir):
 
     with pytest.raises(SystemExit):
         build_test()
-    assert op_obj_timestamp == path.getmtime(OP_OBJ_FILE)  # This assert fails
+    assert op_obj_timestamp == path.getmtime(OP_OBJ_FILE)
