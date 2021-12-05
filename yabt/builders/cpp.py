@@ -444,11 +444,11 @@ def cpp_lib_cache_json(build_context, target: Target):
 
     The hash used to access the cache is the sources hash.
     """
-    deps_hashes = [build_context.targets[target_name].hash(build_context)
-                   for target_name in listify(target.deps)]
+    full_hashes = get_deps_specific_hash(build_context, target, 'CppLib',
+                                         '_full_hash')
     headers_hashes = get_deps_specific_hash(build_context, target, 'CppLib',
                                             '_headers_hash')
-    full_json = target.compute_target_json(build_context, [], deps_hashes)
+    full_json = target.compute_target_json(build_context, [], full_hashes)
     headers_json = target.compute_target_json(build_context, ['sources'],
                                               headers_hashes)
     sources_json = target.compute_target_json(build_context, [],
