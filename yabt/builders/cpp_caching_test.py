@@ -38,12 +38,12 @@ OP_OBJ_FILE = path.join('yabtwork', 'release_flavor', 'CppLib',
                         '_op_user_lib', 'src', 'op_user_lib.o')
 
 
-def build_main_app():
+def build_main_app(target_name):
     basic_conf = cli.init_and_get_conf(
         ['--non-interactive', '--continue-after-fail', '--scm-provider',
          'none', 'build'])
     build_context = BuildContext(basic_conf)
-    basic_conf.targets = [':main-app']
+    basic_conf.targets = [target_name]
     populate_targets_graph(build_context, basic_conf)
     build_context.build_graph()
 
@@ -63,7 +63,7 @@ def test_caching_prog(tmp_dir):
     shutil.copytree(PROJECT_DIR, 'cpp_caching')
     os.chdir('cpp_caching')
 
-    build_main_app()
+    build_main_app(':main-app')
     op_obj_timestamp = path.getmtime(OP_OBJ_FILE)
     assert check_output(['docker', 'run', 'main-app:latest']) == b'12'
 
@@ -72,7 +72,7 @@ def test_caching_prog(tmp_dir):
     with open('binary_operation.cc', 'w') as f:
         f.write(binary_operation_code.replace('+', '*'))
 
-    build_main_app()
+    build_main_app(':main-app')
     assert op_obj_timestamp == path.getmtime(OP_OBJ_FILE)
     assert check_output(['docker', 'run', 'main-app:latest']) == b'20'
 
@@ -93,3 +93,24 @@ def test_caching_gtest(tmp_dir):
     with pytest.raises(SystemExit):
         build_test()
     assert op_obj_timestamp == path.getmtime(OP_OBJ_FILE)
+
+
+@pytest.mark.slow
+def test_caching_far_change(tmp_dir):
+    shutil.copytree(PROJECT_DIR, 'cpp_caching')
+    os.chdir('cpp_caching')
+
+    build_main_app(':main_far_change-app')
+    op_obj_timestamp = path.getmtime(OP_OBJ_FILE)
+    assert check_output(['docker', 'run', 'main_far_change-app:latest']) \
+           == b'12'
+
+    with open('binary_operation.cc', 'r') as f:
+        binary_operation_code = f.read()
+    with open('binary_operation.cc', 'w') as f:
+        f.write(binary_operation_code.replace('+', '*'))
+
+    build_main_app(':main_far_change-app')
+    assert op_obj_timestamp == path.getmtime(OP_OBJ_FILE)
+    assert check_output(['docker', 'run', 'main_far_change-app:latest']) \
+           == b'20'

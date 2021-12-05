@@ -69,3 +69,20 @@ CppGTest(
     deps=':op_user_lib',
     in_buildenv='//:builder-with-gtest',
 )
+
+CppLib(
+    'op_user_user_lib',
+    sources='op_user_user_lib.cc',
+    headers='op_user_user_lib.h',
+    deps=':op_user_lib',
+    in_buildenv='//:builder'
+)
+
+CppProg(
+    'main_far_change',
+    sources='main_far_change.cc',
+    deps=':op_user_user_lib',
+    in_buildenv='//:builder'
+)
+
+CppApp('main_far_change-app', base_image='//:ubuntu', main=':main_far_change')
