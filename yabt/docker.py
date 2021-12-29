@@ -54,7 +54,7 @@ logger = make_logger(__name__)
 KNOWN_RUNTIME_PARAMS = frozenset((
         'ports', 'volumes', 'container_name', 'daemonize', 'devices',
         'interactive', 'term', 'auto_it', 'rm', 'env', 'work_dir', 'gpus',
-        'impersonate', 'network', 'runtime'))
+        'impersonate', 'network', 'runtime', 'ipc'))
 
 
 def make_pip_requirements(pip_requirements: set, pip_req_file_path: str):
@@ -229,6 +229,8 @@ def format_docker_run_params(params: dict):
         param_strings.extend(['--runtime', params['runtime']])
     if params.get('gpus'):
         param_strings.extend(['--gpus', params['gpus']])
+    if params.get('ipc'):
+        param_strings.extend(['--ipc', params['ipc']])
 
     return param_strings
 
