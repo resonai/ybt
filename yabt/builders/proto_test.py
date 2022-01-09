@@ -33,7 +33,9 @@ from . import proto
 from ..buildcontext import BuildContext
 from ..graph import populate_targets_graph
 from ..utils import yprint
-from .proto import PROTO_GEN_DIR
+
+
+PROTO_GEN_DIR = 'ybtproto'  # as defined in tests/proto/YSettings
 
 
 def clear_output():

@@ -40,8 +40,6 @@ from ..utils import link_files, rmtree, yprint, link_node
 logger = make_logger(__name__)
 
 
-PROTO_GEN_DIR = 'ybtproto'
-
 register_builder_sig(
     'Proto',
     [('sources', PT.FileList),
@@ -70,7 +68,8 @@ def proto_builder(build_context, target):
     workspace_dir = build_context.get_workspace('ProtoBuilder', target.name)
     # make sure workdir is clean
     rmtree(workspace_dir)
-    proto_dir = join(workspace_dir, PROTO_GEN_DIR)
+    proto_gen_dir = build_context.conf.get('proto_gen_dir', 'proto')
+    proto_dir = join(workspace_dir, proto_gen_dir)
     # Collect proto sources from this target and all dependecies,
     # to link under the target sandbox dir
     protos = [source for source in target.props.sources
@@ -83,7 +82,7 @@ def proto_builder(build_context, target):
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     protoc_cmd = target.props.proto_cmd + ['--proto_path', buildenv_workspace]
-    descriptor_path = join(PROTO_GEN_DIR,
+    descriptor_path = join(proto_gen_dir,
                            get_safe_path(target.name.lstrip(':')) +
                            '_descriptor.pb')
     if target.props.gen_cpp:
@@ -115,7 +114,7 @@ def proto_builder(build_context, target):
             ('--include_imports', '--descriptor_set_out',
              (PurePath(buildenv_workspace) / descriptor_path).as_posix()))
     protoc_cmd.extend(
-      (PurePath(buildenv_workspace) / PROTO_GEN_DIR / src).as_posix()
+      (PurePath(buildenv_workspace) / proto_gen_dir / src).as_posix()
       for src in target.props.sources)
     build_context.run_in_buildenv(
         target.props.in_buildenv, protoc_cmd, target.props.cmd_env)

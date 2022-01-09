@@ -1,4 +1,5 @@
 def get_common_config(config, args):
     return {
         'go_module': 'foo.com',
+        'proto_gen_dir': 'ybtproto',
     }
