@@ -35,6 +35,7 @@ from ..graph import populate_targets_graph
 from ..utils import yprint
 from .proto import PROTO_GEN_DIR
 
+
 def clear_output():
     try:
         shutil.rmtree('build')
@@ -61,7 +62,8 @@ def test_proto_builder(basic_conf):
         'hello.pb.h',
         'hello_pb2.py'
     ]:
-        assert isfile(join('build', 'gen', PROTO_GEN_DIR, 'app', exp_gen_fname))
+        assert isfile(
+          join('build', 'gen', PROTO_GEN_DIR, 'app', exp_gen_fname))
     clear_output()
 
 
