@@ -1,7 +1,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "proto/app/hello.pb.h"
+#include "ybtproto/app/hello.pb.h"
 
 int main(int argc, char* argv[]) {
     // Verify that the version of the library that we linked against is
