@@ -83,7 +83,8 @@ def proto_builder(build_context, target):
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir)
     protoc_cmd = target.props.proto_cmd + ['--proto_path', buildenv_workspace]
-    descriptor_path = join(PROTO_GEN_DIR, get_safe_path(target.name.lstrip(':')) +
+    descriptor_path = join(PROTO_GEN_DIR,
+                           get_safe_path(target.name.lstrip(':')) +
                            '_descriptor.pb')
     if target.props.gen_cpp:
         protoc_cmd.extend(('--cpp_out', buildenv_workspace))
@@ -113,8 +114,9 @@ def proto_builder(build_context, target):
         protoc_cmd.extend(
             ('--include_imports', '--descriptor_set_out',
              (PurePath(buildenv_workspace) / descriptor_path).as_posix()))
-    protoc_cmd.extend((PurePath(buildenv_workspace) / PROTO_GEN_DIR / src).as_posix()
-                      for src in target.props.sources)
+    protoc_cmd.extend(
+      (PurePath(buildenv_workspace) / PROTO_GEN_DIR / src).as_posix()
+      for src in target.props.sources)
     build_context.run_in_buildenv(
         target.props.in_buildenv, protoc_cmd, target.props.cmd_env)
     generated_files = []
