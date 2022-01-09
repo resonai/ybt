@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/golang/protobuf/proto"
-	pb "foo.com/proto/app"
+	pb "foo.com/ybtproto/app"
 )
 
 func main() {

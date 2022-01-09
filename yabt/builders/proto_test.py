@@ -35,6 +35,9 @@ from ..graph import populate_targets_graph
 from ..utils import yprint
 
 
+PROTO_GEN_DIR = 'ybtproto'  # as defined in tests/proto/YSettings
+
+
 def clear_output():
     try:
         shutil.rmtree('build')
@@ -52,16 +55,17 @@ def test_proto_builder(basic_conf):
     build_context.build_graph()
     assert isdir('build')
     assert isdir(join('build', 'gen'))
-    assert isdir(join('build', 'gen', 'proto'))
-    assert isfile(join('build', 'gen', 'proto', '__init__.py'))
-    assert isdir(join('build', 'gen', 'proto', 'app'))
-    assert isfile(join('build', 'gen', 'proto', 'app', '__init__.py'))
+    assert isdir(join('build', 'gen', PROTO_GEN_DIR))
+    assert isfile(join('build', 'gen', PROTO_GEN_DIR, '__init__.py'))
+    assert isdir(join('build', 'gen', PROTO_GEN_DIR, 'app'))
+    assert isfile(join('build', 'gen', PROTO_GEN_DIR, 'app', '__init__.py'))
     for exp_gen_fname in [
         'hello.pb.cc',
         'hello.pb.h',
         'hello_pb2.py'
     ]:
-        assert isfile(join('build', 'gen', 'proto', 'app', exp_gen_fname))
+        assert isfile(
+          join('build', 'gen', PROTO_GEN_DIR, 'app', exp_gen_fname))
     clear_output()
 
 
@@ -118,16 +122,16 @@ def assert_all_proto_files_exist():
     assert isdir(join('yabtwork', 'flavor__all__', 'ProtoCollector',
                       'app_hello1-collector'))
     assert isdir(join('yabtwork', 'flavor__all__', 'ProtoCollector',
-                      'app_hello1-collector', 'proto'))
+                      'app_hello1-collector', PROTO_GEN_DIR))
     assert isdir(join('yabtwork', 'flavor__all__', 'ProtoCollector',
-                      'app_hello1-collector', 'proto', 'app'))
+                      'app_hello1-collector', PROTO_GEN_DIR, 'app'))
     assert isdir(join('yabtwork', 'flavor__all__', 'ProtoCollector',
-                      'app_hello1-collector', 'proto', 'app', 'hello1'))
+                      'app_hello1-collector', PROTO_GEN_DIR, 'app', 'hello1'))
     assert isfile(join('yabtwork', 'flavor__all__', 'ProtoCollector',
-                       'app_hello1-collector', 'proto', 'app', 'hello1',
+                       'app_hello1-collector', PROTO_GEN_DIR, 'app', 'hello1',
                        'hello1.proto'))
     assert isdir(join('yabtwork', 'flavor__all__', 'ProtoCollector',
-                      'app_hello1-collector', 'proto', 'app', 'hello2'))
+                      'app_hello1-collector', PROTO_GEN_DIR, 'app', 'hello2'))
     assert isfile(join('yabtwork', 'flavor__all__', 'ProtoCollector',
-                       'app_hello1-collector', 'proto', 'app', 'hello2',
+                       'app_hello1-collector', PROTO_GEN_DIR, 'app', 'hello2',
                        'hello2.proto'))

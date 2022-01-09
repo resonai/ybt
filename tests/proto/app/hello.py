@@ -1,4 +1,4 @@
-from proto.app.hello_pb2 import Hello
+from ybtproto.app.hello_pb2 import Hello
 
 
 def get_message(msg_file):
