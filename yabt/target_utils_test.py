@@ -93,14 +93,17 @@ def test_norm_name_unqualified_error():
             'possible ambiguity' in str(excinfo.value))
 
 
-_HELLO_PROG_HASH = '52aea5f9d27f92cf9137debf6b378fd2'
-_PROTO_BUILDER = 'a066abe4da520fd51119e167bcd964aa'
+_HELLO_PROG_HASH = '5ff09c1f31f365d4872ba3e54090fe3d'
+_PROTO_BUILDER = '3e84e7cfe5498c22f258757622fa12c3'
 _BOTH_HASHES = list(sorted([_HELLO_PROG_HASH, _PROTO_BUILDER]))
 
 
 _EXP_JSON = """{
     "buildenv": [],
     "builder_name": "CppApp",
+    "cache_salt": [
+        "1.0"
+    ],
     "deps": [
         "%s",
         "%s"
