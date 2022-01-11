@@ -238,7 +238,6 @@ class Target(types.SimpleNamespace):  # pylint: disable=too-few-public-methods
         if build_context.conf.get('cache_salt', None) is not None:
             json_dict['cache_salt'] = build_context.conf.get('cache_salt',
                                                              None),
-
         return json.dumps(json_dict, sort_keys=True, indent=4)
 
     def compute_test_json(self, build_context):
