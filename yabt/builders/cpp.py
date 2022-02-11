@@ -251,15 +251,21 @@ def compile_cc(build_context, compiler_config, buildenv, sources,
     objects = []
     for src in sources:
         obj_rel_path = '{}.o'.format(splitext(src)[0])
-        obj_file = join(buildenv_workspace, obj_rel_path)
-        include_paths = [buildenv_workspace] + compiler_config.include_path
+        obj_file = obj_rel_path         # BBB join(buildenv_workspace, obj_rel_path)
+        include_paths = compiler_config.include_path        # BBB [buildenv_workspace] + compiler_config.include_path
+        # compile_cmd = (           # BBBB
+        #     [compiler_config.compiler, '-o', obj_file, '-c'] +
+        #     compiler_config.compile_flags +
+        #     ['-I{}'.format(path) for path in include_paths] +
+        #     [join(buildenv_workspace, src)])
         compile_cmd = (
-            [compiler_config.compiler, '-o', obj_file, '-c'] +
+            [ 'cd %s; %s'%(buildenv_workspace,compiler_config.compiler), '-o', obj_file, '-c'] +
             compiler_config.compile_flags +
             ['-I{}'.format(path) for path in include_paths] +
-            [join(buildenv_workspace, src)])
+            [src])
         # TODO: capture and transform error messages from compiler so file
         # paths match host paths for smooth(er) editor / IDE integration
+        print( 'BBBBBBBBBBBBBBBBBBB', compile_cmd )
         build_context.run_in_buildenv(buildenv, compile_cmd, cmd_env)
         objects.append(
             join(relpath(workspace_dir, build_context.conf.project_root),
