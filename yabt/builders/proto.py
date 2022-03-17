@@ -100,11 +100,7 @@ def proto_builder(build_context, target):
         protoc_cmd.extend(('--grpc_python_out', buildenv_workspace))
     if target.props.gen_go_grpc:
         protoc_cmd.append(
-            '--go_out=plugins=grpc:{}'.format(buildenv_workspace))
-    if target.props.gen_go or target.props.gen_go_grpc:
-        protoc_cmd.append(
-            '--go_opt=paths=source_relative'
-        )
+            '--go-grpc_out={}'.format(buildenv_workspace))
     if target.props.gen_cpp_rpcz:
         protoc_cmd.extend(('--cpp_rpcz_out', buildenv_workspace))
     if target.props.gen_python_rpcz:
