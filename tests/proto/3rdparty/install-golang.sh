@@ -13,7 +13,5 @@ mkdir "$GOPATH"
 apt update
 apt-get install -y git
 
-go get google.golang.org/protobuf/cmd/protoc-gen-go
-go get google.golang.org/grpc/cmd/protoc-gen-go-grpc
-
+go get github.com/golang/protobuf/protoc-gen-go
 chmod -R 777 "$GOPATH"
