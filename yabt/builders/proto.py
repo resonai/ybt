@@ -89,7 +89,7 @@ def proto_builder(build_context, target):
         protoc_cmd.extend(('--cpp_out', buildenv_workspace))
     if target.props.gen_python:
         protoc_cmd.extend(('--python_out', buildenv_workspace))
-    if target.props.gen_go and not target.props.gen_go_grpc:
+    if target.props.gen_go or target.props.gen_go_grpc:
         protoc_cmd.extend(('--go_out', buildenv_workspace,
                            '--go_opt=paths=source_relative'))
     if target.props.gen_cpp_grpc:
