@@ -143,6 +143,8 @@ def proto_builder(build_context, target):
             process_generated(src_base + '.pb.h', AT.gen_h)
         if target.props.gen_go or target.props.gen_go_grpc:
             process_generated(src_base + '.pb.go', AT.gen_go)
+        if target.props.gen_go_grpc:
+            process_generated(src_base + '_grpc.pb.go', AT.gen_go)
         if target.props.gen_python_rpcz:
             process_generated(src_base + '_rpcz.py', AT.gen_py)
         if target.props.gen_cpp_rpcz:
