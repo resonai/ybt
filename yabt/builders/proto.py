@@ -89,8 +89,9 @@ def proto_builder(build_context, target):
         protoc_cmd.extend(('--cpp_out', buildenv_workspace))
     if target.props.gen_python:
         protoc_cmd.extend(('--python_out', buildenv_workspace))
-    if target.props.gen_go and not target.props.gen_go_grpc:
-        protoc_cmd.extend(('--go_out', buildenv_workspace))
+    if target.props.gen_go or target.props.gen_go_grpc:
+        protoc_cmd.extend(('--go_out', buildenv_workspace,
+                           '--go_opt=paths=source_relative'))
     if target.props.gen_cpp_grpc:
         protoc_cmd.extend(
             ('--grpc_out', buildenv_workspace,
@@ -99,12 +100,8 @@ def proto_builder(build_context, target):
     if target.props.gen_python_grpc:
         protoc_cmd.extend(('--grpc_python_out', buildenv_workspace))
     if target.props.gen_go_grpc:
-        protoc_cmd.append(
-            '--go_out=plugins=grpc:{}'.format(buildenv_workspace))
-    if target.props.gen_go or target.props.gen_go_grpc:
-        protoc_cmd.append(
-            '--go_opt=paths=source_relative'
-        )
+        protoc_cmd.extend(('--go-grpc_out', buildenv_workspace,
+                           '--go-grpc_opt=paths=source_relative'))
     if target.props.gen_cpp_rpcz:
         protoc_cmd.extend(('--cpp_rpcz_out', buildenv_workspace))
     if target.props.gen_python_rpcz:
@@ -146,6 +143,8 @@ def proto_builder(build_context, target):
             process_generated(src_base + '.pb.h', AT.gen_h)
         if target.props.gen_go or target.props.gen_go_grpc:
             process_generated(src_base + '.pb.go', AT.gen_go)
+        if target.props.gen_go_grpc:
+            process_generated(src_base + '_grpc.pb.go', AT.gen_go)
         if target.props.gen_python_rpcz:
             process_generated(src_base + '_rpcz.py', AT.gen_py)
         if target.props.gen_cpp_rpcz:
