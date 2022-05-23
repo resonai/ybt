@@ -253,14 +253,11 @@ def compile_cc(build_context, compiler_config, buildenv, sources,
         obj_rel_path = '{}.o'.format(splitext(src)[0])
         obj_file = join(buildenv_workspace, obj_rel_path)
         include_paths = [buildenv_workspace] + compiler_config.include_path
-
-        # ${buildenv_workspace} is replaced by the actual value at
-        # compilation time
         compile_cmd = (
             [compiler_config.compiler, '-o', obj_file, '-c'] +
-            [flag.replace('${buildenv_workspace}',buildenv_workspace) for
-                            flag in compiler_config.compile_flags] +
+            compiler_config.compile_flags +
             ['-I{}'.format(path) for path in include_paths] +
+            ['-fdebug-prefix-map=%s=.'%buildenv_workspace] +
             [join(buildenv_workspace, src)])
         # TODO: capture and transform error messages from compiler so file
         # paths match host paths for smooth(er) editor / IDE integration
