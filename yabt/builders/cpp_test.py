@@ -108,7 +108,7 @@ def test_compiler_config_debug(debug_conf, test_case):
                  'yabtwork', 'debug_flavor', 'foo', 'bar_baz'))
 
 
-@pytest.mark.slow
+# @pytest.mark.slow
 @pytest.mark.parametrize(
     'target_name',
     ('hello:hello-app', 'hello_lib:hello-app', 'hello_mod/main:hello-app'))
