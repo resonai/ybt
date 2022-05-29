@@ -119,12 +119,6 @@ def pythontest_manipulate_target(build_context, target):
 @register_build_func('PythonTest')
 def pythontest_builder(build_context, target):
     yprint(build_context.conf, 'Build PythonTest', target)
-
-
-@register_test_func('PythonTest')
-def pythontest_tester(build_context, target):
-    """Run a Python test"""
-    yprint(build_context.conf, 'Run PythonTest', target)
     workspace_dir = build_context.get_workspace('PythonTest', target.name)
 
     # Link generated Python protos & required binaries
@@ -134,6 +128,14 @@ def pythontest_tester(build_context, target):
         dep.artifacts.link_types(
             workspace_dir, [AT.gen_py, AT.binary, AT.proto_descriptor],
             build_context.conf)
+
+
+@register_test_func('PythonTest')
+def pythontest_tester(build_context, target):
+    """Run a Python test"""
+    yprint(build_context.conf, 'Run PythonTest', target)
+    workspace_dir = build_context.get_workspace('PythonTest', target.name)
+    gen_dir = join(workspace_dir, 'gen')
 
     # Run the test module
     test_env = target.props.test_env or {}
