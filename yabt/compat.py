@@ -21,13 +21,4 @@ yabt Compatability module
 :author: Itamar Ostricher
 """
 
-
-# os.scandir, performant os.walk
-try:
-    # Python 3.5+, use builtin implementation
-    # https://docs.python.org/3/library/os.html#os.scandir
-    from os import scandir, walk
-except ImportError:
-    # pre-Python 3.5, use third party package
-    # https://pypi.python.org/pypi/scandir
-    from scandir import scandir, walk
+from os import scandir, walk
