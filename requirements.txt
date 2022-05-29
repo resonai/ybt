@@ -12,9 +12,6 @@ requests>=2.18.0
 six>=1.13.0
 google-cloud-storage
 
-# For pre-Python-3.5 compatability
-scandir>=1.2
-
 # For testing
 # pinning flake due to: https://github.com/PyCQA/flake8/issues/1419
 flake8<4
