@@ -34,7 +34,7 @@ from .target_extraction import args_to_props, extractor, handle_typed_args
 from .target_utils import Target
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def with_spam_builder_sig():
     Plugin.remove_builder('Spam')
     register_builder_sig('Spam', ['foo',

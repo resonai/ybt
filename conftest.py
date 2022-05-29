@@ -28,7 +28,7 @@ import tempfile
 
 import configargparse
 import pytest
-from pytest import yield_fixture
+from pytest import fixture
 
 import yabt
 from yabt import cli
@@ -68,65 +68,65 @@ def yabt_project_fixture(project):
     os.chdir(orig_dir)
 
 
-@yield_fixture
+@fixture
 def in_simple_project():
     yield from yabt_project_fixture('simple')
 
-@yield_fixture
+@fixture
 def in_simpleflat_project():
     yield from yabt_project_fixture('simpleflat')
 
-@yield_fixture
+@fixture
 def in_dag_project():
     yield from yabt_project_fixture('dag')
 
 
-@yield_fixture
+@fixture
 def in_error_project():
     yield from yabt_project_fixture('errors')
 
 
-@yield_fixture
+@fixture
 def in_yapi_dir():
     yield from yabt_project_fixture(os.path.join('dag', 'yapi'))
 
 
-@yield_fixture
+@fixture
 def in_pkgmgrs_project():
     yield from yabt_project_fixture('pkgmgrs')
 
 
-@yield_fixture
+@fixture
 def in_proto_project():
     yield from yabt_project_fixture('proto')
 
 
-@yield_fixture
+@fixture
 def in_caching_project():
     yield from yabt_project_fixture('caching')
 
 
-@yield_fixture
+@fixture
 def in_cpp_project():
     yield from yabt_project_fixture('cpp')
 
 
-@yield_fixture
+@fixture
 def in_tests_project():
     yield from yabt_project_fixture('tests')
 
 
-@yield_fixture
+@fixture
 def in_custom_installer_project():
     yield from yabt_project_fixture('custom_installer')
 
 
-@yield_fixture
+@fixture
 def in_golang_project():
     yield from yabt_project_fixture('golang')
 
 
-@yield_fixture
+@fixture
 def tmp_dir():
     orig_dir = os.getcwd()
     _tmp_dir = tempfile.mkdtemp()
@@ -136,7 +136,7 @@ def tmp_dir():
     shutil.rmtree(_tmp_dir)
 
 
-@yield_fixture
+@fixture
 def basic_conf():
     reset_parser()
     conf = cli.init_and_get_conf([
@@ -146,7 +146,7 @@ def basic_conf():
     yield conf
 
 
-@yield_fixture()
+@fixture()
 def debug_conf():
     reset_parser()
     conf = cli.init_and_get_conf([
@@ -156,7 +156,7 @@ def debug_conf():
     yield conf
 
 
-@yield_fixture
+@fixture
 def nopolicy_conf():
     reset_parser()
     conf = cli.init_and_get_conf([
