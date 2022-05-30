@@ -135,7 +135,10 @@ def pythontest_tester(build_context, target):
     """Run a Python test"""
     yprint(build_context.conf, 'Run PythonTest', target)
     workspace_dir = build_context.get_workspace('PythonTest', target.name)
-    gen_dir = join(workspace_dir, 'gen')
+    buildenv_workspace = build_context.conf.host_to_buildenv_path(
+      workspace_dir)
+
+    gen_dir = join(buildenv_workspace, 'gen')
 
     # Run the test module
     test_env = target.props.test_env or {}
@@ -143,7 +146,7 @@ def pythontest_tester(build_context, target):
     pypath.append(relpath(gen_dir, build_context.conf.project_root))
     test_env['PYTHONPATH'] = ':'.join(pypath)
     test_env['BIN_DIR'] = build_context.conf.host_to_buildenv_path(
-        join(workspace_dir, 'bin'))
+        join(buildenv_workspace, 'bin'))
     run_params = extend_runtime_params(
         target.props.runtime_params,
         build_context.walk_target_deps_topological_order(target),
