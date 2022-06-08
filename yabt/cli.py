@@ -111,6 +111,8 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
                    help='Disable YBT build cache')
         PARSER.add('--no-docker-cache', action='store_true',
                    help='Disable YBT Docker cache')
+        PARSER.add('--use-fdebug-prefix-map-flag', action='store_true',
+                   help='when generating symbolic debug info for cpp artifacts, use relative paths')
         PARSER.add('--no-policies', action='store_true')
         PARSER.add('--no-test-cache', action='store_true',
                    help='Disable YBT test cache')

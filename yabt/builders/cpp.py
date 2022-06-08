@@ -80,6 +80,9 @@ class CompilerConfig:
         self.include_path = list(self.get(
             'include_path', build_context.conf, target, []))
 
+        self.use_fdebug_prefix_map_flag = \
+             build_context.conf.use_fdebug_prefix_map_flag
+
         def generate_extra_params():
             if extra_params:
                 yield extra_params
@@ -253,11 +256,17 @@ def compile_cc(build_context, compiler_config, buildenv, sources,
         obj_rel_path = '{}.o'.format(splitext(src)[0])
         obj_file = join(buildenv_workspace, obj_rel_path)
         include_paths = [buildenv_workspace] + compiler_config.include_path
+        special_flags = []
+        if compiler_config.use_fdebug_prefix_map_flag:
+            # Store relative paths (instead of absolute) in debugger symbols
+            # when in debug mode (with gcc and clang, it is harmless otherwise)
+            special_flags.extend(['-fdebug-prefix-map=%s=.' % buildenv_workspace])
+
         compile_cmd = (
             [compiler_config.compiler, '-o', obj_file, '-c'] +
             compiler_config.compile_flags +
             ['-I{}'.format(path) for path in include_paths] +
-            ['-fdebug-prefix-map=%s=.'%buildenv_workspace] +
+            special_flags +
             [join(buildenv_workspace, src)])
         # TODO: capture and transform error messages from compiler so file
         # paths match host paths for smooth(er) editor / IDE integration
