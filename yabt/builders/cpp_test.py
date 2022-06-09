@@ -108,7 +108,7 @@ def test_compiler_config_debug(debug_conf, test_case):
                  'yabtwork', 'debug_flavor', 'foo', 'bar_baz'))
 
 
-# @pytest.mark.slow
+@pytest.mark.slow
 @pytest.mark.parametrize(
     'target_name',
     ('hello:hello-app', 'hello_lib:hello-app', 'hello_mod/main:hello-app'))
@@ -122,6 +122,38 @@ def test_cpp_builder(basic_conf, target_name):
     hello_out = str(
         check_output(['ybt_bin/{}'.format(target_name.replace(':', '/'))]))
     assert 'Hello world' in hello_out
+    clear_bin()
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    'use_fdebug_prefix_map_flag',
+    (True,False))
+@pytest.mark.usefixtures('in_cpp_project')
+def test_debug_symbols(debug_conf, use_fdebug_prefix_map_flag):
+    # The use_fdebug_prefix_map_flag affects the debug symbols stored in object
+    # files, which are used when debugging with a debugger (e.g., gdb).  
+    # when true, the paths for source files are relative, and consistent with
+    # the directory tree of the source files.
+    # when false, the paths reflect the paths of source files at the time
+    # of compilation.
+    clear_bin()
+    build_context = BuildContext(debug_conf)
+    debug_conf.targets = ['hello:hello-app']
+    debug_conf.use_fdebug_prefix_map_flag = use_fdebug_prefix_map_flag
+    populate_targets_graph(build_context, debug_conf)
+    build_context.build_graph()
+
+    cc_full_path = 'yabtwork/debug_flavor/CppProg/hello_hello/hello/hello.cc'
+    cc_relative_path = './hello/hello.cc' 
+    
+    obj_path = cc_full_path.replace('cc', 'o')
+    debug_info = str(check_output(['objdump', obj_path, '--debugging']))
+   
+    if use_fdebug_prefix_map_flag:
+        assert cc_relative_path in debug_info and not cc_full_path in debug_info
+    else:   
+        assert cc_full_path in debug_info and not cc_relative_path in debug_info      
     clear_bin()
 
 
