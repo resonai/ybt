@@ -260,7 +260,8 @@ def compile_cc(build_context, compiler_config, buildenv, sources,
         if compiler_config.use_fdebug_prefix_map_flag:
             # Store relative paths (instead of absolute) in debugger symbols
             # when in debug mode (with gcc and clang, it is harmless otherwise)
-            special_flags.extend(['-fdebug-prefix-map=%s=.' % buildenv_workspace])
+            special_flags.extend(['-fdebug-prefix-map=%s=.' %
+                                  buildenv_workspace])
 
         compile_cmd = (
             [compiler_config.compiler, '-o', obj_file, '-c'] +
