@@ -52,6 +52,7 @@ class Config:
         'builders_workspace_dir',
         'cmd',
         'default_target_name',
+        'use_fdebug_prefix_map_flag',
         'docker_volume',
         'flavor',
         'force_pull',

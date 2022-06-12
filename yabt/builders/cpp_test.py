@@ -126,6 +126,38 @@ def test_cpp_builder(basic_conf, target_name):
 
 
 @pytest.mark.slow
+@pytest.mark.parametrize('use_fdebug_prefix_map_flag', (True, False))
+@pytest.mark.usefixtures('in_cpp_project')
+def test_debug_symbols(debug_conf, use_fdebug_prefix_map_flag):
+    # The use_fdebug_prefix_map_flag affects the debug symbols stored in object
+    # files, which are used when debugging with a debugger (e.g., gdb).
+    # when true, the paths for source files are relative, and consistent with
+    # the directory tree of the source files.
+    # when false, the paths reflect the paths of source files at the time
+    # of compilation.
+    clear_bin()
+    build_context = BuildContext(debug_conf)
+    debug_conf.targets = ['hello:hello-app']
+    debug_conf.use_fdebug_prefix_map_flag = use_fdebug_prefix_map_flag
+    populate_targets_graph(build_context, debug_conf)
+    build_context.build_graph()
+
+    cc_full_path = 'yabtwork/debug_flavor/CppProg/hello_hello/hello/hello.cc'
+    cc_relative_path = './hello/hello.cc'
+
+    obj_path = cc_full_path.replace('cc', 'o')
+    debug_info = str(check_output(['objdump', obj_path, '--debugging']))
+
+    if use_fdebug_prefix_map_flag:
+        assert cc_relative_path in debug_info and \
+               cc_full_path not in debug_info
+    else:
+        assert cc_full_path in debug_info and \
+               cc_relative_path not in debug_info
+    clear_bin()
+
+
+@pytest.mark.slow
 @pytest.mark.usefixtures('in_tests_project')
 def test_cpp_tester_success(basic_conf):
     build_context = BuildContext(basic_conf)
