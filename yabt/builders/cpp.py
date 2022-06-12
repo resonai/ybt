@@ -81,7 +81,7 @@ class CompilerConfig:
             'include_path', build_context.conf, target, []))
 
         self.use_fdebug_prefix_map_flag = \
-             build_context.conf.use_fdebug_prefix_map_flag
+            build_context.conf.use_fdebug_prefix_map_flag
 
         def generate_extra_params():
             if extra_params:
