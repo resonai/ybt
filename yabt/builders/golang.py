@@ -151,9 +151,9 @@ def go_test_tester(build_context, target):
         run_params=format_docker_run_params(run_params))
 
 
-def rm_all_but_go_mod(workspace_dir):
+def rm_all_but_go_mod_and_sum(workspace_dir):
     for fname in listdir(workspace_dir):
-        if fname == 'go.mod':
+        if fname in ['go.mod', 'go.sum']:
             continue
         filepath = join(workspace_dir, fname)
         if isfile(filepath):
@@ -215,7 +215,7 @@ def go_builder_internal(build_context, target, command, is_binary=True):
         ))
 
     workspace_dir = build_context.get_workspace(builder_name, target.name)
-    rmtree(workspace_dir)
+    rm_all_but_go_mod_and_sum(workspace_dir)
 
     buildenv_workspace = build_context.conf.host_to_buildenv_path(
         workspace_dir
