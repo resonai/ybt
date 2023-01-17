@@ -280,12 +280,12 @@ def go_builder_internal(build_context, target, command, is_binary=True):
             build_cmd_env,
             work_dir=buildenv_workspace
         )
-        build_context.run_in_buildenv(
-            target.props.in_buildenv,
-            ['go', 'mod', 'tidy'],
-            build_cmd_env,
-            work_dir=buildenv_workspace
-        )
+    build_context.run_in_buildenv(
+        target.props.in_buildenv,
+        ['go', 'mod', 'tidy'],
+        build_cmd_env,
+        work_dir=buildenv_workspace
+    )
 
     if len(buildenv_sources) > 0:
         binary = join(*split(target.name)) if is_binary else None
