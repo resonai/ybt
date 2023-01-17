@@ -280,6 +280,7 @@ def go_builder_internal(build_context, target, command, is_binary=True):
             build_cmd_env,
             work_dir=buildenv_workspace
         )
+    # always run go mod tidy
     build_context.run_in_buildenv(
         target.props.in_buildenv,
         ['go', 'mod', 'tidy'],
