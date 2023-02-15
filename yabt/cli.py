@@ -114,6 +114,9 @@ def make_parser(project_config_file: str) -> configargparse.ArgumentParser:
         PARSER.add('--use-fdebug-prefix-map-flag', action='store_true',
                    help='use the fdebug-preFfix-map CPP debug flag so that ' +
                    'CPP symbolic debug info uses relative paths and not full')
+        PARSER.add('--run-clang-tidy', action='store_true',
+                   help='export clang compilation commands in JSON format and' +
+                   ' run clang-tidy')
         PARSER.add('--no-policies', action='store_true')
         PARSER.add('--no-test-cache', action='store_true',
                    help='Disable YBT test cache')
