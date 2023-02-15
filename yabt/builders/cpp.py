@@ -303,6 +303,7 @@ def compile_cc(build_context, compiler_config, buildenv, sources,
                 compiler_config.clang_tidy_config, '-p', buildenv_workspace,
                 join(buildenv_workspace, src)
             ])
+            build_context.run_in_buildenv(buildenv, clang_tidy_cmd, cmd_env)
     return objects
 
 
