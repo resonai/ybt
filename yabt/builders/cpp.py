@@ -28,6 +28,7 @@ TODO: CppSharedLib builder
 
 
 from hashlib import md5
+import json
 from os.path import basename, dirname, join, relpath, splitext
 
 from ostrich.utils.collections import listify
@@ -77,11 +78,17 @@ class CompilerConfig:
             'compile_flags', build_context.conf, target, []))
         self.link_flags = list(self.get(
             'link_flags', build_context.conf, target, []))
+        self.clang_tidy = self.get(
+            'clang_tidy', build_context.conf, target, 'clang-tidy')
+        self.clang_tidy_config = self.get(
+            'clang_tidy_config', build_context.conf, target, 'clang_tidy.conf')
         self.include_path = list(self.get(
             'include_path', build_context.conf, target, []))
 
         self.use_fdebug_prefix_map_flag = \
             build_context.conf.use_fdebug_prefix_map_flag
+        self.run_clang_tidy = \
+            build_context.conf.run_clang_tidy
 
         def generate_extra_params():
             if extra_params:
@@ -252,6 +259,11 @@ def compile_cc(build_context, compiler_config, buildenv, sources,
        and return list of generated object file.
     """
     objects = []
+    compile_commands = []
+    buildenv_path_to_compile_commands = join(buildenv_workspace,
+                                             'compile_commands.json')
+    host_path_to_compile_commands = join(workspace_dir,
+                                         'compile_commands.json')
     for src in sources:
         obj_rel_path = '{}.o'.format(splitext(src)[0])
         obj_file = join(buildenv_workspace, obj_rel_path)
@@ -260,21 +272,37 @@ def compile_cc(build_context, compiler_config, buildenv, sources,
         if compiler_config.use_fdebug_prefix_map_flag:
             # Store relative paths (instead of absolute) in debugger symbols
             # when in debug mode (with gcc and clang, it is harmless otherwise)
-            special_flags.extend(['-fdebug-prefix-map=%s=.' %
-                                  buildenv_workspace])
-
-        compile_cmd = (
-            [compiler_config.compiler, '-o', obj_file, '-c'] +
-            compiler_config.compile_flags +
-            ['-I{}'.format(path) for path in include_paths] +
-            special_flags +
-            [join(buildenv_workspace, src)])
+            special_flags.extend(
+                ['-fdebug-prefix-map=%s=.' % buildenv_workspace])
+        if compiler_config.run_clang_tidy:
+            special_flags.append('-MJ%s' % buildenv_path_to_compile_commands)
+        compile_cmd = ([compiler_config.compiler, '-o', obj_file, '-c'] +
+                       compiler_config.compile_flags +
+                       ['-I{}'.format(path) for path in include_paths] +
+                       special_flags + [join(buildenv_workspace, src)])
         # TODO: capture and transform error messages from compiler so file
         # paths match host paths for smooth(er) editor / IDE integration
         build_context.run_in_buildenv(buildenv, compile_cmd, cmd_env)
+        if compiler_config.run_clang_tidy:
+            # aggregate compile commands
+            with open(host_path_to_compile_commands, 'r') as f:
+                curr_compile_commnads = json.loads(f.read().strip()[:-1])
+                compile_commands.append(curr_compile_commnads)
         objects.append(
             join(relpath(workspace_dir, build_context.conf.project_root),
                  obj_rel_path))
+    if compiler_config.run_clang_tidy:
+        # output aggregate json
+        with open(host_path_to_compile_commands, 'w') as f:
+            json.dump(compile_commands, f)
+        # run clang-tidy
+        for src in sources:
+            clang_tidy_cmd = ([
+                compiler_config.clang_tidy, '-config-file',
+                compiler_config.clang_tidy_config, '-p', buildenv_workspace,
+                join(buildenv_workspace, src)
+            ])
+            build_context.run_in_buildenv(buildenv, clang_tidy_cmd, cmd_env)
     return objects
 
 
