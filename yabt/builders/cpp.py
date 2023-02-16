@@ -287,7 +287,6 @@ def compile_cc(build_context, compiler_config, buildenv, sources,
             # aggregate compile commands
             with open(host_path_to_compile_commands, 'r') as f:
                 curr_compile_commnads = json.loads(f.read().strip()[:-1])
-                # translate paths to host paths before writing to file
                 compile_commands.append(curr_compile_commnads)
         objects.append(
             join(relpath(workspace_dir, build_context.conf.project_root),
