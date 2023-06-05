@@ -444,5 +444,8 @@ def try_use_global_cache(build_context, func, error_msg):
         except Exception as e:
             logger.warning(error_msg)
             logger.warning(str(e))
+            logger.warning(type(e))
+            logger.warning(e)
+            raise e
             build_context.global_cache_failures += 1
             return False
