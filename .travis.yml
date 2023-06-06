@@ -1,4 +1,7 @@
 sudo: required
+arch: amd64
+os: linux
+dist: focal
 
 services:
   - docker
@@ -30,7 +33,7 @@ jobs:
   include:
     - stage: "Deploy to PyPI"
       if: tag =~ ^v
-      python: "3.7"
+      python: "3.9"
       script: skip
       deploy:
         provider: pypi
