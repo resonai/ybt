@@ -116,8 +116,9 @@ class GSGlobalCache(GlobalCache):
                 self.bucket.blob(join(self.artifacts_dir, artifact_hash))\
                     .upload_from_filename(join(src, artifact_hash))
             except google.api_core.exceptions.TooManyRequests as e:
-                logger.info(f'When uploading artifact {artifact_hash} got TooManyRequests error: {str(e)}. ' + 
-                            'We can skip uploading the artifact since it already exists.')
+                logger.info(f'When uploading artifact {artifact_hash} got '
+                            f'TooManyRequests error: {str(e)}. We can skip '
+                            'uploading the artifact since it already exists.')
 
     def upload_test_cache(self, target_hash: str, src: str):
         self.upload_target_meta(target_hash, src, TESTS_FILE)
