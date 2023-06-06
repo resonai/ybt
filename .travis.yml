@@ -30,7 +30,7 @@ jobs:
   include:
     - stage: "Deploy to PyPI"
       if: tag =~ ^v
-      python: "3.7"
+      python: "3.8"
       script: skip
       deploy:
         provider: pypi
