@@ -6,7 +6,7 @@ YaBT: Yet another Build Tool
 
 ## Install
 
-Requires Python 3.6 or above, so make sure you have it (`type -P python3 && python3 -V`).
+Requires Python 3.8 or above, so make sure you have it (`type -P python3 && python3 -V`).
 
 ```sh
 sudo apt-get install -y python3-dev python3-pip
@@ -22,7 +22,7 @@ eval "$(register-python-argcomplete ybt)"
 
 ## Development
 
-Requires Python 3.6 or above, so make sure you have it (`type -P python3 && python3 -V`).
+Requires Python 3.8 or above, so make sure you have it (`type -P python3 && python3 -V`).
 
 Recommended with [virtualenvwrapper](http://virtualenvwrapper.readthedocs.org).
 
