@@ -19,3 +19,7 @@ pytest>=4.6
 pytest-cov>=2.6.1
 pytest-flake8>=1.0
 tox>=2.3
+
+# The newer urllib has a version mismatch with the openssl when trying to deploy
+# from travis a new version to pypi
+urllib3==1.26.6
