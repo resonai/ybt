@@ -14,8 +14,6 @@ before_install:
 language: python
 
 python:
-  - "3.6"
-  - "3.7"
   - "3.8"
   - "3.9"
 
@@ -32,7 +30,7 @@ jobs:
   include:
     - stage: "Deploy to PyPI"
       if: tag =~ ^v
-      python: "3.7"
+      python: "3.8"
       script: skip
       deploy:
         provider: pypi

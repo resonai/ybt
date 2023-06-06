@@ -443,6 +443,7 @@ def try_use_global_cache(build_context, func, error_msg):
             return func()
         except Exception as e:
             logger.warning(error_msg)
+            logger.warning(type(e))
             logger.warning(str(e))
             build_context.global_cache_failures += 1
             return False

@@ -22,6 +22,7 @@ A global cache implemented with google cloud storage
 """
 
 from google.cloud import storage, exceptions
+import google.api_core.exceptions
 import os
 from os.path import join
 from typing import Dict
@@ -111,8 +112,13 @@ class GSGlobalCache(GlobalCache):
         self._create_client()
         # TODO(Dana): make this work in batch
         for artifact_hash in artifacts_hashes.keys():
-            self.bucket.blob(join(self.artifacts_dir, artifact_hash))\
-                .upload_from_filename(join(src, artifact_hash))
+            try:
+                self.bucket.blob(join(self.artifacts_dir, artifact_hash))\
+                    .upload_from_filename(join(src, artifact_hash))
+            except google.api_core.exceptions.TooManyRequests as e:
+                logger.info(f'When uploading artifact {artifact_hash} got '
+                            f'TooManyRequests error: {str(e)}. We can skip '
+                            'uploading the artifact since it already exists.')
 
     def upload_test_cache(self, target_hash: str, src: str):
         self.upload_target_meta(target_hash, src, TESTS_FILE)
