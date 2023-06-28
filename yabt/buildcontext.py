@@ -293,10 +293,10 @@ class BuildContext:
                         # call to sys.stdout.write crashes in the inner
                         # function, when colorama/ansitowin32.py assumes that
                         # the text is ascii encoded.
-                      if ex.stdout:
-                          sys.stdout.write(ex.stdout.decode('utf-8'))
-                      if ex.stderr:
-                          sys.stderr.write(ex.stderr.decode('utf-8'))
+                        if ex.stdout:
+                            sys.stdout.write(ex.stdout.decode('utf-8'))
+                        if ex.stderr:
+                            sys.stderr.write(ex.stderr.decode('utf-8'))
                 finally:
                     if graph_copy.has_node(target.name):
                         self.failed_nodes[target.name] = ex
