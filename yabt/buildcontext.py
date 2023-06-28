@@ -287,12 +287,15 @@ class BuildContext:
                 # "failed to run" errors.
                 # see: https://github.com/resonai/ybt/issues/124
                 try:
-                    if isinstance(ex, CalledProcessError) and ex.stdout:
+                    if isinstance(ex, CalledProcessError) and \
+                       (ex.stdout or ex.stderr):
                         # TODO(Dana) When ex.stdout has non ascii chars the
                         # call to sys.stdout.write crashes in the inner
                         # function, when colorama/ansitowin32.py assumes that
                         # the text is ascii encoded.
+                      if ex.stdout:
                         sys.stdout.write(ex.stdout.decode('utf-8'))
+                      if ex.stderr:
                         sys.stderr.write(ex.stderr.decode('utf-8'))
                 finally:
                     if graph_copy.has_node(target.name):
@@ -425,7 +428,6 @@ class BuildContext:
         if 'stdout' not in kwargs:
             kwargs['stdout'] = PIPE
         result = run(docker_run, check=True, **kwargs)
-
         # TODO(Dana): Understand what is the right enconding and remove the
         # try except
         if kwargs['stdout'] is PIPE:
@@ -634,7 +636,7 @@ class BuildContext:
                   '\n=============================' +
                   Style.RESET_ALL)
             for target_name, ex in self.failed_nodes.items():
-                if isinstance(ex, CalledProcessError) and ex.stdout:
+                if isinstance(ex, CalledProcessError) and (ex.stdout or ex.stderr):
                     print('\n\nTarget', target_name,
                           'failed executing command:\n\n')
                     print(' '.join(ex.cmd[0]))
