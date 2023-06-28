@@ -294,9 +294,9 @@ class BuildContext:
                         # function, when colorama/ansitowin32.py assumes that
                         # the text is ascii encoded.
                       if ex.stdout:
-                        sys.stdout.write(ex.stdout.decode('utf-8'))
+                          sys.stdout.write(ex.stdout.decode('utf-8'))
                       if ex.stderr:
-                        sys.stderr.write(ex.stderr.decode('utf-8'))
+                          sys.stderr.write(ex.stderr.decode('utf-8'))
                 finally:
                     if graph_copy.has_node(target.name):
                         self.failed_nodes[target.name] = ex
@@ -636,7 +636,8 @@ class BuildContext:
                   '\n=============================' +
                   Style.RESET_ALL)
             for target_name, ex in self.failed_nodes.items():
-                if isinstance(ex, CalledProcessError) and (ex.stdout or ex.stderr):
+                if isinstance(ex, CalledProcessError) and \
+                   (ex.stdout or ex.stderr):
                     print('\n\nTarget', target_name,
                           'failed executing command:\n\n')
                     print(' '.join(ex.cmd[0]))
