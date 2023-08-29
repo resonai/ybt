@@ -156,7 +156,26 @@ def archive_handler(unused_build_context, target, fetch, package_dir, tar):
     ext = splitext(package_dest)[-1].lower()
     if ext in ('.gz', '.bz2', '.tgz'):
         with tarfile.open(package_dest, 'r:*') as src_tar:
-            src_tar.extractall(extract_dir)
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
+                
+            
+            safe_extract(src_tar, extract_dir)
     elif ext in ('.zip',):
         with ZipFile(package_dest, 'r') as zipf:
             zipf.extractall(extract_dir)
