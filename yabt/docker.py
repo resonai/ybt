@@ -107,13 +107,16 @@ def get_image_name(target):
             else get_safe_path(target.name.lstrip(':')))
 
 
+DOCKER_FALSES = {'0', 'f', 'false'}
+
+
 def format_qualified_image_name(target):
     if target.builder_name == 'ExtDockerImage':
         if target.props.tag:
             return '{}:{}'.format(target.props.image, target.props.tag)
         return target.props.image
     elif hasattr(target, 'image_id') and target.image_id is not None:
-        if os.environ.get('DOCKER_BUILDKIT', '1').lower() in {'0', 'f', 'false'}:
+        if os.environ.get('DOCKER_BUILDKIT', '1').lower() in DOCKER_FALSES:
             return target.image_id
         return '{}:{}'.format(get_image_name(target), target.image_id)
     elif target.builder_name == 'DockerImage':
