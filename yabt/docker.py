@@ -113,7 +113,9 @@ def format_qualified_image_name(target):
             return '{}:{}'.format(target.props.image, target.props.tag)
         return target.props.image
     elif hasattr(target, 'image_id') and target.image_id is not None:
-        return target.image_id
+        if os.environ.get('DOCKER_BUILDKIT', '1').lower() in {'0', 'f', 'false'}:
+            return target.image_id
+        return '{}:{}'.format(get_image_name(target), target.image_id)
     elif target.builder_name == 'DockerImage':
         return '{}:{}'.format(get_image_name(target), target.props.image_tag)
     else:
@@ -187,6 +189,8 @@ def handle_build_cache(
     local_image = '{}:{}'.format(name, tag)
     if icb.skip_build_if_cached and image_id is not None:
         tag_docker_image(icb.remote_image, local_image)
+        local_image_with_id = '{}:{}'.format(name, image_id)
+        tag_docker_image(icb.remote_image, local_image_with_id)
         return image_id
     if (not icb.allow_build_if_not_cached) and image_id is None:
         raise RuntimeError('No cached image for {}'.format(local_image))
@@ -645,6 +649,8 @@ def build_docker_image(
     run(docker_build_cmd, check=True)
     # TODO(itamar): race condition here
     image_id = get_cached_image_id(docker_image)
+    docker_image_with_id = '{}:{}'.format(name, image_id)
+    tag_docker_image(image_id, docker_image_with_id)
     metadata = {
         'image_id': image_id,
         'images': [{
