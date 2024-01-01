@@ -14,6 +14,11 @@ ExtDockerImage(
     tag='3.7'
 )
 
+ExtDockerImage(
+    'golang',
+    image='golang',
+    tag='1.18')
+
 DockerImage(
     'proto-builder',
     base_image=':ubuntu',
