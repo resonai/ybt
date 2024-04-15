@@ -53,6 +53,7 @@ class Config:
         'cmd',
         'default_target_name',
         'use_fdebug_prefix_map_flag',
+        'run_clang_tidy',
         'docker_volume',
         'flavor',
         'force_pull',
