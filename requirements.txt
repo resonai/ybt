@@ -13,8 +13,8 @@ six>=1.13.0
 google-cloud-storage
 
 # For testing
-flake8
+ruff
 pytest>=4.6
 pytest-cov>=2.6.1
-pytest-flake8>=1.0
+pytest-ruff
 tox>=2.3
