@@ -119,5 +119,6 @@ AptPackage(
 DockerImage(
     'another-image',
     base_image=':the-image',
-    deps=':gcloud'
+    deps=':gcloud',
+    upgrade_pip_packages=True,
 )

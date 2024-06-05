@@ -318,7 +318,7 @@ def build_docker_image(
         distro: dict=None, image_caching_behavior: dict=None,
         runtime_params: dict=None, ybt_bin_path: str=None,
         build_user: str=None, run_user: str=None, labels: dict=None,
-        no_artifacts: bool=False):
+        no_artifacts: bool=False, upgrade_pip_packages: bool=False):
     """Build Docker image, and return a (image_id, image_name:tag) tuple of
        built image, if built successfully.
 
@@ -577,12 +577,14 @@ def build_docker_image(
                     '{pip} install --no-cache-dir --upgrade pip && '
                     .format(pip=pkg_type)
                     if pip_req_cnt[pkg_type] == 0 else '')
+                upgrade_all = '--upgrade' if upgrade_pip_packages else ''
                 dockerfile.extend([
                     'COPY {} /usr/src/\n'.format(req_fname),
                     'RUN {upgrade_pip}'
-                    '{pip} install --no-cache-dir -r /usr/src/{reqs}\n'
+                    '{pip} install {upgrade_all} --no-cache-dir -r '
+                    '/usr/src/{reqs}\n'
                     .format(upgrade_pip=upgrade_pip, pip=pkg_type,
-                            reqs=req_fname)
+                            upgrade_all=upgrade_all, reqs=req_fname)
                 ])
                 pip_req_cnt[pkg_type] += 1
 

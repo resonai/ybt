@@ -74,6 +74,7 @@ register_builder_sig(
      ('build_user', PT.str, None),
      ('run_user', PT.str, None),
      ('docker_labels', PT.dict, None),
+     ('upgrade_pip_packages', PT.bool, False),
      ])
 
 
@@ -118,7 +119,8 @@ def docker_builder(build_context, target, entrypoint=None, ybt_bin_path=None):
             ybt_bin_path=ybt_bin_path,
             build_user=target.props.build_user,
             run_user=target.props.run_user,
-            labels=target.props.docker_labels))
+            labels=target.props.docker_labels,
+            upgrade_pip_packages=target.props.upgrade_pip_packages))
     target.image_id = metadata['image_id']
     target.artifacts.add(
         AT.docker_image, target.image_id,
