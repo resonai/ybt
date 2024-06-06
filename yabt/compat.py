@@ -20,4 +20,4 @@ yabt Compatability module
 
 :author: Itamar Ostricher
 """
-
+from os import scandir, walk  # noqa: F401
