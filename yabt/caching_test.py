@@ -68,7 +68,7 @@ def test_prebuilt_targets_case2(basic_conf):
 
 @pytest.mark.slow
 @pytest.mark.usefixtures('in_caching_project')
-def test_prebuilt_targets_case1(basic_conf):
+def test_prebuilt_targets_case3(basic_conf):
     """Test pre-built case #3 - unzip & ubuntu should NOT mark as prebuilt.
 
     See issue: https://github.com/resonai/ybt/issues/61

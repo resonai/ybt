@@ -48,6 +48,7 @@ def register_app_builder_sig(builder_name, sig=None, docstring=None):
             ('build_user', PT.str, None),
             ('run_user', PT.str, None),
             ('docker_labels', PT.dict, None),
+            ('upgrade_pip_packages', PT.bool, False),
         ], cachable=False, docstring=docstring)
 
 

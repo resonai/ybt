@@ -32,7 +32,7 @@ from ostrich.utils.text import get_safe_path
 from .extend import Plugin
 from .logging import configure_logging
 from .scm import ScmManager
-from .utils import norm_proj_path, search_for_parent_dir
+from .utils import norm_proj_path
 
 
 BUILD_PROJ_FILE = 'YRoot'

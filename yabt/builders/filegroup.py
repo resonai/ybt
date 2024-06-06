@@ -26,8 +26,7 @@ yabt File group builder
 
 from ..artifact import ArtifactType as AT
 from ..extend import (
-    PropType as PT, register_build_func, register_builder_sig,
-    register_manipulate_target_hook)
+    PropType as PT, register_build_func, register_builder_sig)
 from ..utils import yprint
 
 

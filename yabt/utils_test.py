@@ -24,7 +24,6 @@ yabt utils tests
 
 from os.path import join
 
-import pytest
 
 from .utils import hash_tree, hash_file
 

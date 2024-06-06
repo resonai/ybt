@@ -73,7 +73,7 @@ register_builder_sig(
 
 
 @register_build_func('Python')
-def python_app_builder(build_context, target):
+def python_lib_builder(build_context, target):
     yprint(build_context.conf, 'Build Python', target)
     for src in chain(target.props.sources, target.props.data):
         target.artifacts.add(AT.app, src)

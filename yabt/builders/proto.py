@@ -22,15 +22,12 @@ yabt ProtoBuf builder
 """
 
 
-import os
 from os.path import dirname, isfile, join, relpath, splitext
 from pathlib import Path, PurePath
 
-from ostrich.utils.path import commonpath
 from ostrich.utils.text import get_safe_path
 
 from ..artifact import ArtifactType as AT
-from ..compat import walk
 from ..extend import (
     PropType as PT, register_build_func, register_builder_sig,
     register_manipulate_target_hook)

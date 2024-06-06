@@ -38,7 +38,7 @@ class GlobalCache:
         """
         returns True if the cache has a target matching the hash
         """
-        raise NotImplemented('Method has_cache of class {} was not '
+        raise NotImplementedError('Method has_cache of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
     def download_summary(self, target_hash: str, dst: str) -> bool:
@@ -47,7 +47,7 @@ class GlobalCache:
 
         Returns True if download worked, False otherwise
         """
-        raise NotImplemented('Method download_summary of class {} was not '
+        raise NotImplementedError('Method download_summary of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
     def download_artifacts_meta(self, target_hash: str, dst: str) -> bool:
@@ -57,7 +57,7 @@ class GlobalCache:
 
         Returns True if download worked, False otherwise
         """
-        raise NotImplemented(
+        raise NotImplementedError(
             'Method download_artifacts_meta of class {} was not '
             'implemented'.format(self.__class__.__name__))
 
@@ -68,7 +68,7 @@ class GlobalCache:
 
         Returns True if download worked, False otherwise
         """
-        raise NotImplemented(
+        raise NotImplementedError(
             'Method download_test_cache of class {} was not '
             'implemented'.format(self.__class__.__name__))
 
@@ -83,18 +83,18 @@ class GlobalCache:
         :param dst: the directory to download the artifacts to
         :return: True if download worked, False otherwise
         """
-        raise NotImplemented('Method download_artifacts of class {} was not '
+        raise NotImplementedError('Method download_artifacts of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
     def create_target_cache(self, target_hash: str):
-        raise NotImplemented('Method create_target_cache of class {} was not '
+        raise NotImplementedError('Method create_target_cache of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
     def upload_summary(self, target_hash: str, src: str):
         """
         Upload summary file in `src` describing the target with the given hash
         """
-        raise NotImplemented('Method upload_summary of class {} was not '
+        raise NotImplementedError('Method upload_summary of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
     def upload_artifacts_meta(self, target_hash: str, src: str):
@@ -102,7 +102,7 @@ class GlobalCache:
         Upload the metadata file in `src` describing the artifcats cached for
         the target.
         """
-        raise NotImplemented(
+        raise NotImplementedError(
             'Method upload_artifacts_meta of class {} was not '
             'implemented'.format(self.__class__.__name__))
 
@@ -114,12 +114,12 @@ class GlobalCache:
                                     the required permissions as values.
         :param src: the directory containing the artifacts.
         """
-        raise NotImplemented('Method upload_artifacts of class {} was not '
+        raise NotImplementedError('Method upload_artifacts of class {} was not '
                              'implemented'.format(self.__class__.__name__))
 
     def upload_test_cache(self, target_hash: str, src: str):
         """
         Upload the test data in `src` describing the successful test.
         """
-        raise NotImplemented('Method upload_test_cache of class {} was not '
+        raise NotImplementedError('Method upload_test_cache of class {} was not '
                              'implemented'.format(self.__class__.__name__))

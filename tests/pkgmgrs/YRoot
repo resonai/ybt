@@ -107,7 +107,7 @@ DockerImage(
 AptRepository(
     'gcloud-repository',
     source='deb http://packages.cloud.google.com/apt cloud-sdk-stretch main',
-    key='B53DC80D13EDEF05'
+    key='C0BA5CE6DC6315A3'
 )
 
 AptPackage(
@@ -119,5 +119,6 @@ AptPackage(
 DockerImage(
     'another-image',
     base_image=':the-image',
-    deps=':gcloud'
+    deps=':gcloud',
+    upgrade_pip_packages=True,
 )

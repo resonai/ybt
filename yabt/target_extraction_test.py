@@ -26,11 +26,9 @@ from os import path
 
 import pytest
 
-from .buildcontext import BuildContext
 from .extend import (
-    Plugin, PropType as PT, register_build_func, register_builder_sig,
-    register_manipulate_target_hook)
-from .target_extraction import args_to_props, extractor, handle_typed_args
+    Plugin, PropType as PT, register_builder_sig)
+from .target_extraction import args_to_props, handle_typed_args
 from .target_utils import Target
 
 

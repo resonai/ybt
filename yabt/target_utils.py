@@ -22,7 +22,6 @@ yabt target utils module
 """
 
 
-from collections import defaultdict
 from hashlib import md5
 import json
 from os.path import join, normpath
@@ -35,7 +34,6 @@ from ostrich.utils.text import get_safe_path
 
 from .artifact import ArtifactStore
 from .extend import Plugin, PropType as PT
-from .compat import walk
 from .config import Config
 from .utils import hash_tree, norm_proj_path
 

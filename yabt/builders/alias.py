@@ -25,7 +25,7 @@ yabt Alias Builder
 
 
 from ..extend import (
-    PropType as PT, register_builder_sig, register_manipulate_target_hook)
+    register_builder_sig, register_manipulate_target_hook)
 
 
 register_builder_sig('Alias')

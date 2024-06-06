@@ -24,7 +24,7 @@ yabt Target group builder
 """
 
 
-from ..extend import PropType as PT, register_build_func, register_builder_sig
+from ..extend import register_build_func, register_builder_sig
 from ..utils import yprint
 
 

@@ -27,7 +27,7 @@ import pytest
 from subprocess import check_output, PIPE
 
 from .buildcontext import BuildContext
-from .graph import populate_targets_graph, topological_sort
+from .graph import populate_targets_graph
 from .yabt import cmd_build
 
 

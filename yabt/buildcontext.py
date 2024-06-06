@@ -33,7 +33,7 @@ import platform
 from subprocess import PIPE
 import sys
 import threading
-from time import sleep, time
+from time import time
 
 import networkx as nx
 from colorama import Fore, Style
