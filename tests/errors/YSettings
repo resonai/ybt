@@ -22,3 +22,6 @@ def get_policies(conf):
         policy.standard_licenses_only,
         policy.whitelist_licenses_policy('prod', PROD_LICENSES),
     ]
+
+def known_flavors():
+    return ['debug', 'release', 'validate']
