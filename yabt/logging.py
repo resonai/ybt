@@ -40,7 +40,7 @@ class Message:  # pylint: disable=too-few-public-methods
     def __str__(self):
         try:
             return self.fmt.format(*self.args)
-        except:
+        except Exception:
             # Sometimes we just want to log something with {}, with no
             # formatting. json for example.
             return self.fmt

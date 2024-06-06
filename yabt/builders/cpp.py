@@ -28,7 +28,7 @@ TODO: CppSharedLib builder
 
 
 from hashlib import md5
-from os.path import basename, dirname, join, relpath, splitext
+from os.path import join, relpath, splitext
 
 from ostrich.utils.collections import listify
 
@@ -293,7 +293,6 @@ def link_cpp_artifacts(build_context, target, workspace_dir,
     # include the source & header files of the current target
     # add objects of all dependencies (direct & transitive), if needed
     source_files = target.props.sources + target.props.headers
-    generated_srcs = {}
     objects = []
 
     # add headers of dependencies

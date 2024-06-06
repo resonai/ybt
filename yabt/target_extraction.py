@@ -30,7 +30,7 @@ from ostrich.utils.collections import listify
 from .buildfile_utils import to_build_module
 from .extend import Builder, Empty, Plugin, PropType as PT
 from .logging import make_logger
-from .target_utils import norm_name, split_build_module, Target, validate_name
+from .target_utils import norm_name, Target, validate_name
 from .utils import norm_proj_path
 
 
@@ -173,7 +173,6 @@ def extractor(
         target = Target(builder_name=builder_name)
         # convert args/kwargs to target.props and handle arg types
         args_to_props(target, builder, args, kwargs)
-        raw_name = target.props.name
         handle_typed_args(target, builder, build_module)
         logger.debug('Extracting target: {}', target)
         # promote the `name` and `deps` from props to the target instance

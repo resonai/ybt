@@ -20,7 +20,6 @@
 """
 
 
-import os
 from os.path import isdir, isfile, join
 import shutil
 from subprocess import PIPE
@@ -29,10 +28,8 @@ import pytest
 
 from conftest import reset_parser
 from .. import cli, extend
-from . import proto
 from ..buildcontext import BuildContext
 from ..graph import populate_targets_graph
-from ..utils import yprint
 
 
 PROTO_GEN_DIR = 'ybtproto'  # as defined in tests/proto/YSettings

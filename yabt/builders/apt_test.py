@@ -24,7 +24,6 @@ yabt Apt builder tests
 
 import pytest
 
-from . import apt
 from ..pkgmgmt import parse_apt_repository
 from ..target_utils import Target
 

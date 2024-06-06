@@ -24,16 +24,14 @@ TODO: implement also distributed caching
 will require keeping track of which machine produced what, so it is possible
 to rerun "cached" tests on machines with different hardware (for example).
 """
-import itertools
 import json
 import os
 from functools import partial
 from os import makedirs
-from os.path import isdir, isfile, join, relpath, split, dirname
+from os.path import isdir, isfile, join, dirname
 import shutil
 from time import time
 
-from ostrich.utils.text import get_safe_path
 
 from .artifact import ArtifactType as AT
 from .config import Config
@@ -214,7 +212,7 @@ def load_target_from_cache(target: Target, build_context) -> (bool, bool):
                     image_full_name = artifact['dst']
                     try:
                         tag_docker_image(image_id, image_full_name)
-                    except:
+                    except:  # noqa: E722
                         logger.debug('Docker image with ID {} not found '
                                      'locally', image_id)
                         target.artifacts.reset()

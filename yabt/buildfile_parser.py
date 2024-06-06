@@ -31,7 +31,6 @@ import colorama
 from .config import Config
 from .glob import glob
 from .logging import make_logger
-from .scm import SourceControl
 
 
 logger = make_logger(__name__)
@@ -92,7 +91,7 @@ def process_build_file(buildfile_path: str, build_context, conf: Config):
             # pylint: disable=exec-used
             exec(buildfile.read(), global_context,
                  build_context.get_target_extraction_context(buildfile_path))
-        except:
+        except:  # noqa: E722
             report_buildfile_error(buildfile_path, conf)
         finally:
             os.chdir(curdir)
