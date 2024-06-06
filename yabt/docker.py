@@ -577,11 +577,11 @@ def build_docker_image(
                     '{pip} install --no-cache-dir --upgrade pip && '
                     .format(pip=pkg_type)
                     if pip_req_cnt[pkg_type] == 0 else '')
-                upgrade_all = '--upgrade' if upgrade_pip_packages else ''
+                upgrade_all = ' --upgrade ' if upgrade_pip_packages else ' '
                 dockerfile.extend([
                     'COPY {} /usr/src/\n'.format(req_fname),
                     'RUN {upgrade_pip}'
-                    '{pip} install {upgrade_all} --no-cache-dir -r '
+                    '{pip} install{upgrade_all}--no-cache-dir -r '
                     '/usr/src/{reqs}\n'
                     .format(upgrade_pip=upgrade_pip, pip=pkg_type,
                             upgrade_all=upgrade_all, reqs=req_fname)
