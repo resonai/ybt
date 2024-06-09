@@ -1,3 +1,6 @@
+# Obsolete!
+# Not in use since PR #255
+# TODO(eyal): delete once we are comfortable with github action
 sudo: required
 arch: amd64
 os: linux
