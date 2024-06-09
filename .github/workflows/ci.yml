@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - 'v[0-9]+.[0-9]+.[0-9]+' # Push events on version tag
+  pull_request:
+    branches:
+      - master
+
+jobs:
+
+  test:
+    name: Test
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -U importlib_metadata
+        pip install -r requirements.txt
+    - name: Run tests
+      run: make test
+
+  deploy:
+    name: Deploy to PyPI
+    runs-on: ubuntu-20.04
+    needs: test
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      # https://docs.pypi.org/trusted-publishers/using-a-publisher/
+      id-token: write
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build
+    - name: Build package
+      run: python -m build
+    - name: Publish package
+      uses: pypa/gh-action-pypi-publish@release/v1
