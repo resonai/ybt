@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - 'v*' # Push events on tags starting with 'v' (e.g., v1.0, v2.1.3)
+      - 'v[0-9]+.[0-9]+.[0-9]+' # Push events on version tag
   pull_request:
     branches:
       - master
