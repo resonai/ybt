@@ -31,6 +31,11 @@ jobs:
         pip install -r requirements.txt
     - name: Run tests
       run: make test
+    - name: Check if tag matches regex
+      run: |
+        echo "TAG_MATCHES_REGEX=$(echo '${{ github.ref }}' | grep -E 'v[0-9]+.[0-9]+.[0-9]+')"
+      outputs:
+        TAG_MATCHES_REGEX: ${{ steps.Check-if-tag-matches-regex.outputs.TAG_MATCHES_REGEX }}
 
   deploy:
     name: Deploy to PyPI
@@ -40,8 +45,7 @@ jobs:
       # IMPORTANT: this permission is mandatory for trusted publishing
       # https://docs.pypi.org/trusted-publishers/using-a-publisher/
       id-token: write
-    if: startsWith(github.ref, 'refs/tags/') && toString(github.ref) =~ /^refs\/tags\/v\d+\.\d+\.\d+$/
-    steps:
+    if: steps.Check-if-tag-matches-regex.outputs.TAG_MATCHES_REGEX == 'true'         steps:
     - uses: actions/checkout@v4
     - name: Set up Python
       uses: actions/setup-python@v3
