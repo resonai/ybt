@@ -20,9 +20,7 @@
 Print to stdout the semantic +1 of the current version number.
 """
 
-from distutils.version import LooseVersion
-
 import yabt
 
-v = LooseVersion(yabt.__version__).version
+v = list(map(int, yabt.__version__.split('.')))
 print('.'.join(map(str, v[:-1] + [v[-1] + 1])))

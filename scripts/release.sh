@@ -30,11 +30,11 @@ echo "Current version number is $CUR_VER"
 AUTO_NEW_VER="$( ./scripts/bumpver.py )"
 read -p "New version number ($AUTO_NEW_VER): " USER_NEW_VER
 NEW_VER=${USER_NEW_VER:-$AUTO_NEW_VER}
-if ! python -c 'from distutils.version import LooseVersion as LV; import sys; \
-        sys.exit(int(LV("'$NEW_VER'") <= LV("'$CUR_VER'")))'; then
-    echo "ERROR: New version must be greater than old version!"
-    exit 1
-fi
+# if ! python -c 'from distutils.version import LooseVersion as LV; import sys; \
+#         sys.exit(int(LV("'$NEW_VER'") <= LV("'$CUR_VER'")))'; then
+#     echo "ERROR: New version must be greater than old version!"
+#     exit 1
+# fi
 sed -i.bak "s/__version__ = .*/__version__ = '$NEW_VER'/" yabt/__init__.py
 rm yabt/__init__.py.bak
 echo "Bumped version number to $NEW_VER"
