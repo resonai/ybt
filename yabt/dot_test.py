@@ -94,10 +94,11 @@ def test_cached_targets_different_color(basic_conf):
     populate_targets_graph(build_context, basic_conf)
     cached_targets = {':build-tools', ':tools', ':unzip', ':ubuntu'}
     other_targets = {':builder', ':builder-base'}
-    expected_dot_nodes = set([
-        '  "{}" \[color=".*",fillcolor="grey",style=filled\];'.format(target)
-        for target in cached_targets] + [
-        '  "{}" \[color=".*",\];'.format(target) for target in other_targets])
+    expected_dot_nodes = set(
+        ['  "{}" \\[color=".*",fillcolor="grey",style=filled\\];'
+         .format(target) for target in cached_targets] +
+        ['  "{}" \\[color=".*",\\];'.format(target)
+         for target in other_targets])
     with io.StringIO() as dot_io:
         write_dot(build_context, basic_conf, dot_io)
         dot_lines = dot_io.getvalue().strip('\n').split('\n')
