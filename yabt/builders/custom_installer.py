@@ -30,7 +30,8 @@ from os.path import basename, isdir, join, relpath, splitext
 import shutil
 import tarfile
 from urllib.parse import urlparse
-from zipfile import ZipFile
+# Temporarily deprecated, see comment below
+# from zipfile import ZipFile
 
 import git
 from git import InvalidGitRepositoryError, NoSuchPathError
@@ -64,7 +65,10 @@ CustomInstaller = namedtuple('CustomInstaller',
 FetchDesc = namedtuple('FetchDesc', ['uri', 'type', 'name'])
 
 
-KNOWN_ARCHIVES = frozenset(('.gz', '.bz2', '.tgz', '.zip'))
+KNOWN_ARCHIVES = frozenset((
+    '.gz', '.bz2', '.tgz',
+    # '.zip'
+    ))
 
 
 def guess_uri_type(uri: str, hint: str=None):
@@ -157,9 +161,11 @@ def archive_handler(unused_build_context, target, fetch, package_dir, tar):
     if ext in ('.gz', '.bz2', '.tgz'):
         with tarfile.open(package_dest, 'r:*') as src_tar:
             src_tar.extractall(extract_dir)
-    elif ext in ('.zip',):
-        with ZipFile(package_dest, 'r') as zipf:
-            zipf.extractall(extract_dir)
+    # TODO(shai) https://stackoverflow.com/questions/39296101/python-zipfile-removes-execute-permissions-from-binaries
+    # We deprecated this features since it's broken
+    # elif ext in ('.zip',):
+    #     with ZipFile(package_dest, 'r') as zipf:
+    #         zipf.extractall(extract_dir)
     else:
         raise ValueError('Unsupported extension {}'.format(ext))
     tar.add(package_content_dir, arcname=split_name(target.name))
