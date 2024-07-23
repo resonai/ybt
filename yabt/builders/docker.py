@@ -75,7 +75,7 @@ register_builder_sig(
      ('run_user', PT.str, None),
      ('docker_labels', PT.dict, None),
      ('upgrade_pip_packages', PT.bool, False),
-     ])
+     ], cachable=False)
 
 
 @register_manipulate_target_hook('DockerImage')
